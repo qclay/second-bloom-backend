@@ -1,0 +1,15 @@
+import { PrismaService } from '../../../prisma/prisma.service';
+import { IReviewRepository } from '../interfaces/review-repository.interface';
+import { Review, Prisma } from '@prisma/client';
+export declare class ReviewRepository implements IReviewRepository {
+    private readonly prisma;
+    constructor(prisma: PrismaService);
+    findById(id: string): Promise<Review | null>;
+    create(data: Prisma.ReviewCreateInput): Promise<Review>;
+    update(id: string, data: Prisma.ReviewUpdateInput): Promise<Review>;
+    delete(id: string): Promise<Review>;
+    findMany(args: Prisma.ReviewFindManyArgs): Promise<Review[]>;
+    count(args: Prisma.ReviewCountArgs): Promise<number>;
+    findReplies(parentId: string): Promise<Review[]>;
+    incrementHelpfulCount(id: string): Promise<Review>;
+}

@@ -1,0 +1,15 @@
+import { PrismaService } from '../../../prisma/prisma.service';
+import { IProductRepository } from '../interfaces/product-repository.interface';
+import { Product, Prisma } from '@prisma/client';
+export declare class ProductRepository implements IProductRepository {
+    private readonly prisma;
+    constructor(prisma: PrismaService);
+    findById(id: string): Promise<Product | null>;
+    findBySlug(slug: string): Promise<Product | null>;
+    create(data: Prisma.ProductCreateInput): Promise<Product>;
+    update(id: string, data: Prisma.ProductUpdateInput): Promise<Product>;
+    softDelete(id: string, deletedBy: string): Promise<Product>;
+    findMany(args: Prisma.ProductFindManyArgs): Promise<Product[]>;
+    count(args: Prisma.ProductCountArgs): Promise<number>;
+    incrementViews(id: string): Promise<Product>;
+}

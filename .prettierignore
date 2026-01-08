@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+build
+coverage
+
+# Environment files
+.env*
+
+# Prisma
+prisma/migrations
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Logs
+*.log
+logs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (optional - uncomment if you don't want to format docs)
+# *.md
