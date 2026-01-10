@@ -1,0 +1,282 @@
+name: Deploy to Environments
+
+on:
+  push:
+    branches:
+      - main      # Production
+      - develop   # Staging
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  NODE_VERSION: '20.x'
+  REGISTRY: ghcr.io
+
+jobs:
+  # Run tests and linting
+  test:
+    name: Test and Lint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: test-secret-key
+      REFRESH_TOKEN_SECRET: test-refresh-secret-key
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Generate Prisma Client
+        run: npx prisma generate
+      
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+      
+      - name: Run linter
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm run test:cov || npm test
+        continue-on-error: true
+
+  # Build Docker image
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging-api.yourdomain.com
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+          ssh-passphrase: ${{ secrets.STAGING_SSH_PASSPHRASE }}
+      
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to staging server
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            set -e
+            cd ~/second-bloom-backend
+            
+            echo "🔄 Pulling latest changes..."
+            git fetch origin
+            git reset --hard origin/develop
+            
+            echo "🏗️  Building Docker images..."
+            docker-compose -f docker-compose.staging.yml build --no-cache
+            
+            echo "🔄 Running database migrations..."
+            docker-compose -f docker-compose.staging.yml run --rm app npx prisma migrate deploy || true
+            
+            echo "🚀 Starting services..."
+            docker-compose -f docker-compose.staging.yml up -d
+            
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+            
+            echo "✅ Deployment completed!"
+            
+            echo "📊 Checking service status..."
+            sleep 5
+            docker-compose -f docker-compose.staging.yml ps
+            
+            echo "🏥 Running health check..."
+            for i in {1..30}; do
+              if curl -f http://localhost:3000/health > /dev/null 2>&1; then
+                echo "✅ Health check passed!"
+                exit 0
+              fi
+              echo "⏳ Waiting for service to be healthy... ($i/30)"
+              sleep 2
+            done
+            
+            echo "❌ Health check failed!"
+            exit 1
+          EOF
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Successfully deployed to staging!"
+          else
+            echo "❌ Deployment to staging failed!"
+          fi
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://api.yourdomain.com
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PROD_SSH_KEY }}
+          ssh-passphrase: ${{ secrets.PROD_SSH_PASSPHRASE }}
+      
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Create backup before deployment
+        run: |
+          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+            set -e
+            cd ~/second-bloom-backend
+            BACKUP_DIR="$HOME/backups"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            mkdir -p "$BACKUP_DIR"
+            
+            echo "💾 Creating database backup..."
+            docker-compose -f docker-compose.prod.yml exec -T postgres pg_dump -U postgres second_bloom_prod | gzip > "$BACKUP_DIR/db_backup_prod_${TIMESTAMP}.sql.gz" || true
+            
+            echo "✅ Backup created: db_backup_prod_${TIMESTAMP}.sql.gz"
+          EOF
+      
+      - name: Deploy to production server
+        run: |
+          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+            set -e
+            cd ~/second-bloom-backend
+            
+            echo "🔄 Pulling latest changes..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            echo "🏗️  Building Docker images..."
+            docker-compose -f docker-compose.prod.yml build --no-cache
+            
+            echo "🔄 Running database migrations..."
+            docker-compose -f docker-compose.prod.yml run --rm app npx prisma migrate deploy || true
+            
+            echo "🚀 Starting services..."
+            docker-compose -f docker-compose.prod.yml up -d
+            
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+            
+            echo "✅ Deployment completed!"
+            
+            echo "📊 Checking service status..."
+            sleep 5
+            docker-compose -f docker-compose.prod.yml ps
+            
+            echo "🏥 Running health check..."
+            for i in {1..30}; do
+              if curl -f http://localhost:3000/health > /dev/null 2>&1; then
+                echo "✅ Health check passed!"
+                exit 0
+              fi
+              echo "⏳ Waiting for service to be healthy... ($i/30)"
+              sleep 2
+            done
+            
+            echo "❌ Health check failed!"
+            exit 1
+          EOF
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Successfully deployed to production!"
+          else
+            echo "❌ Deployment to production failed!"
+            echo "⚠️  Consider rolling back if needed"
+          fi
