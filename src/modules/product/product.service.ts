@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { ProductRepository } from './repositories/product.repository';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -14,13 +15,19 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { Prisma, ProductStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRepository } from '../category/repositories/category.repository';
+import { CacheService } from '../../common/services/cache.service';
 
 @Injectable()
 export class ProductService {
+  private readonly logger = new Logger(ProductService.name);
+  private readonly CACHE_PREFIX = 'product';
+  private readonly CACHE_TTL = 1800; // 30 minutes (products change more frequently than categories)
+
   constructor(
     private readonly productRepository: ProductRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async createProduct(
@@ -88,7 +95,12 @@ export class ProductService {
       },
     );
 
-    return this.findById(product.id);
+    const result = await this.findById(product.id);
+
+    // Invalidate cache
+    await this.cacheService.invalidateEntity(this.CACHE_PREFIX);
+
+    return result;
   }
 
   async findAll(query: ProductQueryDto) {
@@ -182,6 +194,44 @@ export class ProductService {
       orderBy.createdAt = 'desc';
     }
 
+    // Build cache key (only cache if no search and standard filters)
+    const shouldCache = !search && page === 1 && maxLimit <= 50;
+    const cacheKey = shouldCache
+      ? this.cacheService.generateListKey(this.CACHE_PREFIX, {
+          page,
+          limit: maxLimit,
+          categoryId,
+          sellerId,
+          isFeatured,
+          type,
+          status,
+          region,
+          city,
+          sortBy,
+          sortOrder,
+        })
+      : null;
+
+    // Try cache first
+    if (cacheKey) {
+      const cached = await this.cacheService.get<{
+        data: ProductResponseDto[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+        };
+      }>(cacheKey);
+
+      if (cached) {
+        this.logger.debug(`Cache hit for products list: ${cacheKey}`);
+        return cached;
+      }
+    }
+
     const [products, total] = await Promise.all([
       this.productRepository.findMany({
         where,
@@ -219,7 +269,7 @@ export class ProductService {
       this.productRepository.count({ where }),
     ]);
 
-    return {
+    const result = {
       data: products.map((product) => ProductResponseDto.fromEntity(product)),
       meta: {
         total,
@@ -230,6 +280,14 @@ export class ProductService {
         hasPreviousPage: page > 1,
       },
     };
+
+    // Cache result
+    if (shouldCache && cacheKey) {
+      await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+      this.logger.debug(`Cached products list: ${cacheKey}`);
+    }
+
+    return result;
   }
 
   async searchProducts(query: ProductSearchDto) {
@@ -407,6 +465,21 @@ export class ProductService {
     id: string,
     incrementViews = false,
   ): Promise<ProductResponseDto> {
+    // Only cache if not incrementing views (views change data)
+    const shouldCache = !incrementViews;
+    const cacheKey = shouldCache
+      ? this.cacheService.generateKey(this.CACHE_PREFIX, id)
+      : null;
+
+    // Try cache first
+    if (shouldCache && cacheKey) {
+      const cached = await this.cacheService.get<ProductResponseDto>(cacheKey);
+      if (cached) {
+        this.logger.debug(`Cache hit for product: ${id}`);
+        return cached;
+      }
+    }
+
     const productWithRelations = await this.prisma.product.findUnique({
       where: { id },
       include: {
@@ -448,9 +521,19 @@ export class ProductService {
 
     if (incrementViews) {
       await this.productRepository.incrementViews(id);
+      // Invalidate cache when views are incremented
+      await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
     }
 
-    return ProductResponseDto.fromEntity(productWithRelations);
+    const result = ProductResponseDto.fromEntity(productWithRelations);
+
+    // Cache result (only if not incrementing views)
+    if (shouldCache && cacheKey) {
+      await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+      this.logger.debug(`Cached product: ${id}`);
+    }
+
+    return result;
   }
 
   async updateProduct(
@@ -609,6 +692,9 @@ export class ProductService {
     }
 
     await this.productRepository.softDelete(id, userId);
+
+    // Invalidate cache
+    await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
   }
 
   private generateSlug(title: string): string {

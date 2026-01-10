@@ -590,7 +590,6 @@ export class OrderService {
       SHIPPED: ['DELIVERED', 'CANCELLED'],
       DELIVERED: [],
       CANCELLED: [],
-      REFUNDED: [],
     };
 
     const allowedStatuses = validTransitions[currentStatus] ?? [];

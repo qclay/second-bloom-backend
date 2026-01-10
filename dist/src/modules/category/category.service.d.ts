@@ -5,10 +5,16 @@ import { CategoryQueryDto } from './dto/category-query.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 export declare class CategoryService {
     private readonly categoryRepository;
     private readonly prisma;
-    constructor(categoryRepository: CategoryRepository, prisma: PrismaService);
+    private readonly redisService;
+    private readonly logger;
+    private readonly CACHE_TTL;
+    private readonly CACHE_PREFIX;
+    private readonly CACHE_LIST_PREFIX;
+    constructor(categoryRepository: CategoryRepository, prisma: PrismaService, redisService: RedisService);
     createCategory(dto: CreateCategoryDto, userRole: UserRole): Promise<CategoryResponseDto>;
     findAll(query: CategoryQueryDto): Promise<{
         data: CategoryResponseDto[];
@@ -23,6 +29,7 @@ export declare class CategoryService {
     findChildren(parentId: string): Promise<CategoryResponseDto[]>;
     updateCategory(id: string, dto: UpdateCategoryDto, userRole: UserRole): Promise<CategoryResponseDto>;
     deleteCategory(id: string, userRole: UserRole): Promise<void>;
+    private invalidateCache;
     private generateSlug;
     private getMaxOrder;
     private isDescendant;

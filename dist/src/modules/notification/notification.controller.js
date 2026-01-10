@@ -25,6 +25,7 @@ const current_user_decorator_1 = require("../../common/decorators/current-user.d
 const client_1 = require("@prisma/client");
 const sanitize_pipe_1 = require("../../common/pipes/sanitize.pipe");
 const swagger_1 = require("@nestjs/swagger");
+const api_success_responses_decorator_1 = require("../../common/decorators/api-success-responses.decorator");
 let NotificationController = class NotificationController {
     notificationService;
     constructor(notificationService) {
@@ -68,11 +69,7 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Create a new notification (Admin only)' }),
-    (0, swagger_1.ApiResponse)({
-        status: 201,
-        description: 'Notification created successfully',
-        type: notification_response_dto_1.NotificationResponseDto,
-    }),
+    (0, api_success_responses_decorator_1.ApiSuccessResponse)(201, 'Notification created successfully', notification_response_dto_1.NotificationResponseDto),
     openapi.ApiResponse({ status: common_1.HttpStatus.CREATED, type: require("./dto/notification-response.dto").NotificationResponseDto }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, current_user_decorator_1.CurrentUser)('role')),
@@ -85,7 +82,7 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Get all notifications' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of notifications' }),
+    (0, api_success_responses_decorator_1.ApiPaginatedResponse)(notification_response_dto_1.NotificationResponseDto, 'List of notifications'),
     openapi.ApiResponse({ status: 200 }),
     __param(0, (0, common_1.Query)()),
     __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
@@ -102,19 +99,7 @@ __decorate([
         summary: 'Get unread notification count',
         description: 'Returns the count of unread notifications for the current user. Useful for displaying badge counts in the UI.',
     }),
-    (0, swagger_1.ApiResponse)({
-        status: 200,
-        description: 'Unread notification count retrieved successfully',
-        schema: {
-            type: 'object',
-            properties: {
-                count: {
-                    type: 'number',
-                    example: 5,
-                },
-            },
-        },
-    }),
+    (0, api_success_responses_decorator_1.ApiSuccessResponse)(200, 'Unread notification count retrieved successfully'),
     (0, swagger_1.ApiResponse)({
         status: 401,
         description: 'Unauthorized',
@@ -130,12 +115,7 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Get notification by ID' }),
-    (0, swagger_1.ApiResponse)({
-        status: 200,
-        description: 'Notification details',
-        type: notification_response_dto_1.NotificationResponseDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: 404, description: 'Notification not found' }),
+    (0, api_success_responses_decorator_1.ApiSuccessResponse)(200, 'Notification details', notification_response_dto_1.NotificationResponseDto),
     openapi.ApiResponse({ status: 200, type: require("./dto/notification-response.dto").NotificationResponseDto }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
@@ -150,11 +130,7 @@ __decorate([
     (0, common_1.UsePipes)(new sanitize_pipe_1.SanitizePipe()),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Update notification' }),
-    (0, swagger_1.ApiResponse)({
-        status: 200,
-        description: 'Notification updated',
-        type: notification_response_dto_1.NotificationResponseDto,
-    }),
+    (0, api_success_responses_decorator_1.ApiSuccessResponse)(200, 'Notification updated', notification_response_dto_1.NotificationResponseDto),
     openapi.ApiResponse({ status: 200, type: require("./dto/notification-response.dto").NotificationResponseDto }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -170,7 +146,7 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Mark notification as read' }),
-    (0, swagger_1.ApiResponse)({ status: 204, description: 'Notification marked as read' }),
+    (0, api_success_responses_decorator_1.ApiSuccessResponse)(204, 'Notification marked as read'),
     openapi.ApiResponse({ status: common_1.HttpStatus.NO_CONTENT }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
@@ -185,10 +161,7 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Mark all notifications as read' }),
-    (0, swagger_1.ApiResponse)({
-        status: 200,
-        description: 'All notifications marked as read',
-    }),
+    (0, api_success_responses_decorator_1.ApiSuccessResponse)(200, 'All notifications marked as read'),
     openapi.ApiResponse({ status: common_1.HttpStatus.OK }),
     __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
     __metadata("design:type", Function),
@@ -201,7 +174,7 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Delete notification' }),
-    (0, swagger_1.ApiResponse)({ status: 204, description: 'Notification deleted' }),
+    (0, api_success_responses_decorator_1.ApiSuccessResponse)(204, 'Notification deleted'),
     openapi.ApiResponse({ status: common_1.HttpStatus.NO_CONTENT }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, current_user_decorator_1.CurrentUser)('id')),

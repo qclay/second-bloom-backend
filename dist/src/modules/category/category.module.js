@@ -11,11 +11,14 @@ const common_1 = require("@nestjs/common");
 const category_service_1 = require("./category.service");
 const category_controller_1 = require("./category.controller");
 const category_repository_1 = require("./repositories/category.repository");
+const redis_module_1 = require("../../redis/redis.module");
+const prisma_module_1 = require("../../prisma/prisma.module");
 let CategoryModule = class CategoryModule {
 };
 exports.CategoryModule = CategoryModule;
 exports.CategoryModule = CategoryModule = __decorate([
     (0, common_1.Module)({
+        imports: [prisma_module_1.PrismaModule, redis_module_1.RedisModule],
         controllers: [category_controller_1.CategoryController],
         providers: [category_service_1.CategoryService, category_repository_1.CategoryRepository],
         exports: [category_service_1.CategoryService, category_repository_1.CategoryRepository],

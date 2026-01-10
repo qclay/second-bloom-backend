@@ -10,6 +10,7 @@ import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { ValidationExceptionFilter } from './filters/validation-exception.filter';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { SentryService } from './services/sentry.service';
+import { CacheService } from './services/cache.service';
 import { RedisModule } from '../redis/redis.module';
 import { LoggerModule } from './logger/logger.module';
 import { MetricsModule } from '../metrics/metrics.module';
@@ -20,6 +21,7 @@ import { ConfigModule } from '../config/config.module';
   imports: [RedisModule, LoggerModule, MetricsModule, ConfigModule],
   providers: [
     SentryService,
+    CacheService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
@@ -57,6 +59,6 @@ import { ConfigModule } from '../config/config.module';
       useClass: AllExceptionsFilter,
     },
   ],
-  exports: [SentryService],
+  exports: [SentryService, CacheService],
 })
 export class CommonModule {}

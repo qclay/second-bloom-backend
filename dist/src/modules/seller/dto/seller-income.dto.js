@@ -34,7 +34,10 @@ __decorate([
     __metadata("design:type", String)
 ], SellerIncomeDto.prototype, "currency", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 2000000, description: 'Pending income (not yet paid)' }),
+    (0, swagger_1.ApiProperty)({
+        example: 2000000,
+        description: 'Pending income (not yet paid)',
+    }),
     __metadata("design:type", Number)
 ], SellerIncomeDto.prototype, "pendingIncome", void 0);
 __decorate([
@@ -50,7 +53,7 @@ __decorate([
     __metadata("design:type", Number)
 ], SellerIncomeDto.prototype, "lastMonth", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 0, description: 'Refunded amount' }),
+    (0, swagger_1.ApiProperty)({ example: 0, description: 'Refunded amount (deprecated)' }),
     __metadata("design:type", Number)
 ], SellerIncomeDto.prototype, "refundedAmount", void 0);
 //# sourceMappingURL=seller-income.dto.js.map

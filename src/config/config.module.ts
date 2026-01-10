@@ -5,7 +5,6 @@ import { jwtConfig } from './jwt.config';
 import { redisConfig } from './redis.config';
 import { awsConfig } from './aws.config';
 import { smsConfig } from './sms.config';
-import { paymentConfig } from './payment.config';
 import { sentryConfig } from './sentry.config';
 import { firebaseConfig } from './firebase.config';
 import telegramConfig from './telegram.config';
@@ -22,7 +21,6 @@ import { validateEnv } from './env.validation';
         redisConfig,
         awsConfig,
         smsConfig,
-        paymentConfig,
         sentryConfig,
         firebaseConfig,
         telegramConfig,

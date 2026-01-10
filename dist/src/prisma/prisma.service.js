@@ -27,9 +27,21 @@ let PrismaService = PrismaService_1 = class PrismaService extends client_1.Prism
         if (!process.env.DATABASE_URL) {
             throw new Error('DATABASE_URL is required. Please set it in your .env file.');
         }
-        const pool = new pg_1.Pool({
-            connectionString: process.env.DATABASE_URL,
-        });
+        const connectionString = process.env.DATABASE_URL;
+        const poolConfig = {
+            connectionString,
+        };
+        if (process.env.NODE_ENV === 'production') {
+            poolConfig.max = parseInt(process.env.DB_POOL_MAX || '20', 10);
+            poolConfig.min = parseInt(process.env.DB_POOL_MIN || '5', 10);
+            poolConfig.idleTimeoutMillis = parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10);
+            poolConfig.connectionTimeoutMillis = parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '10000', 10);
+        }
+        else {
+            poolConfig.max = parseInt(process.env.DB_POOL_MAX || '10', 10);
+            poolConfig.min = parseInt(process.env.DB_POOL_MIN || '2', 10);
+        }
+        const pool = new pg_1.Pool(poolConfig);
         const adapter = new adapter_pg_1.PrismaPg(pool);
         super({
             adapter,

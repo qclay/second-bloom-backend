@@ -10,7 +10,6 @@ exports.InfrastructureModule = void 0;
 const common_1 = require("@nestjs/common");
 const sms_module_1 = require("./sms/sms.module");
 const aws_module_1 = require("./aws/aws.module");
-const payment_module_1 = require("./payment/payment.module");
 const firebase_module_1 = require("./firebase/firebase.module");
 const telegram_module_1 = require("./telegram/telegram.module");
 let InfrastructureModule = class InfrastructureModule {
@@ -19,20 +18,8 @@ exports.InfrastructureModule = InfrastructureModule;
 exports.InfrastructureModule = InfrastructureModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
-        imports: [
-            sms_module_1.SmsModule,
-            aws_module_1.AwsModule,
-            payment_module_1.PaymentInfrastructureModule,
-            firebase_module_1.FirebaseModule,
-            telegram_module_1.TelegramModule,
-        ],
-        exports: [
-            sms_module_1.SmsModule,
-            aws_module_1.AwsModule,
-            payment_module_1.PaymentInfrastructureModule,
-            firebase_module_1.FirebaseModule,
-            telegram_module_1.TelegramModule,
-        ],
+        imports: [sms_module_1.SmsModule, aws_module_1.AwsModule, firebase_module_1.FirebaseModule, telegram_module_1.TelegramModule],
+        exports: [sms_module_1.SmsModule, aws_module_1.AwsModule, firebase_module_1.FirebaseModule, telegram_module_1.TelegramModule],
     })
 ], InfrastructureModule);
 //# sourceMappingURL=infrastructure.module.js.map

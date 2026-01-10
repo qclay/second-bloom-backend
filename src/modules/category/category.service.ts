@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { CategoryRepository } from './repositories/category.repository';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -13,12 +14,19 @@ import { CategoryResponseDto } from './dto/category-response.dto';
 import { Prisma, Category } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 
 @Injectable()
 export class CategoryService {
+  private readonly logger = new Logger(CategoryService.name);
+  private readonly CACHE_TTL = 3600; // 1 hour
+  private readonly CACHE_PREFIX = 'category:';
+  private readonly CACHE_LIST_PREFIX = 'categories:list:';
+
   constructor(
     private readonly categoryRepository: CategoryRepository,
     private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
   ) {}
 
   async createCategory(
@@ -71,6 +79,9 @@ export class CategoryService {
       order,
     });
 
+    // Invalidate cache
+    await this.invalidateCache();
+
     return CategoryResponseDto.fromEntity(category);
   }
 
@@ -85,6 +96,34 @@ export class CategoryService {
     } = query;
     const maxLimit = Math.min(limit, 100);
     const skip = (page - 1) * maxLimit;
+
+    // Build cache key
+    const cacheKey = `${this.CACHE_LIST_PREFIX}${JSON.stringify({
+      page,
+      limit: maxLimit,
+      search,
+      isActive,
+      parentId,
+      includeChildren,
+    })}`;
+
+    // Try to get from cache (only if no search and standard pagination)
+    if (!search && page === 1 && maxLimit <= 50) {
+      const cached = await this.redisService.get<{
+        data: CategoryResponseDto[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      }>(cacheKey);
+
+      if (cached) {
+        this.logger.debug(`Cache hit for categories list: ${cacheKey}`);
+        return cached;
+      }
+    }
 
     const where: Prisma.CategoryWhereInput = {
       deletedAt: null,
@@ -130,7 +169,7 @@ export class CategoryService {
       this.categoryRepository.count({ where }),
     ]);
 
-    return {
+    const result = {
       data: categories.map((category) =>
         CategoryResponseDto.fromEntity(category),
       ),
@@ -141,12 +180,29 @@ export class CategoryService {
         totalPages: Math.ceil(total / maxLimit),
       },
     };
+
+    // Cache result (only if no search and standard pagination)
+    if (!search && page === 1 && maxLimit <= 50) {
+      await this.redisService.set(cacheKey, result, this.CACHE_TTL);
+      this.logger.debug(`Cached categories list: ${cacheKey}`);
+    }
+
+    return result;
   }
 
   async findById(
     id: string,
     includeChildren = false,
   ): Promise<CategoryResponseDto> {
+    const cacheKey = `${this.CACHE_PREFIX}${id}:${includeChildren}`;
+
+    // Try cache first
+    const cached = await this.redisService.get<CategoryResponseDto>(cacheKey);
+    if (cached) {
+      this.logger.debug(`Cache hit for category: ${id}`);
+      return cached;
+    }
+
     let category: Category | (Category & { children?: Category[] }) | null;
 
     if (includeChildren) {
@@ -163,7 +219,13 @@ export class CategoryService {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
 
-    return CategoryResponseDto.fromEntity(category);
+    const result = CategoryResponseDto.fromEntity(category);
+
+    // Cache result
+    await this.redisService.set(cacheKey, result, this.CACHE_TTL);
+    this.logger.debug(`Cached category: ${id}`);
+
+    return result;
   }
 
   async findChildren(parentId: string): Promise<CategoryResponseDto[]> {
@@ -254,6 +316,10 @@ export class CategoryService {
       id,
       updateData,
     );
+
+    // Invalidate cache
+    await this.invalidateCache(id);
+
     return CategoryResponseDto.fromEntity(updatedCategory);
   }
 
@@ -289,6 +355,26 @@ export class CategoryService {
     }
 
     await this.categoryRepository.softDelete(id);
+
+    // Invalidate cache
+    await this.invalidateCache(id);
+  }
+
+  private async invalidateCache(categoryId?: string): Promise<void> {
+    try {
+      // Invalidate specific category cache
+      if (categoryId) {
+        await this.redisService.del(`${this.CACHE_PREFIX}${categoryId}:false`);
+        await this.redisService.del(`${this.CACHE_PREFIX}${categoryId}:true`);
+      }
+
+      // Invalidate all list caches
+      await this.redisService.delPattern(`${this.CACHE_LIST_PREFIX}*`);
+      this.logger.debug('Category cache invalidated');
+    } catch (error) {
+      this.logger.warn('Failed to invalidate cache', error);
+      // Don't throw - cache invalidation failure shouldn't break the operation
+    }
   }
 
   private generateSlug(name: string): string {

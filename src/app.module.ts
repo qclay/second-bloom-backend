@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from './config/config.module';
 import { CommonModule } from './common/common.module';
@@ -65,9 +63,8 @@ import { ThrottlerPerUserGuard } from './common/guards/throttler-per-user.guard'
     JobsModule,
     MetricsModule,
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerPerUserGuard,

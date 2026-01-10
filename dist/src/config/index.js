@@ -20,7 +20,6 @@ __exportStar(require("./jwt.config"), exports);
 __exportStar(require("./redis.config"), exports);
 __exportStar(require("./aws.config"), exports);
 __exportStar(require("./sms.config"), exports);
-__exportStar(require("./payment.config"), exports);
 __exportStar(require("./sentry.config"), exports);
 __exportStar(require("./telegram.config"), exports);
 //# sourceMappingURL=index.js.map

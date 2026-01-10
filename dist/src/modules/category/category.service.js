@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var CategoryService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CategoryService = void 0;
 const common_1 = require("@nestjs/common");
@@ -15,12 +16,19 @@ const category_repository_1 = require("./repositories/category.repository");
 const category_response_dto_1 = require("./dto/category-response.dto");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../../prisma/prisma.service");
-let CategoryService = class CategoryService {
+const redis_service_1 = require("../../redis/redis.service");
+let CategoryService = CategoryService_1 = class CategoryService {
     categoryRepository;
     prisma;
-    constructor(categoryRepository, prisma) {
+    redisService;
+    logger = new common_1.Logger(CategoryService_1.name);
+    CACHE_TTL = 3600;
+    CACHE_PREFIX = 'category:';
+    CACHE_LIST_PREFIX = 'categories:list:';
+    constructor(categoryRepository, prisma, redisService) {
         this.categoryRepository = categoryRepository;
         this.prisma = prisma;
+        this.redisService = redisService;
     }
     async createCategory(dto, userRole) {
         if (userRole !== client_1.UserRole.ADMIN) {
@@ -62,12 +70,28 @@ let CategoryService = class CategoryService {
             isActive: dto.isActive ?? true,
             order,
         });
+        await this.invalidateCache();
         return category_response_dto_1.CategoryResponseDto.fromEntity(category);
     }
     async findAll(query) {
         const { page = 1, limit = 20, search, isActive, parentId, includeChildren = false, } = query;
         const maxLimit = Math.min(limit, 100);
         const skip = (page - 1) * maxLimit;
+        const cacheKey = `${this.CACHE_LIST_PREFIX}${JSON.stringify({
+            page,
+            limit: maxLimit,
+            search,
+            isActive,
+            parentId,
+            includeChildren,
+        })}`;
+        if (!search && page === 1 && maxLimit <= 50) {
+            const cached = await this.redisService.get(cacheKey);
+            if (cached) {
+                this.logger.debug(`Cache hit for categories list: ${cacheKey}`);
+                return cached;
+            }
+        }
         const where = {
             deletedAt: null,
         };
@@ -108,7 +132,7 @@ let CategoryService = class CategoryService {
             }),
             this.categoryRepository.count({ where }),
         ]);
-        return {
+        const result = {
             data: categories.map((category) => category_response_dto_1.CategoryResponseDto.fromEntity(category)),
             meta: {
                 total,
@@ -117,8 +141,19 @@ let CategoryService = class CategoryService {
                 totalPages: Math.ceil(total / maxLimit),
             },
         };
+        if (!search && page === 1 && maxLimit <= 50) {
+            await this.redisService.set(cacheKey, result, this.CACHE_TTL);
+            this.logger.debug(`Cached categories list: ${cacheKey}`);
+        }
+        return result;
     }
     async findById(id, includeChildren = false) {
+        const cacheKey = `${this.CACHE_PREFIX}${id}:${includeChildren}`;
+        const cached = await this.redisService.get(cacheKey);
+        if (cached) {
+            this.logger.debug(`Cache hit for category: ${id}`);
+            return cached;
+        }
         let category;
         if (includeChildren) {
             category = await this.categoryRepository.findWithChildren(id);
@@ -132,7 +167,10 @@ let CategoryService = class CategoryService {
         if (category.deletedAt) {
             throw new common_1.NotFoundException(`Category with ID ${id} not found`);
         }
-        return category_response_dto_1.CategoryResponseDto.fromEntity(category);
+        const result = category_response_dto_1.CategoryResponseDto.fromEntity(category);
+        await this.redisService.set(cacheKey, result, this.CACHE_TTL);
+        this.logger.debug(`Cached category: ${id}`);
+        return result;
     }
     async findChildren(parentId) {
         const parent = await this.categoryRepository.findById(parentId);
@@ -201,6 +239,7 @@ let CategoryService = class CategoryService {
             updateData.order = dto.order;
         }
         const updatedCategory = await this.categoryRepository.update(id, updateData);
+        await this.invalidateCache(id);
         return category_response_dto_1.CategoryResponseDto.fromEntity(updatedCategory);
     }
     async deleteCategory(id, userRole) {
@@ -225,6 +264,20 @@ let CategoryService = class CategoryService {
             throw new common_1.BadRequestException('Cannot delete category with child categories. Please delete or move children first.');
         }
         await this.categoryRepository.softDelete(id);
+        await this.invalidateCache(id);
+    }
+    async invalidateCache(categoryId) {
+        try {
+            if (categoryId) {
+                await this.redisService.del(`${this.CACHE_PREFIX}${categoryId}:false`);
+                await this.redisService.del(`${this.CACHE_PREFIX}${categoryId}:true`);
+            }
+            await this.redisService.delPattern(`${this.CACHE_LIST_PREFIX}*`);
+            this.logger.debug('Category cache invalidated');
+        }
+        catch (error) {
+            this.logger.warn('Failed to invalidate cache', error);
+        }
     }
     generateSlug(name) {
         const baseSlug = name
@@ -283,9 +336,10 @@ let CategoryService = class CategoryService {
     }
 };
 exports.CategoryService = CategoryService;
-exports.CategoryService = CategoryService = __decorate([
+exports.CategoryService = CategoryService = CategoryService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [category_repository_1.CategoryRepository,
-        prisma_service_1.PrismaService])
+        prisma_service_1.PrismaService,
+        redis_service_1.RedisService])
 ], CategoryService);
 //# sourceMappingURL=category.service.js.map

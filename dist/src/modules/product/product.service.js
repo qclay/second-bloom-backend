@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var ProductService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductService = void 0;
 const common_1 = require("@nestjs/common");
@@ -16,14 +17,20 @@ const product_response_dto_1 = require("./dto/product-response.dto");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const category_repository_1 = require("../category/repositories/category.repository");
-let ProductService = class ProductService {
+const cache_service_1 = require("../../common/services/cache.service");
+let ProductService = ProductService_1 = class ProductService {
     productRepository;
     categoryRepository;
     prisma;
-    constructor(productRepository, categoryRepository, prisma) {
+    cacheService;
+    logger = new common_1.Logger(ProductService_1.name);
+    CACHE_PREFIX = 'product';
+    CACHE_TTL = 1800;
+    constructor(productRepository, categoryRepository, prisma, cacheService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.prisma = prisma;
+        this.cacheService = cacheService;
     }
     async createProduct(dto, sellerId) {
         const category = await this.categoryRepository.findById(dto.categoryId);
@@ -77,7 +84,9 @@ let ProductService = class ProductService {
             }
             return createdProduct;
         });
-        return this.findById(product.id);
+        const result = await this.findById(product.id);
+        await this.cacheService.invalidateEntity(this.CACHE_PREFIX);
+        return result;
     }
     async findAll(query) {
         const { page = 1, limit = 20, search, categoryId, sellerId, isFeatured, type, status, region, city, minPrice, maxPrice, sortBy = 'createdAt', sortOrder = 'desc', } = query;
@@ -142,6 +151,29 @@ let ProductService = class ProductService {
         else {
             orderBy.createdAt = 'desc';
         }
+        const shouldCache = !search && page === 1 && maxLimit <= 50;
+        const cacheKey = shouldCache
+            ? this.cacheService.generateListKey(this.CACHE_PREFIX, {
+                page,
+                limit: maxLimit,
+                categoryId,
+                sellerId,
+                isFeatured,
+                type,
+                status,
+                region,
+                city,
+                sortBy,
+                sortOrder,
+            })
+            : null;
+        if (cacheKey) {
+            const cached = await this.cacheService.get(cacheKey);
+            if (cached) {
+                this.logger.debug(`Cache hit for products list: ${cacheKey}`);
+                return cached;
+            }
+        }
         const [products, total] = await Promise.all([
             this.productRepository.findMany({
                 where,
@@ -178,7 +210,7 @@ let ProductService = class ProductService {
             }),
             this.productRepository.count({ where }),
         ]);
-        return {
+        const result = {
             data: products.map((product) => product_response_dto_1.ProductResponseDto.fromEntity(product)),
             meta: {
                 total,
@@ -189,6 +221,11 @@ let ProductService = class ProductService {
                 hasPreviousPage: page > 1,
             },
         };
+        if (shouldCache && cacheKey) {
+            await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+            this.logger.debug(`Cached products list: ${cacheKey}`);
+        }
+        return result;
     }
     async searchProducts(query) {
         const { page = 1, limit = 20, search, categoryId, categoryIds, sellerId, sellerIds, isFeatured, type, types, status, statuses, region, regions, city, cities, district, minPrice, maxPrice, tags, sortBy = 'createdAt', sortOrder = 'desc', } = query;
@@ -329,6 +366,17 @@ let ProductService = class ProductService {
         };
     }
     async findById(id, incrementViews = false) {
+        const shouldCache = !incrementViews;
+        const cacheKey = shouldCache
+            ? this.cacheService.generateKey(this.CACHE_PREFIX, id)
+            : null;
+        if (shouldCache && cacheKey) {
+            const cached = await this.cacheService.get(cacheKey);
+            if (cached) {
+                this.logger.debug(`Cache hit for product: ${id}`);
+                return cached;
+            }
+        }
         const productWithRelations = await this.prisma.product.findUnique({
             where: { id },
             include: {
@@ -367,8 +415,14 @@ let ProductService = class ProductService {
         }
         if (incrementViews) {
             await this.productRepository.incrementViews(id);
+            await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
         }
-        return product_response_dto_1.ProductResponseDto.fromEntity(productWithRelations);
+        const result = product_response_dto_1.ProductResponseDto.fromEntity(productWithRelations);
+        if (shouldCache && cacheKey) {
+            await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+            this.logger.debug(`Cached product: ${id}`);
+        }
+        return result;
     }
     async updateProduct(id, dto, userId, userRole) {
         const product = await this.productRepository.findById(id);
@@ -491,6 +545,7 @@ let ProductService = class ProductService {
             throw new common_1.BadRequestException('Cannot delete product with active auctions');
         }
         await this.productRepository.softDelete(id, userId);
+        await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
     }
     generateSlug(title) {
         const baseSlug = title
@@ -535,10 +590,11 @@ let ProductService = class ProductService {
     }
 };
 exports.ProductService = ProductService;
-exports.ProductService = ProductService = __decorate([
+exports.ProductService = ProductService = ProductService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [product_repository_1.ProductRepository,
         category_repository_1.CategoryRepository,
-        prisma_service_1.PrismaService])
+        prisma_service_1.PrismaService,
+        cache_service_1.CacheService])
 ], ProductService);
 //# sourceMappingURL=product.service.js.map

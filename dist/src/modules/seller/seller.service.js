@@ -61,15 +61,13 @@ let SellerService = SellerService_1 = class SellerService {
         const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
         const incomeResult = await this.prisma.$queryRaw `
       SELECT
-        COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'COMPLETED' AND p.refunded_at IS NULL), 0) as total_income,
+        COALESCE(SUM(o.amount) FILTER (WHERE o.payment_status = 'COMPLETED'), 0) as total_income,
         COALESCE(SUM(o.amount) FILTER (WHERE o.payment_status = 'PENDING'), 0) as pending_income,
-        COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'COMPLETED' AND p.refunded_at IS NULL), 0) as completed_income,
-        COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'COMPLETED' AND p.refunded_at IS NULL AND p.paid_at >= ${startOfMonth}), 0) as this_month,
-        COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'COMPLETED' AND p.refunded_at IS NULL AND p.paid_at >= ${startOfLastMonth} AND p.paid_at <= ${endOfLastMonth}), 0) as last_month,
-        COALESCE(SUM(p.amount) FILTER (WHERE p.refunded_at IS NOT NULL), 0) as refunded_amount
+        COALESCE(SUM(o.amount) FILTER (WHERE o.payment_status = 'COMPLETED'), 0) as completed_income,
+        COALESCE(SUM(o.amount) FILTER (WHERE o.payment_status = 'COMPLETED' AND o.created_at >= ${startOfMonth}), 0) as this_month,
+        COALESCE(SUM(o.amount) FILTER (WHERE o.payment_status = 'COMPLETED' AND o.created_at >= ${startOfLastMonth} AND o.created_at <= ${endOfLastMonth}), 0) as last_month
       FROM products pr
       INNER JOIN orders o ON o.product_id = pr.id AND o.deleted_at IS NULL
-      LEFT JOIN payments p ON p.order_id = o.id
       WHERE pr.seller_id = ${sellerId} AND pr.deleted_at IS NULL
     `;
         const income = incomeResult[0] || {
@@ -78,7 +76,6 @@ let SellerService = SellerService_1 = class SellerService {
             completed_income: 0n,
             this_month: 0n,
             last_month: 0n,
-            refunded_amount: 0n,
         };
         return {
             totalIncome: Number(income.total_income),
@@ -87,7 +84,7 @@ let SellerService = SellerService_1 = class SellerService {
             completedIncome: Number(income.completed_income),
             thisMonth: Number(income.this_month),
             lastMonth: Number(income.last_month),
-            refundedAmount: Number(income.refunded_amount),
+            refundedAmount: 0,
         };
     }
     async getActivities(sellerId, page = 1, limit = 20, type) {

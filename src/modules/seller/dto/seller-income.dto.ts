@@ -7,7 +7,10 @@ export class SellerIncomeDto {
   @ApiProperty({ example: 'UZS', description: 'Currency code' })
   currency!: string;
 
-  @ApiProperty({ example: 2000000, description: 'Pending income (not yet paid)' })
+  @ApiProperty({
+    example: 2000000,
+    description: 'Pending income (not yet paid)',
+  })
   pendingIncome!: number;
 
   @ApiProperty({ example: 13000000, description: 'Completed income (paid)' })
@@ -19,6 +22,6 @@ export class SellerIncomeDto {
   @ApiProperty({ example: 4500000, description: 'Income for last month' })
   lastMonth!: number;
 
-  @ApiProperty({ example: 0, description: 'Refunded amount' })
+  @ApiProperty({ example: 0, description: 'Refunded amount (deprecated)' })
   refundedAmount!: number;
 }

@@ -456,7 +456,6 @@ let OrderService = OrderService_1 = class OrderService {
             SHIPPED: ['DELIVERED', 'CANCELLED'],
             DELIVERED: [],
             CANCELLED: [],
-            REFUNDED: [],
         };
         const allowedStatuses = validTransitions[currentStatus] ?? [];
         if (!allowedStatuses.includes(newStatus) && currentStatus !== newStatus) {

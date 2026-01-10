@@ -10,19 +10,20 @@ export declare class JwtStrategy extends JwtStrategy_base {
     private readonly prisma;
     constructor(configService: ConfigService, prisma: PrismaService);
     validate(payload: JwtPayload): Promise<{
-        region: string | null;
         id: string;
         phoneNumber: string;
         firstName: string | null;
         lastName: string | null;
         email: string | null;
-        avatarId: string | null;
         isVerified: boolean;
         isActive: boolean;
         role: import(".prisma/client").$Enums.UserRole;
         rating: import("@prisma/client-runtime-utils").Decimal;
         totalRatings: number;
         refreshTokenVersion: number;
+        balance: import("@prisma/client-runtime-utils").Decimal;
+        publicationCredits: number;
+        region: string | null;
         city: string | null;
         district: string | null;
         fcmToken: string | null;
@@ -31,6 +32,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
         deletedBy: string | null;
         createdAt: Date;
         updatedAt: Date;
+        avatarId: string | null;
     }>;
 }
 export {};

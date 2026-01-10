@@ -4,6 +4,5 @@ export * from './jwt.config';
 export * from './redis.config';
 export * from './aws.config';
 export * from './sms.config';
-export * from './payment.config';
 export * from './sentry.config';
 export * from './telegram.config';

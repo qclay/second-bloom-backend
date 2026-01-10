@@ -17,7 +17,6 @@ const jwt_config_1 = require("./jwt.config");
 const redis_config_1 = require("./redis.config");
 const aws_config_1 = require("./aws.config");
 const sms_config_1 = require("./sms.config");
-const payment_config_1 = require("./payment.config");
 const sentry_config_1 = require("./sentry.config");
 const firebase_config_1 = require("./firebase.config");
 const telegram_config_1 = __importDefault(require("./telegram.config"));
@@ -37,7 +36,6 @@ exports.ConfigModule = ConfigModule = __decorate([
                     redis_config_1.redisConfig,
                     aws_config_1.awsConfig,
                     sms_config_1.smsConfig,
-                    payment_config_1.paymentConfig,
                     sentry_config_1.sentryConfig,
                     firebase_config_1.firebaseConfig,
                     telegram_config_1.default,

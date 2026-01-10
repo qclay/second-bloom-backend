@@ -186,7 +186,8 @@ export class ProductSearchDto {
   maxPrice?: number;
 
   @ApiProperty({
-    description: 'Filter by tags (products must have at least one of these tags)',
+    description:
+      'Filter by tags (products must have at least one of these tags)',
     example: ['roses', 'bouquet'],
     required: false,
   })

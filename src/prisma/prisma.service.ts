@@ -30,9 +30,37 @@ export class PrismaService
       );
     }
 
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
+    // Parse connection string to extract pool configuration
+    const connectionString = process.env.DATABASE_URL;
+    const poolConfig: {
+      connectionString: string;
+      max?: number;
+      min?: number;
+      idleTimeoutMillis?: number;
+      connectionTimeoutMillis?: number;
+    } = {
+      connectionString,
+    };
+
+    // Configure pool size based on environment
+    if (process.env.NODE_ENV === 'production') {
+      poolConfig.max = parseInt(process.env.DB_POOL_MAX || '20', 10);
+      poolConfig.min = parseInt(process.env.DB_POOL_MIN || '5', 10);
+      poolConfig.idleTimeoutMillis = parseInt(
+        process.env.DB_POOL_IDLE_TIMEOUT || '30000',
+        10,
+      );
+      poolConfig.connectionTimeoutMillis = parseInt(
+        process.env.DB_POOL_CONNECTION_TIMEOUT || '10000',
+        10,
+      );
+    } else {
+      // Development: smaller pool
+      poolConfig.max = parseInt(process.env.DB_POOL_MAX || '10', 10);
+      poolConfig.min = parseInt(process.env.DB_POOL_MIN || '2', 10);
+    }
+
+    const pool = new Pool(poolConfig);
 
     const adapter = new PrismaPg(pool);
 

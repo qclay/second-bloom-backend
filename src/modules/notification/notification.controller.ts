@@ -28,6 +28,10 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import {
+  ApiSuccessResponse,
+  ApiPaginatedResponse,
+} from '../../common/decorators/api-success-responses.decorator';
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -40,11 +44,11 @@ export class NotificationController {
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new notification (Admin only)' })
-  @ApiResponse({
-    status: 201,
-    description: 'Notification created successfully',
-    type: NotificationResponseDto,
-  })
+  @ApiSuccessResponse(
+    201,
+    'Notification created successfully',
+    NotificationResponseDto,
+  )
   async create(
     @Body() createNotificationDto: CreateNotificationDto,
     @CurrentUser('role') role: UserRole,
@@ -59,7 +63,7 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all notifications' })
-  @ApiResponse({ status: 200, description: 'List of notifications' })
+  @ApiPaginatedResponse(NotificationResponseDto, 'List of notifications')
   async findAll(
     @Query() query: NotificationQueryDto,
     @CurrentUser('id') userId: string,
@@ -76,19 +80,7 @@ export class NotificationController {
     description:
       'Returns the count of unread notifications for the current user. Useful for displaying badge counts in the UI.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Unread notification count retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        count: {
-          type: 'number',
-          example: 5,
-        },
-      },
-    },
-  })
+  @ApiSuccessResponse(200, 'Unread notification count retrieved successfully')
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
@@ -102,12 +94,7 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get notification by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Notification details',
-    type: NotificationResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Notification not found' })
+  @ApiSuccessResponse(200, 'Notification details', NotificationResponseDto)
   async findOne(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
@@ -121,11 +108,7 @@ export class NotificationController {
   @UsePipes(new SanitizePipe())
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update notification' })
-  @ApiResponse({
-    status: 200,
-    description: 'Notification updated',
-    type: NotificationResponseDto,
-  })
+  @ApiSuccessResponse(200, 'Notification updated', NotificationResponseDto)
   async update(
     @Param('id') id: string,
     @Body() updateNotificationDto: UpdateNotificationDto,
@@ -145,7 +128,7 @@ export class NotificationController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Mark notification as read' })
-  @ApiResponse({ status: 204, description: 'Notification marked as read' })
+  @ApiSuccessResponse(204, 'Notification marked as read')
   async markAsRead(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
@@ -159,10 +142,7 @@ export class NotificationController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Mark all notifications as read' })
-  @ApiResponse({
-    status: 200,
-    description: 'All notifications marked as read',
-  })
+  @ApiSuccessResponse(200, 'All notifications marked as read')
   async markAllAsRead(@CurrentUser('id') userId: string) {
     const count = await this.notificationService.markAllAsRead(userId);
     return { count };
@@ -173,7 +153,7 @@ export class NotificationController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete notification' })
-  @ApiResponse({ status: 204, description: 'Notification deleted' })
+  @ApiSuccessResponse(204, 'Notification deleted')
   async remove(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,

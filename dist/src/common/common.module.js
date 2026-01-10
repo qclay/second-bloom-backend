@@ -19,6 +19,7 @@ const http_exception_filter_1 = require("./filters/http-exception.filter");
 const validation_exception_filter_1 = require("./filters/validation-exception.filter");
 const all_exceptions_filter_1 = require("./filters/all-exceptions.filter");
 const sentry_service_1 = require("./services/sentry.service");
+const cache_service_1 = require("./services/cache.service");
 const redis_module_1 = require("../redis/redis.module");
 const logger_module_1 = require("./logger/logger.module");
 const metrics_module_1 = require("../metrics/metrics.module");
@@ -32,6 +33,7 @@ exports.CommonModule = CommonModule = __decorate([
         imports: [redis_module_1.RedisModule, logger_module_1.LoggerModule, metrics_module_1.MetricsModule, config_module_1.ConfigModule],
         providers: [
             sentry_service_1.SentryService,
+            cache_service_1.CacheService,
             {
                 provide: core_1.APP_GUARD,
                 useClass: jwt_auth_guard_1.JwtAuthGuard,
@@ -69,7 +71,7 @@ exports.CommonModule = CommonModule = __decorate([
                 useClass: all_exceptions_filter_1.AllExceptionsFilter,
             },
         ],
-        exports: [sentry_service_1.SentryService],
+        exports: [sentry_service_1.SentryService, cache_service_1.CacheService],
     })
 ], CommonModule);
 //# sourceMappingURL=common.module.js.map

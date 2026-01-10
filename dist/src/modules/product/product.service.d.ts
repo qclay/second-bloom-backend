@@ -7,11 +7,16 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRepository } from '../category/repositories/category.repository';
+import { CacheService } from '../../common/services/cache.service';
 export declare class ProductService {
     private readonly productRepository;
     private readonly categoryRepository;
     private readonly prisma;
-    constructor(productRepository: ProductRepository, categoryRepository: CategoryRepository, prisma: PrismaService);
+    private readonly cacheService;
+    private readonly logger;
+    private readonly CACHE_PREFIX;
+    private readonly CACHE_TTL;
+    constructor(productRepository: ProductRepository, categoryRepository: CategoryRepository, prisma: PrismaService, cacheService: CacheService);
     createProduct(dto: CreateProductDto, sellerId: string): Promise<ProductResponseDto>;
     findAll(query: ProductQueryDto): Promise<{
         data: ProductResponseDto[];

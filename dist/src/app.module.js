@@ -10,8 +10,6 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const throttler_1 = require("@nestjs/throttler");
 const core_1 = require("@nestjs/core");
-const app_controller_1 = require("./app.controller");
-const app_service_1 = require("./app.service");
 const prisma_module_1 = require("./prisma/prisma.module");
 const config_module_1 = require("./config/config.module");
 const common_module_1 = require("./common/common.module");
@@ -77,9 +75,8 @@ exports.AppModule = AppModule = __decorate([
             jobs_module_1.JobsModule,
             metrics_module_1.MetricsModule,
         ],
-        controllers: [app_controller_1.AppController],
+        controllers: [],
         providers: [
-            app_service_1.AppService,
             {
                 provide: core_1.APP_GUARD,
                 useClass: throttler_per_user_guard_1.ThrottlerPerUserGuard,
