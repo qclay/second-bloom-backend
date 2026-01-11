@@ -1,19 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-/**
- * Detailed error information following industry standards
- * Based on Stripe, Google Cloud, and JSON:API error formats
- *
- * @example
- * ```json
- * {
- *   "field": "email",
- *   "message": "Invalid email format",
- *   "code": "INVALID_FORMAT",
- *   "value": "invalid-email"
- * }
- * ```
- */
 export class ApiErrorDetailDto {
   @ApiProperty({
     example: 'email',

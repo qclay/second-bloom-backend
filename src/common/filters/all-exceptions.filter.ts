@@ -74,7 +74,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
           errorName: exception.name,
         };
         const errorMessage = `Unhandled error: ${exception.message} [RequestId: ${requestId}, Error: ${exception.name}]`;
-        // Pass metadata as part of message to avoid splat format issues
         this.logger.error(`${errorMessage} ${JSON.stringify(meta)}`);
       }
     }
@@ -82,13 +81,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const requestId = request.id;
     const userId = (request as Request & { user?: { id: string } }).user?.id;
 
-    // Determine error code and type
     const errorCode =
       (exception as { code?: ErrorCode })?.code ||
       STATUS_TO_ERROR_CODE[status] ||
       ErrorCode.INTERNAL_SERVER_ERROR;
 
-    // Build error details array for validation errors
     const errorDetails: ApiErrorDetailDto[] | undefined = Array.isArray(message)
       ? message.map((msg) => ({
           message: msg,
@@ -96,11 +93,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }))
       : undefined;
 
-    // Prepare error message and code
     let errorMessage = Array.isArray(message) ? 'Validation failed' : message;
     let finalErrorCode = errorCode;
 
-    // In production, sanitize error messages for 5xx errors
     if (
       status >= HttpStatus.INTERNAL_SERVER_ERROR &&
       process.env.NODE_ENV === 'production'
@@ -140,7 +135,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
         status,
       };
       const errorMessage = `Internal server error - ${request.method} ${request.url} - ${status} - ${message}`;
-      // Pass metadata as part of message to avoid splat format issues
       this.logger.error(`${errorMessage} ${JSON.stringify(meta)}`);
 
       this.sentry.captureException(exception, {
@@ -211,7 +205,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
         retryAfter?: number;
       }
     | undefined {
-    // 429 Rate Limit - retryable
     if (status === 429) {
       return {
         retryable: true,
@@ -219,7 +212,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    // 503 Service Unavailable - retryable
     if (status === 503) {
       return {
         retryable: true,
@@ -227,7 +219,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    // 5xx errors might be retryable (except 500)
     if (status >= 500 && status !== 500) {
       return {
         retryable: true,

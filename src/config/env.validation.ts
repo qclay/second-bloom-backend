@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  ValidateIf,
   validateSync,
 } from 'class-validator';
 
@@ -133,6 +134,14 @@ class EnvironmentVariables {
   @IsOptional()
   SWAGGER_PATH?: string;
 
+  @IsString()
+  @IsOptional()
+  SWAGGER_USERNAME?: string;
+
+  @IsString()
+  @IsOptional()
+  SWAGGER_PASSWORD?: string;
+
   @IsNumber()
   @IsOptional()
   SLOW_QUERY_THRESHOLD_MS?: number;
@@ -149,8 +158,12 @@ class EnvironmentVariables {
   @IsOptional()
   FIREBASE_CLIENT_EMAIL?: string;
 
-  @IsUrl()
   @IsOptional()
+  @ValidateIf(
+    (o) =>
+      o.FIREBASE_DATABASE_URL !== undefined && o.FIREBASE_DATABASE_URL !== '',
+  )
+  @IsUrl()
   FIREBASE_DATABASE_URL?: string;
 
   @IsString()

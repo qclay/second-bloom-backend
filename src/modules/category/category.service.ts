@@ -79,7 +79,6 @@ export class CategoryService {
       order,
     });
 
-    // Invalidate cache
     await this.invalidateCache();
 
     return CategoryResponseDto.fromEntity(category);
@@ -97,7 +96,6 @@ export class CategoryService {
     const maxLimit = Math.min(limit, 100);
     const skip = (page - 1) * maxLimit;
 
-    // Build cache key
     const cacheKey = `${this.CACHE_LIST_PREFIX}${JSON.stringify({
       page,
       limit: maxLimit,
@@ -107,7 +105,6 @@ export class CategoryService {
       includeChildren,
     })}`;
 
-    // Try to get from cache (only if no search and standard pagination)
     if (!search && page === 1 && maxLimit <= 50) {
       const cached = await this.redisService.get<{
         data: CategoryResponseDto[];
@@ -181,7 +178,6 @@ export class CategoryService {
       },
     };
 
-    // Cache result (only if no search and standard pagination)
     if (!search && page === 1 && maxLimit <= 50) {
       await this.redisService.set(cacheKey, result, this.CACHE_TTL);
       this.logger.debug(`Cached categories list: ${cacheKey}`);
@@ -196,7 +192,6 @@ export class CategoryService {
   ): Promise<CategoryResponseDto> {
     const cacheKey = `${this.CACHE_PREFIX}${id}:${includeChildren}`;
 
-    // Try cache first
     const cached = await this.redisService.get<CategoryResponseDto>(cacheKey);
     if (cached) {
       this.logger.debug(`Cache hit for category: ${id}`);
@@ -221,7 +216,6 @@ export class CategoryService {
 
     const result = CategoryResponseDto.fromEntity(category);
 
-    // Cache result
     await this.redisService.set(cacheKey, result, this.CACHE_TTL);
     this.logger.debug(`Cached category: ${id}`);
 
@@ -317,7 +311,6 @@ export class CategoryService {
       updateData,
     );
 
-    // Invalidate cache
     await this.invalidateCache(id);
 
     return CategoryResponseDto.fromEntity(updatedCategory);
@@ -356,24 +349,20 @@ export class CategoryService {
 
     await this.categoryRepository.softDelete(id);
 
-    // Invalidate cache
     await this.invalidateCache(id);
   }
 
   private async invalidateCache(categoryId?: string): Promise<void> {
     try {
-      // Invalidate specific category cache
       if (categoryId) {
         await this.redisService.del(`${this.CACHE_PREFIX}${categoryId}:false`);
         await this.redisService.del(`${this.CACHE_PREFIX}${categoryId}:true`);
       }
 
-      // Invalidate all list caches
       await this.redisService.delPattern(`${this.CACHE_LIST_PREFIX}*`);
       this.logger.debug('Category cache invalidated');
     } catch (error) {
       this.logger.warn('Failed to invalidate cache', error);
-      // Don't throw - cache invalidation failure shouldn't break the operation
     }
   }
 

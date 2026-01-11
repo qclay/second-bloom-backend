@@ -1,9 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-/**
- * Pagination metadata following industry standards
- * Used by companies like Stripe, GitHub, etc.
- */
 export class PaginationMetaDto {
   @ApiProperty({ example: 1, description: 'Current page number (1-indexed)' })
   page!: number;

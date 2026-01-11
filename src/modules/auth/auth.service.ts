@@ -12,6 +12,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { MessageResponseDto } from './dto/message-response.dto';
 import { VerificationPurpose, UserRole } from '@prisma/client';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ErrorCode } from '../../common/constants/error-codes.constant';
@@ -26,7 +27,7 @@ export class AuthService {
     private readonly otpService: OtpService,
   ) {}
 
-  async sendOtp(dto: SendOtpDto): Promise<{ message: string }> {
+  async sendOtp(dto: SendOtpDto): Promise<MessageResponseDto> {
     try {
       await this.otpService.sendOtp(
         dto.phoneNumber,
@@ -148,7 +149,7 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string): Promise<{ message: string }> {
+  async logout(userId: string): Promise<MessageResponseDto> {
     await this.prisma.user.update({
       where: { id: userId },
       data: {

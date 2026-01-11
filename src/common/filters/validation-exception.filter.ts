@@ -62,8 +62,6 @@ export class ValidationExceptionFilter implements ExceptionFilter {
     errorDetails: ApiErrorDetailDto[],
   ): void {
     messages.forEach((message) => {
-      // Extract field name from validation message
-      // Format: "fieldName should not be empty" or "fieldName must be a string"
       const fieldMatch = message.match(/^(\w+)\s/);
       const field = fieldMatch ? fieldMatch[1] : undefined;
 

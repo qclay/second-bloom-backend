@@ -1,19 +1,26 @@
 # Multi-stage build for NestJS application
 
 # Stage 1: Dependencies
-FROM node:20-alpine AS dependencies
+FROM node:22-alpine AS dependencies
 WORKDIR /app
+
+# Update npm to latest version for lock file compatibility
+RUN npm install -g npm@latest
 
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Stage 2: Build
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
+
+# Update npm to latest version for lock file compatibility
+RUN npm install -g npm@latest
 
 # Copy package files
 COPY package*.json ./
@@ -34,11 +41,14 @@ RUN npx prisma generate
 RUN npm run build
 
 # Stage 3: Production
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 WORKDIR /app
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
+
+# Update npm to latest version for lock file compatibility
+RUN npm install -g npm@latest
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -47,16 +57,15 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 
 # Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built application from build stage
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-
-# Generate Prisma Client in production
-RUN npx prisma generate
+COPY --from=build --chown=nestjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 # Switch to non-root user
 USER nestjs

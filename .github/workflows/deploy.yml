@@ -4,13 +4,12 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch: 
 
 env:
   NODE_VERSION: '20.x'
 
 jobs:
-  # Run linting
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
@@ -29,7 +28,6 @@ jobs:
       - name: Run linter
         run: npm run lint
 
-  # Run tests
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -84,7 +82,6 @@ jobs:
         run: npm run test:cov || npm test
         continue-on-error: true
 
-  # Security audit
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -103,7 +100,7 @@ jobs:
       - name: Run security audit
         run: npm audit --audit-level=moderate || true
 
-  # Deploy to Production
+  # Deploy to Production server
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest

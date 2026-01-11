@@ -13,7 +13,7 @@ import { SellerStatisticsDto } from './dto/seller-statistics.dto';
 import { SellerIncomeDto } from './dto/seller-income.dto';
 import { SellerActivityDto } from './dto/seller-activity.dto';
 import { SellerDashboardDto } from './dto/seller-dashboard.dto';
-import { IsOptional, IsString, IsEnum, IsInt, Min } from 'class-validator';
+import { IsOptional, IsEnum, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class ActivityQueryDto {

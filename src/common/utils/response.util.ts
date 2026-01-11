@@ -1,14 +1,6 @@
 import { PaginationMetaDto } from '../dto/pagination-meta.dto';
 import { ApiSuccessResponseDto } from '../dto/api-success-response.dto';
 
-/**
- * Utility functions for creating standardized API responses
- * Following industry best practices
- */
-
-/**
- * Creates pagination metadata from service response
- */
 export function createPaginationMeta(
   page: number,
   limit: number,
@@ -26,9 +18,6 @@ export function createPaginationMeta(
   };
 }
 
-/**
- * Creates a standardized success response
- */
 export function createSuccessResponse<T>(
   data: T,
   statusCode: number = 200,
@@ -47,9 +36,6 @@ export function createSuccessResponse<T>(
   };
 }
 
-/**
- * Creates a standardized paginated success response
- */
 export function createPaginatedResponse<T>(
   data: T[],
   page: number,

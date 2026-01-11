@@ -1,45 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ApiErrorDetailDto } from './api-error-detail.dto';
 
-/**
- * Standardized error response following industry best practices
- * Based on patterns from Stripe, GitHub, Google Cloud, RFC 7807, and JSON:API spec
- *
- * This DTO ensures consistent error structure across all endpoints,
- * making it easier for clients to handle errors programmatically.
- *
- * References:
- * - RFC 7807: Problem Details for HTTP APIs
- * - Stripe API: https://stripe.com/docs/api/errors
- * - GitHub API: https://docs.github.com/en/rest/overview/resources-in-the-rest-api#client-errors
- * - Google Cloud: https://cloud.google.com/apis/design/errors
- *
- * @example
- * ```json
- * {
- *   "success": false,
- *   "error": {
- *     "code": "VALIDATION_FAILED",
- *     "message": "Validation failed",
- *     "details": [
- *       {
- *         "field": "email",
- *         "message": "Invalid email format",
- *         "code": "INVALID_FORMAT"
- *       }
- *     ]
- *   },
- *   "statusCode": 400,
- *   "timestamp": "2026-01-04T17:15:29.000Z",
- *   "path": "/api/v1/users",
- *   "requestId": "550e8400-e29b-41d4-a716-446655440000"
- * }
- * ```
- */
-/**
- * Nested error object containing error details
- * Follows RFC 7807 and industry patterns
- */
 export class ApiErrorObjectDto {
   @ApiProperty({
     example: 'VALIDATION_FAILED',

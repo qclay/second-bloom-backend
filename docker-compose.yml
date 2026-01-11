@@ -7,8 +7,8 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-second_bloom_prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-second_bloom}
     ports:
       - "5432:5432"
     volumes:
@@ -16,7 +16,7 @@ services:
     networks:
       - second-bloom-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,22 +26,18 @@ services:
     container_name: second-bloom-redis
     restart: always
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     networks:
       - second-bloom-network
-    command: >
-      redis-server
-      --appendonly yes
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-      --requirepass ${REDIS_PASSWORD}
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 10s
 
   app:
     build:
@@ -53,19 +49,21 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-second_bloom_prod}?schema=public&connection_limit=20&pool_timeout=20&connect_timeout=10
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-second_bloom}?schema=public&connection_limit=20&pool_timeout=20&connect_timeout=10
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      CORS_ORIGIN: ${CORS_ORIGIN}
-      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      REDIS_PASSWORD: 
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
       SWAGGER_PATH: ${SWAGGER_PATH:-api/docs}
-      JWT_SECRET: ${JWT_SECRET}
+      SWAGGER_USERNAME: ${SWAGGER_USERNAME:-admin}
+      SWAGGER_PASSWORD: ${SWAGGER_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-}
       REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -79,18 +77,19 @@ services:
       PAYME_SECRET_KEY: ${PAYME_SECRET_KEY:-}
       CLICK_MERCHANT_ID: ${CLICK_MERCHANT_ID:-}
       CLICK_SECRET_KEY: ${CLICK_SECRET_KEY:-}
-      CLICK_SERVICE_ID: ${CLICK_SERVICE_ID}
-      SENTRY_DSN: ${SENTRY_DSN}
+      CLICK_SERVICE_ID: ${CLICK_SERVICE_ID:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENABLED: ${SENTRY_ENABLED:-false}
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
-      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
-      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
-      FIREBASE_DATABASE_URL: ${FIREBASE_DATABASE_URL}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY:-}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-}
+      FIREBASE_DATABASE_URL: ${FIREBASE_DATABASE_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       LOG_LEVEL: ${LOG_LEVEL:-warn}
     volumes:
       - ./prisma:/app/prisma:ro
+      - ./prisma.config.ts:/app/prisma.config.ts:ro
     networks:
       - second-bloom-network
     depends_on:
@@ -103,7 +102,7 @@ services:
         echo 'Waiting for database to be ready...' &&
         npx prisma migrate deploy &&
         echo 'Database migrations completed!' &&
-        node dist/main
+        node dist/src/main
       "
     deploy:
       resources:

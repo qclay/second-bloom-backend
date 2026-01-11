@@ -1,28 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationMetaDto } from './pagination-meta.dto';
 
-/**
- * Standardized success response following industry best practices
- * Based on patterns from Stripe, GitHub, Google Cloud, and JSON:API spec
- *
- * This DTO ensures consistent response structure across all endpoints,
- * making it easier for clients to parse and handle responses.
- *
- * @template T - The type of the data payload
- *
- * @example
- * ```json
- * {
- *   "success": true,
- *   "statusCode": 200,
- *   "message": "Resource retrieved successfully",
- *   "data": { "id": "123", "name": "John Doe" },
- *   "timestamp": "2026-01-04T17:15:29.000Z",
- *   "path": "/api/v1/users/123",
- *   "requestId": "550e8400-e29b-41d4-a716-446655440000"
- * }
- * ```
- */
 export class ApiSuccessResponseDto<T = unknown> {
   @ApiProperty({
     example: true,

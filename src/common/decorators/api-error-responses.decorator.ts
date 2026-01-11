@@ -2,18 +2,6 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { ApiErrorResponseDto } from '../dto/api-error-response.dto';
 
-/**
- * Decorator to add common error responses to Swagger documentation
- * Following industry best practices from Stripe, GitHub, Google Cloud APIs
- *
- * @param options - Configuration for which error responses to include
- * @example
- * ```typescript
- * @ApiCommonErrorResponses()
- * @ApiCommonErrorResponses({ unauthorized: false })
- * @ApiCommonErrorResponses({ badRequest: true, notFound: true })
- * ```
- */
 export function ApiCommonErrorResponses(options?: {
   badRequest?: boolean;
   unauthorized?: boolean;
@@ -96,9 +84,6 @@ export function ApiCommonErrorResponses(options?: {
   return applyDecorators(...decorators);
 }
 
-/**
- * Decorator for authenticated endpoints (adds 401 and 403)
- */
 export function ApiAuthErrorResponses() {
   return ApiCommonErrorResponses({
     badRequest: false,
@@ -110,9 +95,6 @@ export function ApiAuthErrorResponses() {
   });
 }
 
-/**
- * Decorator for public endpoints (adds 400 and 404)
- */
 export function ApiPublicErrorResponses() {
   return ApiCommonErrorResponses({
     badRequest: true,

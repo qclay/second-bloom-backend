@@ -30,7 +30,6 @@ export class PrismaService
       );
     }
 
-    // Parse connection string to extract pool configuration
     const connectionString = process.env.DATABASE_URL;
     const poolConfig: {
       connectionString: string;
@@ -42,7 +41,6 @@ export class PrismaService
       connectionString,
     };
 
-    // Configure pool size based on environment
     if (process.env.NODE_ENV === 'production') {
       poolConfig.max = parseInt(process.env.DB_POOL_MAX || '20', 10);
       poolConfig.min = parseInt(process.env.DB_POOL_MIN || '5', 10);
@@ -55,7 +53,6 @@ export class PrismaService
         10,
       );
     } else {
-      // Development: smaller pool
       poolConfig.max = parseInt(process.env.DB_POOL_MAX || '10', 10);
       poolConfig.min = parseInt(process.env.DB_POOL_MIN || '2', 10);
     }

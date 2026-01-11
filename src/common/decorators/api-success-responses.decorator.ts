@@ -3,21 +3,6 @@ import { ApiResponse, getSchemaPath } from '@nestjs/swagger';
 import { ApiSuccessResponseDto } from '../dto/api-success-response.dto';
 import { PaginationMetaDto } from '../dto/pagination-meta.dto';
 
-/**
- * Decorator to add standardized success response to Swagger documentation
- * Automatically wraps the response in ApiSuccessResponseDto format
- *
- * @param status - HTTP status code (default: 200)
- * @param description - Response description
- * @param dataType - The type of data in the response (optional)
- * @param isPaginated - Whether this is a paginated response
- * @example
- * ```typescript
- * @ApiSuccessResponse()
- * @ApiSuccessResponse(201, 'User created successfully', UserResponseDto)
- * @ApiSuccessResponse(200, 'List of users', UserResponseDto, true)
- * ```
- */
 export function ApiSuccessResponse(
   status: number = 200,
   description?: string,
@@ -90,18 +75,6 @@ export function ApiSuccessResponse(
   });
 }
 
-/**
- * Decorator for paginated responses
- * Shorthand for ApiSuccessResponse with isPaginated=true
- *
- * @param status - HTTP status code (default: 200)
- * @param description - Response description
- * @param dataType - The type of items in the paginated array
- * @example
- * ```typescript
- * @ApiPaginatedResponse(UserResponseDto, 'List of users')
- * ```
- */
 export function ApiPaginatedResponse(
   dataType: Type<unknown>,
   description?: string,

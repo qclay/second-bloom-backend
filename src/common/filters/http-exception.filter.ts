@@ -4,7 +4,6 @@ import {
   ArgumentsHost,
   HttpException,
   Logger,
-  HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import {
@@ -12,11 +11,6 @@ import {
   STATUS_TO_ERROR_CODE,
 } from '../constants/error-codes.constant';
 
-/**
- * HTTP Exception Filter
- * Handles all HTTP exceptions and formats them according to our standard error response
- * This filter is more specific than AllExceptionsFilter and runs first for HTTP exceptions
- */
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -53,7 +47,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       requestId: request.id,
     };
 
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (status >= 500) {
       this.logger.error(
         `${request.method} ${request.url} - ${status} - ${message}`,
         exception.stack,

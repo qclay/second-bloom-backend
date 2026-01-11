@@ -97,7 +97,6 @@ export class ProductService {
 
     const result = await this.findById(product.id);
 
-    // Invalidate cache
     await this.cacheService.invalidateEntity(this.CACHE_PREFIX);
 
     return result;
@@ -194,7 +193,6 @@ export class ProductService {
       orderBy.createdAt = 'desc';
     }
 
-    // Build cache key (only cache if no search and standard filters)
     const shouldCache = !search && page === 1 && maxLimit <= 50;
     const cacheKey = shouldCache
       ? this.cacheService.generateListKey(this.CACHE_PREFIX, {
@@ -212,7 +210,6 @@ export class ProductService {
         })
       : null;
 
-    // Try cache first
     if (cacheKey) {
       const cached = await this.cacheService.get<{
         data: ProductResponseDto[];
@@ -281,7 +278,6 @@ export class ProductService {
       },
     };
 
-    // Cache result
     if (shouldCache && cacheKey) {
       await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
       this.logger.debug(`Cached products list: ${cacheKey}`);
@@ -465,13 +461,11 @@ export class ProductService {
     id: string,
     incrementViews = false,
   ): Promise<ProductResponseDto> {
-    // Only cache if not incrementing views (views change data)
     const shouldCache = !incrementViews;
     const cacheKey = shouldCache
       ? this.cacheService.generateKey(this.CACHE_PREFIX, id)
       : null;
 
-    // Try cache first
     if (shouldCache && cacheKey) {
       const cached = await this.cacheService.get<ProductResponseDto>(cacheKey);
       if (cached) {
@@ -521,13 +515,11 @@ export class ProductService {
 
     if (incrementViews) {
       await this.productRepository.incrementViews(id);
-      // Invalidate cache when views are incremented
       await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
     }
 
     const result = ProductResponseDto.fromEntity(productWithRelations);
 
-    // Cache result (only if not incrementing views)
     if (shouldCache && cacheKey) {
       await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
       this.logger.debug(`Cached product: ${id}`);
@@ -693,7 +685,6 @@ export class ProductService {
 
     await this.productRepository.softDelete(id, userId);
 
-    // Invalidate cache
     await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
   }
 

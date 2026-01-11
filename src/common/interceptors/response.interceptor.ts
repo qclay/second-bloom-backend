@@ -11,10 +11,6 @@ import { ConfigService } from '@nestjs/config';
 import { ApiSuccessResponseDto } from '../dto/api-success-response.dto';
 import { PaginationMetaDto } from '../dto/pagination-meta.dto';
 
-/**
- * Checks if data has pagination metadata
- * Services return: { data: T[], meta: { total, page, limit, totalPages } }
- */
 function hasPaginationMeta(data: unknown): data is {
   data: unknown[];
   meta: {
@@ -68,7 +64,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<
 
     return next.handle().pipe(
       map((data: T) => {
-        // Set rate limit headers
         const rateLimitLimit = response.getHeader('X-RateLimit-Limit');
         const rateLimitRemaining = response.getHeader('X-RateLimit-Remaining');
         const rateLimitReset = response.getHeader('X-RateLimit-Reset');
@@ -83,7 +78,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<
           response.setHeader('X-RateLimit-Reset', rateLimitReset);
         }
 
-        // Extract pagination metadata if present
         let responseData: T | null = data;
         let paginationMeta: PaginationMetaDto | undefined;
 
@@ -100,10 +94,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<
           };
         }
 
-        // Get HTTP status code
         const statusCode = response.statusCode || 200;
 
-        // Build industry-standard success response
         return {
           success: true,
           statusCode,

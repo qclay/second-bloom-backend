@@ -1,12 +1,13 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { User } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { MessageResponseDto } from './dto/message-response.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { User } from '@prisma/client';
 import {
   ApiTags,
   ApiOperation,
@@ -20,7 +21,7 @@ import {
 } from '../../common/decorators/api-error-responses.decorator';
 
 @ApiTags('Authentication')
-@Controller('Auth')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -37,15 +38,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'OTP sent successfully to phone via SMS and Telegram',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Verification code sent successfully',
-        },
-      },
-    },
+    type: MessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -55,7 +48,7 @@ export class AuthController {
     status: 429,
     description: 'Too many requests. Please wait before requesting a new code.',
   })
-  async sendOtp(@Body() sendOtpDto: SendOtpDto): Promise<{ message: string }> {
+  async sendOtp(@Body() sendOtpDto: SendOtpDto): Promise<MessageResponseDto> {
     return this.authService.sendOtp(sendOtpDto);
   }
 
@@ -131,21 +124,13 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'User logged out successfully from all devices',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Logged out successfully',
-        },
-      },
-    },
+    type: MessageResponseDto,
   })
   @ApiResponse({
     status: 401,
     description: 'Not authenticated or token expired',
   })
-  async logout(@CurrentUser() user: User): Promise<{ message: string }> {
+  async logout(@CurrentUser() user: User): Promise<MessageResponseDto> {
     return this.authService.logout(user.id);
   }
 }

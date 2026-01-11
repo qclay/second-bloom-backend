@@ -18,7 +18,8 @@ mkdir -p "$BACKUP_DIR"
 echo -e "${GREEN}💾 Creating database backup...${NC}"
 
 BACKUP_FILE="$BACKUP_DIR/db_backup_${TIMESTAMP}.sql.gz"
-docker-compose exec -T postgres pg_dump -U postgres "$DB_NAME" | gzip > "$BACKUP_FILE"
+POSTGRES_USER="${POSTGRES_USER:-postgres}"
+docker-compose exec -T postgres pg_dump -U "$POSTGRES_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"
 
 if [ -f "$BACKUP_FILE" ]; then
   BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
