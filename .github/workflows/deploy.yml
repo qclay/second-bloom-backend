@@ -7,7 +7,7 @@ on:
   workflow_dispatch: 
 
 env:
-  NODE_VERSION: '20.x'
+  NODE_VERSION: '22.x'
 
 jobs:
   lint:
@@ -132,7 +132,7 @@ jobs:
             mkdir -p "$BACKUP_DIR"
             
             echo "💾 Creating database backup..."
-            docker-compose exec -T postgres pg_dump -U postgres second_bloom_prod | gzip > "$BACKUP_DIR/db_backup_prod_${TIMESTAMP}.sql.gz" || true
+            docker-compose exec -T postgres pg_dump -U postgres ${POSTGRES_DB:-second_bloom} | gzip > "$BACKUP_DIR/db_backup_prod_${TIMESTAMP}.sql.gz" || true
             
             echo "✅ Backup created: db_backup_prod_${TIMESTAMP}.sql.gz"
           EOF
@@ -151,8 +151,11 @@ jobs:
             docker-compose build --no-cache
             
             echo "🔄 Running database migrations..."
-            docker-compose run --rm app npx prisma migrate deploy || {
+            docker-compose up -d postgres redis
+            sleep 10
+            docker-compose exec -T app npx prisma migrate deploy || {
               echo "❌ Migration failed!"
+              docker-compose logs app
               exit 1
             }
             
