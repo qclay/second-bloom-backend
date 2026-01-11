@@ -71,10 +71,19 @@ export class OtpService {
       `🔐 OTP Generated: ${code} for ${phoneNumber} (${purpose}) - Expires: ${expiresAt.toISOString()}`,
     );
 
-    await Promise.all([
-      this.smsService.sendOtp(phoneNumber, code),
-      this.telegramService.sendFormattedMessage(phoneNumber, code, purpose),
-    ]);
+    const isProductionOnly = nodeEnv === 'production';
+
+    const telegramPromise = this.telegramService.sendFormattedMessage(
+      phoneNumber,
+      code,
+      purpose,
+    );
+
+    const smsPromise = isProductionOnly
+      ? this.smsService.sendOtp(phoneNumber, code)
+      : Promise.resolve(true);
+
+    await Promise.all([smsPromise, telegramPromise]);
 
     return { code, expiresAt };
   }

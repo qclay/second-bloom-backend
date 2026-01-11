@@ -262,17 +262,17 @@ export class HealthService {
     }
 
     try {
-      const smsApiKey = this.configService.get<string>('sms.apiKey');
-      const smsApiUrl = this.configService.get<string>('sms.url');
-      if (!smsApiKey || !smsApiUrl) {
+      const eskizEmail = this.configService.get<string>('sms.email');
+      const eskizPassword = this.configService.get<string>('sms.password');
+      if (!eskizEmail || !eskizPassword) {
         return Promise.resolve({
           status: 'error',
-          message: 'SMS service not configured',
+          message: 'Eskiz SMS service not configured',
         });
       }
       return Promise.resolve({
         status: 'ok',
-        message: 'SMS service configured',
+        message: 'Eskiz SMS service configured',
       });
     } catch (error) {
       return Promise.resolve({

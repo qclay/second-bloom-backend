@@ -279,9 +279,11 @@ CORS_ORIGIN=http://localhost:3000,http://localhost:3001,https://dev.yourdomain.c
 SWAGGER_ENABLED=true
 SWAGGER_PATH=api/docs
 
-# SMS (if applicable)
-SMS_API_KEY=your_sms_key
-SMS_API_URL=https://api.sms-provider.com
+# Eskiz SMS Gateway
+ESKIZ_EMAIL=your-email@example.com
+ESKIZ_PASSWORD=your-password
+ESKIZ_API_URL=https://notify.eskiz.uz/api
+ESKIZ_SENDER_ID=4546
 
 # Payment Gateways (if applicable)
 PAYME_MERCHANT_ID=your_payme_id
@@ -353,20 +355,28 @@ Add the following secrets:
 #### For Development
 - `DEV_HOST`: dev-api.yourdomain.com
 - `DEV_USER`: deploy
-- `DEV_SSH_KEY`: Your private SSH key
-- `DEV_SSH_PASSPHRASE`: SSH key passphrase (if any)
+- `DEV_SSH_KEY`: Your private SSH key (see [SSH Key Setup Guide](./SSH_KEY_SETUP.md) for details)
+- `DEV_SSH_PASSPHRASE`: SSH key passphrase (if any, leave empty for automated deployments)
+
+**Quick SSH Key Setup:**
+```bash
+# On your dev server (as deploy user)
+ssh-keygen -t ed25519 -C "github-actions-dev" -f ~/.ssh/github_actions_deploy
+cat ~/.ssh/github_actions_deploy.pub >> ~/.ssh/authorized_keys
+cat ~/.ssh/github_actions_deploy  # Copy this entire output for DEV_SSH_KEY secret
+```
 
 #### For Staging
 - `STAGING_HOST`: staging-api.yourdomain.com
 - `STAGING_USER`: deploy
-- `STAGING_SSH_KEY`: Your private SSH key
-- `STAGING_SSH_PASSPHRASE`: SSH key passphrase (if any)
+- `STAGING_SSH_KEY`: Your private SSH key (see [SSH Key Setup Guide](./SSH_KEY_SETUP.md) for details)
+- `STAGING_SSH_PASSPHRASE`: SSH key passphrase (if any, leave empty for automated deployments)
 
 #### For Production
 - `PROD_HOST`: api.yourdomain.com
 - `PROD_USER`: deploy
-- `PROD_SSH_KEY`: Your private SSH key
-- `PROD_SSH_PASSPHRASE`: SSH key passphrase (if any)
+- `PROD_SSH_KEY`: Your private SSH key (see [SSH Key Setup Guide](./SSH_KEY_SETUP.md) for details)
+- `PROD_SSH_PASSPHRASE`: SSH key passphrase (if any, leave empty for automated deployments)
 
 #### Common Secrets
 - `DOCKER_HUB_USERNAME`: Your Docker Hub username (if using)

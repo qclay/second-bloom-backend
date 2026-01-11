@@ -1,23 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../redis/redis.service';
 
-/**
- * Service for managing API response caching
- * Best practices:
- * - Cache only GET requests
- * - Use appropriate TTLs based on data volatility
- * - Invalidate cache on mutations (create/update/delete)
- * - Use descriptive cache keys
- */
 @Injectable()
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
 
   constructor(private readonly redisService: RedisService) {}
 
-  /**
-   * Get cached value
-   */
   async get<T>(key: string): Promise<T | null> {
     try {
       return await this.redisService.get<T>(key);
@@ -27,9 +16,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Set cached value
-   */
   async set<T>(key: string, value: T, ttl: number = 3600): Promise<boolean> {
     try {
       return await this.redisService.set(key, value, ttl);
@@ -39,9 +25,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Delete cached value
-   */
   async delete(key: string): Promise<boolean> {
     try {
       return await this.redisService.del(key);
@@ -51,9 +34,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Delete multiple keys matching pattern
-   */
   async deletePattern(pattern: string): Promise<number> {
     try {
       return await this.redisService.delPattern(pattern);
@@ -63,9 +43,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Generate cache key for entity
-   */
   generateKey(
     prefix: string,
     ...parts: (string | number | undefined)[]
@@ -77,11 +54,7 @@ export class CacheService {
     return validParts.length > 0 ? `${prefix}:${validParts.join(':')}` : prefix;
   }
 
-  /**
-   * Generate cache key for list/query
-   */
   generateListKey(prefix: string, query: Record<string, unknown>): string {
-    // Sort keys for consistent cache keys
     const sortedQuery = Object.keys(query)
       .sort()
       .reduce(
@@ -99,16 +72,11 @@ export class CacheService {
     return `${prefix}:list:${Buffer.from(queryString).toString('base64')}`;
   }
 
-  /**
-   * Invalidate all caches for an entity type
-   */
   async invalidateEntity(prefix: string, id?: string): Promise<void> {
     try {
       if (id) {
-        // Invalidate specific entity
         await this.deletePattern(`${prefix}:${id}:*`);
       }
-      // Invalidate all lists
       await this.deletePattern(`${prefix}:list:*`);
       this.logger.debug(`Invalidated cache for ${prefix}${id ? `:${id}` : ''}`);
     } catch (error) {
@@ -116,22 +84,17 @@ export class CacheService {
     }
   }
 
-  /**
-   * Get or set pattern (cache-aside)
-   */
   async getOrSet<T>(
     key: string,
     fetcher: () => Promise<T>,
     ttl: number = 3600,
   ): Promise<T> {
-    // Try cache first
     const cached = await this.get<T>(key);
     if (cached !== null) {
       this.logger.debug(`Cache hit: ${key}`);
       return cached;
     }
 
-    // Cache miss - fetch and cache
     this.logger.debug(`Cache miss: ${key}`);
     const data = await fetcher();
     await this.set(key, data, ttl);

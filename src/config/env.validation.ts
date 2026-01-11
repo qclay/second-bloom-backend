@@ -67,11 +67,19 @@ class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
-  SMS_API_KEY?: string;
+  ESKIZ_EMAIL?: string;
+
+  @IsString()
+  @IsOptional()
+  ESKIZ_PASSWORD?: string;
 
   @IsUrl()
   @IsOptional()
-  SMS_API_URL?: string;
+  ESKIZ_API_URL?: string;
+
+  @IsString()
+  @IsOptional()
+  ESKIZ_SENDER_ID?: string;
 
   @IsString()
   @IsOptional()

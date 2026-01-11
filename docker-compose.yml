@@ -3,18 +3,18 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: flower-market-postgres
-    restart: unless-stopped
+    container_name: second-bloom-postgres
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: flower_market
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-second_bloom_prod}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - flower-market-network
+      - second-bloom-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -23,77 +23,76 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: flower-market-redis
-    restart: unless-stopped
+    container_name: second-bloom-redis
+    restart: always
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
-      - flower-market-network
-    command: redis-server --appendonly yes
+      - second-bloom-network
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: flower-market-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@flowermarket.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - flower-market-network
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: flower-market-app
-    restart: unless-stopped
+    container_name: second-bloom-app
+    restart: always
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/flower_market?schema=public&connection_limit=10&pool_timeout=20
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-second_bloom_prod}?schema=public&connection_limit=20&pool_timeout=20&connect_timeout=10
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_URL: redis://redis:6379
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001}
-      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       SWAGGER_PATH: ${SWAGGER_PATH:-api/docs}
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-your-super-secret-refresh-token-key-change-in-production}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
       REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
-      SMS_API_KEY: ${SMS_API_KEY:-}
-      SMS_API_URL: ${SMS_API_URL:-}
+      ESKIZ_EMAIL: ${ESKIZ_EMAIL:-}
+      ESKIZ_PASSWORD: ${ESKIZ_PASSWORD:-}
+      ESKIZ_API_URL: ${ESKIZ_API_URL:-https://notify.eskiz.uz/api}
+      ESKIZ_SENDER_ID: ${ESKIZ_SENDER_ID:-4546}
       PAYME_MERCHANT_ID: ${PAYME_MERCHANT_ID:-}
       PAYME_SECRET_KEY: ${PAYME_SECRET_KEY:-}
       CLICK_MERCHANT_ID: ${CLICK_MERCHANT_ID:-}
       CLICK_SECRET_KEY: ${CLICK_SECRET_KEY:-}
-      CLICK_SERVICE_ID: ${CLICK_SERVICE_ID:-}
+      CLICK_SERVICE_ID: ${CLICK_SERVICE_ID}
+      SENTRY_DSN: ${SENTRY_DSN}
+      SENTRY_ENABLED: ${SENTRY_ENABLED:-false}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_DATABASE_URL: ${FIREBASE_DATABASE_URL}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+      LOG_LEVEL: ${LOG_LEVEL:-warn}
     volumes:
-      - ./prisma:/app/prisma
+      - ./prisma:/app/prisma:ro
     networks:
-      - flower-market-network
+      - second-bloom-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,13 +105,20 @@ services:
         echo 'Database migrations completed!' &&
         node dist/main
       "
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
 volumes:
   postgres_data:
   redis_data:
-  pgadmin_data:
 
 networks:
-  flower-market-network:
+  second-bloom-network:
     driver: bridge
 

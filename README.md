@@ -84,11 +84,14 @@ npm run test:cov
 ## 🐳 Docker
 
 ```bash
-# Development
-docker-compose -f docker-compose.dev.yml up
+# Start services
+docker-compose up -d
 
-# Production
-docker-compose -f docker-compose.prod.yml up -d
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
 ```
 
 ## 📁 Project Structure
