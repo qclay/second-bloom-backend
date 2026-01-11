@@ -108,7 +108,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://api.yourdomain.com
+      url: https://api.secondbloom.uz
     steps:
       - uses: actions/checkout@v4
       
@@ -193,7 +193,7 @@ jobs:
         run: |
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ Successfully deployed to production!"
-            echo "🌐 URL: https://api.yourdomain.com"
+            echo "🌐 URL: https://api.secondbloom.uz"
           else
             echo "❌ Deployment to production failed!"
             echo "⚠️  Check logs and consider rolling back if needed"
