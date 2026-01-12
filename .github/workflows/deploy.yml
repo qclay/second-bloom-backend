@@ -113,9 +113,13 @@ jobs:
           ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
       
+      - name: Test SSH connection
+        run: |
+          ssh -v -o StrictHostKeyChecking=no -o BatchMode=yes ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} echo "SSH connection successful"
+      
       - name: Create backup before deployment
         run: |
-          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
             set -e
             cd ~/second-bloom-backend
             BACKUP_DIR="$HOME/backups"
@@ -130,7 +134,7 @@ jobs:
       
       - name: Deploy to production server
         run: |
-          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
             set -e
             cd ~/second-bloom-backend
             
