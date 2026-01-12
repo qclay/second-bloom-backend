@@ -10,7 +10,7 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # Install dependencies
-RUN npm ci --omit=dev --legacy-peer-deps
+RUN npm install --omit=dev --legacy-peer-deps
 RUN npm cache clean --force
 
 # Stage 2: Build
@@ -24,8 +24,9 @@ COPY nest-cli.json ./
 COPY prisma ./prisma/
 
 # Install all dependencies (including dev)
-# Use --legacy-peer-deps to handle optional peer dependencies properly
-RUN npm ci --legacy-peer-deps
+# Use npm install instead of npm ci for more lenient dependency resolution
+# This handles optional peer dependencies better
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY src ./src
@@ -53,7 +54,8 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+# Use npm install for consistency with build stage
+RUN npm install --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # Copy built application from build stage
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
