@@ -51,9 +51,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
       
-      - name: Update npm to latest
-        run: npm install -g npm@latest
-      
       - name: Install dependencies
         run: npm ci
       
@@ -78,9 +75,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
-      - name: Update npm to latest
-        run: npm install -g npm@latest
       
       - name: Install dependencies
         run: npm ci
@@ -112,10 +106,6 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-      
-      - name: Test SSH connection
-        run: |
-          ssh -v -o StrictHostKeyChecking=no -o BatchMode=yes ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} echo "SSH connection successful"
       
       - name: Create backup before deployment
         run: |
@@ -161,12 +151,6 @@ jobs:
             echo "🧹 Cleaning up old images..."
             docker image prune -f
             
-            echo "✅ Deployment completed!"
-            
-            echo "📊 Checking service status..."
-            sleep 5
-            docker-compose ps
-            
             echo "🏥 Running health check..."
             for i in {1..30}; do
               if curl -f http://localhost:3000/health > /dev/null 2>&1; then
@@ -183,13 +167,3 @@ jobs:
             exit 1
           EOF
       
-      - name: Notify deployment status
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Successfully deployed to production!"
-            echo "🌐 URL: https://api.secondbloom.uz"
-          else
-            echo "❌ Deployment to production failed!"
-            echo "⚠️  Check logs and consider rolling back if needed"
-          fi
