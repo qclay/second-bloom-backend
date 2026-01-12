@@ -10,7 +10,8 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # Install dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --legacy-peer-deps
+RUN npm cache clean --force
 
 # Stage 2: Build
 FROM node:22-alpine AS build
@@ -23,7 +24,8 @@ COPY nest-cli.json ./
 COPY prisma ./prisma/
 
 # Install all dependencies (including dev)
-RUN npm ci
+# Use --legacy-peer-deps to handle optional peer dependencies properly
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY src ./src
