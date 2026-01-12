@@ -4,9 +4,6 @@
 FROM node:22-alpine AS dependencies
 WORKDIR /app
 
-# Update npm to latest version for lock file compatibility
-RUN npm install -g npm@latest
-
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -18,9 +15,6 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Stage 2: Build
 FROM node:22-alpine AS build
 WORKDIR /app
-
-# Update npm to latest version for lock file compatibility
-RUN npm install -g npm@latest
 
 # Copy package files
 COPY package*.json ./
@@ -46,9 +40,6 @@ WORKDIR /app
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
-
-# Update npm to latest version for lock file compatibility
-RUN npm install -g npm@latest
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
