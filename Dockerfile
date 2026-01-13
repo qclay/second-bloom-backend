@@ -1,11 +1,13 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
+RUN npm install -g npm@11
+
 COPY package*.json ./
 COPY prisma ./prisma/
 COPY tsconfig*.json nest-cli.json ./
 
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
 COPY src ./src
 
@@ -14,6 +16,8 @@ RUN npx prisma generate && npm run build
 FROM node:22-alpine
 WORKDIR /app
 
+RUN npm install -g npm@11
+
 RUN apk add --no-cache dumb-init && \
     addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
@@ -21,7 +25,7 @@ RUN apk add --no-cache dumb-init && \
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install --omit=dev --legacy-peer-deps && \
+RUN npm ci --omit=dev --legacy-peer-deps && \
     npm cache clean --force
 
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
