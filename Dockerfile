@@ -5,7 +5,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
-RUN npm ci 
+RUN npm install --legacy-peer-deps
 RUN npm cache clean --force
 
 FROM node:22-alpine AS build
@@ -16,7 +16,7 @@ COPY tsconfig*.json ./
 COPY nest-cli.json ./
 COPY prisma ./prisma/
 
-RUN npm ci 
+RUN npm install --legacy-peer-deps 
 
 COPY src ./src
 
@@ -36,7 +36,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
-RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
+RUN npm install --legacy-peer-deps --omit=dev --legacy-peer-deps && npm cache clean --force
 
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
