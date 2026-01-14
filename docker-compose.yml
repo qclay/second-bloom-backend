@@ -102,7 +102,7 @@ services:
         echo 'Waiting for database to be ready...' &&
         npx prisma migrate deploy &&
         echo 'Database migrations completed!' &&
-        node dist/src/main
+        node dist/main
       "
     deploy:
       resources:
