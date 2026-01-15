@@ -48,23 +48,27 @@ class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
-  AWS_ACCESS_KEY_ID?: string;
+  SPACES_ACCESS_KEY?: string;
 
   @IsString()
   @IsOptional()
-  AWS_SECRET_ACCESS_KEY?: string;
+  SPACES_SECRET_KEY?: string;
 
   @IsString()
   @IsOptional()
-  AWS_REGION?: string;
+  SPACES_REGION?: string;
 
   @IsString()
   @IsOptional()
-  AWS_S3_BUCKET?: string;
+  SPACES_BUCKET?: string;
 
   @IsString()
   @IsOptional()
-  AWS_S3_ENDPOINT?: string;
+  SPACES_ENDPOINT?: string;
+
+  @IsString()
+  @IsOptional()
+  SPACES_CDN_URL?: string;
 
   @IsString()
   @IsOptional()
@@ -81,6 +85,10 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   ESKIZ_SENDER_ID?: string;
+
+  @IsUrl()
+  @IsOptional()
+  ESKIZ_CALLBACK_URL?: string;
 
   @IsString()
   @IsOptional()
@@ -173,6 +181,14 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   TELEGRAM_CHAT_ID?: string;
+
+  @IsString()
+  @IsOptional()
+  PAYMENT_SECRET_KEY?: string;
+
+  @IsString()
+  @IsOptional()
+  PAYMENT_API_URL?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

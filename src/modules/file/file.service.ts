@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { FileRepository } from './repositories/file.repository';
-import { AwsService } from '../../infrastructure/aws/aws.service';
+import { StorageService } from '../../infrastructure/storage/storage.service';
 import { FileQueryDto } from './dto/file-query.dto';
 import { FileResponseDto } from './dto/file-response.dto';
 import { Prisma, FileType } from '@prisma/client';
@@ -20,7 +20,7 @@ export class FileService {
 
   constructor(
     private readonly fileRepository: FileRepository,
-    private readonly awsService: AwsService,
+    private readonly storageService: StorageService,
   ) {}
 
   async uploadFile(
@@ -30,8 +30,6 @@ export class FileService {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
-
-    console.log(file);
 
     const fileType = this.detectFileType(file.mimetype);
     const sanitizedOriginalName = this.sanitizeFilename(file.originalname);
@@ -55,12 +53,16 @@ export class FileService {
       }
     }
 
-    let s3Url: string;
+    let fileUrl: string;
     try {
-      s3Url = await this.awsService.uploadFile(file.buffer, key, file.mimetype);
+      fileUrl = await this.storageService.uploadFile(
+        file.buffer,
+        key,
+        file.mimetype,
+      );
     } catch (error) {
       this.logger.error(
-        `Failed to upload file to S3: ${key}`,
+        `Failed to upload file to storage: ${key}`,
         error instanceof Error ? error.stack : error,
       );
       throw new BadRequestException(
@@ -70,7 +72,7 @@ export class FileService {
 
     try {
       const fileData = await this.fileRepository.create({
-        url: s3Url,
+        url: fileUrl,
         key,
         filename,
         originalName: sanitizedOriginalName,
@@ -94,7 +96,7 @@ export class FileService {
         `Failed to create file record in database: ${key}`,
         error instanceof Error ? error.stack : error,
       );
-      await this.awsService.deleteFile(key).catch((deleteError) => {
+      await this.storageService.deleteFile(key).catch((deleteError) => {
         this.logger.error(
           `Failed to cleanup S3 file after DB error: ${key}`,
           deleteError,
@@ -206,10 +208,10 @@ export class FileService {
       throw new ForbiddenException('Only the file owner can delete it');
     }
 
-    const s3Deleted = await this.awsService.deleteFile(file.key);
-    if (!s3Deleted) {
+    const storageDeleted = await this.storageService.deleteFile(file.key);
+    if (!storageDeleted) {
       this.logger.warn(
-        `Failed to delete file from S3: ${file.key}, but continuing with DB deletion`,
+        `Failed to delete file from storage: ${file.key}, but continuing with DB deletion`,
       );
     }
 
@@ -231,7 +233,7 @@ export class FileService {
       throw new ForbiddenException('Access denied to this file');
     }
 
-    return this.awsService.getSignedUrl(file.key, expiresIn);
+    return this.storageService.getSignedUrl(file.key, expiresIn);
   }
 
   private getFolderForFileType(fileType: FileType): string {

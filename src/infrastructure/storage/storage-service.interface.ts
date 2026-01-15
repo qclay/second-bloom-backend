@@ -1,4 +1,4 @@
-export interface IAwsService {
+export interface IStorageService {
   uploadFile(file: Buffer, key: string, contentType: string): Promise<string>;
   deleteFile(key: string): Promise<boolean>;
   getFileUrl(key: string): string;

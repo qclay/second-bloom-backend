@@ -12,54 +12,78 @@ import { WinstonLogger, WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
+  private readonly slowRequestThreshold: number;
+  private readonly isDevelopment: boolean;
+
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER)
     private readonly logger: WinstonLogger,
-  ) {}
+  ) {
+    this.slowRequestThreshold =
+      parseInt(process.env.SLOW_REQUEST_THRESHOLD_MS || '1000', 10) || 1000;
+    this.isDevelopment = process.env.NODE_ENV === 'development';
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
     const method = request.method;
     const url = request.url;
-    const now = Date.now();
+    const startTime = Date.now();
+    const requestId = (request as Request & { id?: string }).id;
+    const userId = (request as Request & { user?: { id: string } }).user?.id;
 
-    this.logger.log(
-      `Incoming request - ${method} ${url}`,
-      'LoggingInterceptor',
-    );
+    // Only log incoming requests in development to reduce noise
+    if (this.isDevelopment) {
+      const meta = {
+        context: 'LoggingInterceptor',
+        requestId,
+        userId,
+      };
+      this.logger.log(
+        `Incoming request - ${method} ${url} ${JSON.stringify(meta)}`,
+      );
+    }
 
     return next.handle().pipe(
       tap({
         next: () => {
-          const responseTime = Date.now() - now;
-          const isSlow = responseTime > 1000;
+          const responseTime = Date.now() - startTime;
+          const isSlow = responseTime > this.slowRequestThreshold;
 
-          if (isSlow) {
-            this.logger.warn(
-              `Slow endpoint - ${method} ${url} took ${responseTime}ms`,
-              'LoggingInterceptor',
-            );
-          } else {
-            this.logger.log(
-              `Request completed - ${method} ${url} in ${responseTime}ms`,
-              'LoggingInterceptor',
-            );
-          }
-        },
-        error: (error: Error) => {
-          const requestId = request.id;
-          const userId = (request as Request & { user?: { id: string } }).user
-            ?.id;
           const meta = {
             context: 'LoggingInterceptor',
-            stack: error.stack,
             requestId,
             userId,
             method,
             url,
+            responseTime,
           };
-          const errorMessage = `Request failed - ${method} ${url}: ${error.message}`;
-          this.logger.error(`${errorMessage} ${JSON.stringify(meta)}`);
+
+          if (isSlow) {
+            this.logger.warn(
+              `Slow endpoint - ${method} ${url} took ${responseTime}ms ${JSON.stringify(meta)}`,
+            );
+          } else if (this.isDevelopment) {
+            this.logger.log(
+              `Request completed - ${method} ${url} in ${responseTime}ms ${JSON.stringify(meta)}`,
+            );
+          }
+        },
+        error: (error: Error) => {
+          const responseTime = Date.now() - startTime;
+          const meta = {
+            context: 'LoggingInterceptor',
+            requestId,
+            userId,
+            method,
+            url,
+            responseTime,
+            stack: error.stack,
+          };
+
+          this.logger.error(
+            `Request failed - ${method} ${url}: ${error.message} ${JSON.stringify(meta)}`,
+          );
         },
       }),
     );

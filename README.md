@@ -10,7 +10,7 @@ Flower marketplace backend API built with NestJS, PostgreSQL, and Prisma.
 - **Orders**: Order management with status tracking
 - **Chat**: WebSocket-based real-time messaging
 - **Notifications**: Push notifications via Firebase
-- **File Upload**: Secure file upload to AWS S3
+- **File Upload**: Secure file upload to Digital Ocean Spaces (S3-compatible)
 - **Seller Dashboard**: Analytics and statistics for sellers
 
 ## 📋 Prerequisites
@@ -18,7 +18,7 @@ Flower marketplace backend API built with NestJS, PostgreSQL, and Prisma.
 - Node.js 20+
 - PostgreSQL 16+
 - Redis 7+
-- AWS S3 account (for file storage)
+- Digital Ocean Spaces (for file storage)
 - Firebase account (for push notifications)
 
 ## 🛠️ Installation
@@ -111,7 +111,7 @@ src/
 │   ├── guards/      # Auth guards
 │   └── interceptors/# Request/response interceptors
 ├── config/          # Configuration
-├── infrastructure/   # External services (AWS, Firebase, SMS)
+├── infrastructure/   # External services (Storage, Firebase, SMS)
 └── prisma/          # Database service
 ```
 

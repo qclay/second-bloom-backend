@@ -72,7 +72,6 @@ export class FileController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: { id: string },
   ): Promise<FileResponseDto> {
-    console.log(user.id);
     return this.fileService.uploadFile(file, user.id);
   }
 
@@ -117,7 +116,7 @@ export class FileController {
         url: {
           type: 'string',
           example:
-            'https://s3.amazonaws.com/bucket/file.jpg?X-Amz-Signature=...',
+            'https://your-space.nyc3.cdn.digitaloceanspaces.com/file.jpg?signature=...',
         },
       },
     },

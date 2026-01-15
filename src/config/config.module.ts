@@ -3,7 +3,7 @@ import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { databaseConfig } from './database.config';
 import { jwtConfig } from './jwt.config';
 import { redisConfig } from './redis.config';
-import { awsConfig } from './aws.config';
+import { storageConfig } from './storage.config';
 import { smsConfig } from './sms.config';
 import { sentryConfig } from './sentry.config';
 import { firebaseConfig } from './firebase.config';
@@ -19,7 +19,7 @@ import { validateEnv } from './env.validation';
         databaseConfig,
         jwtConfig,
         redisConfig,
-        awsConfig,
+        storageConfig,
         smsConfig,
         sentryConfig,
         firebaseConfig,

@@ -19,6 +19,8 @@ import { ReviewModule } from './modules/review/review.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { SellerModule } from './modules/seller/seller.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { ThrottlerPerUserGuard } from './common/guards/throttler-per-user.guard';
@@ -60,6 +62,8 @@ import { ThrottlerPerUserGuard } from './common/guards/throttler-per-user.guard'
     NotificationModule,
     ChatModule,
     SellerModule,
+    PaymentModule,
+    SettingsModule,
     JobsModule,
     MetricsModule,
   ],

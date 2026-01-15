@@ -48,7 +48,7 @@ export class SmsService implements ISmsService {
   }
 
   async sendOtp(phoneNumber: string, code: string): Promise<boolean> {
-    const message = `Your verification code is: ${code}`;
+    const message = `Код для входа в приложение SecondBloom: ${code}`;
     return this.sendMessage(phoneNumber, message);
   }
 

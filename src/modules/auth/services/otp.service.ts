@@ -9,7 +9,6 @@ import { VerificationPurpose } from '@prisma/client';
 export class OtpService {
   private readonly logger = new Logger(OtpService.name);
   private readonly OTP_EXPIRY_MINUTES = 5;
-  private readonly OTP_LENGTH = 6;
   private readonly RATE_LIMIT_MINUTES = 4;
 
   constructor(
@@ -73,17 +72,17 @@ export class OtpService {
 
     const isProductionOnly = nodeEnv === 'production';
 
-    const telegramPromise = this.telegramService.sendFormattedMessage(
-      phoneNumber,
-      code,
-      purpose,
-    );
-
-    const smsPromise = isProductionOnly
-      ? this.smsService.sendOtp(phoneNumber, code)
-      : Promise.resolve(true);
-
-    await Promise.all([smsPromise, telegramPromise]);
+    Promise.all([
+      this.telegramService.sendFormattedMessage(phoneNumber, code, purpose),
+      isProductionOnly
+        ? this.smsService.sendOtp(phoneNumber, code)
+        : Promise.resolve(true),
+    ]).catch((error) => {
+      this.logger.error(
+        `Failed to send OTP notifications to ${phoneNumber}`,
+        error,
+      );
+    });
 
     return { code, expiresAt };
   }

@@ -7,42 +7,51 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { IAwsService } from './aws-service.interface';
+import { IStorageService } from './storage-service.interface';
 import { retry, CircuitBreaker } from '../../common/utils/retry.util';
 
 @Injectable()
-export class AwsService implements IAwsService {
-  private readonly logger = new Logger(AwsService.name);
+export class StorageService implements IStorageService {
+  private readonly logger = new Logger(StorageService.name);
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
+  private readonly region: string;
+  private readonly endpoint?: string;
+  private readonly publicUrl?: string;
   private readonly circuitBreaker: CircuitBreaker;
+  private readonly accessKeyId?: string;
+  private readonly secretAccessKey?: string;
 
   constructor(private readonly configService: ConfigService) {
-    const accessKeyId = this.configService.get<string>('aws.accessKeyId');
-    const secretAccessKey = this.configService.get<string>(
-      'aws.secretAccessKey',
+    this.accessKeyId = this.configService.get<string>('storage.accessKeyId');
+    this.secretAccessKey = this.configService.get<string>(
+      'storage.secretAccessKey',
     );
-    const region = this.configService.get<string>('aws.region', 'us-east-1');
-    const endpoint = this.configService.get<string>('aws.s3Endpoint');
-    this.bucketName = this.configService.get<string>('aws.s3Bucket') || '';
+    this.region = this.configService.get<string>('storage.region', 'nyc3');
+    this.endpoint = this.configService.get<string>('storage.endpoint');
+    this.bucketName = this.configService.get<string>('storage.bucket') || '';
 
-    if (!accessKeyId || !secretAccessKey || !this.bucketName) {
-      this.logger.warn(
-        'AWS credentials not configured. File uploads will fail.',
+    if (!this.accessKeyId || !this.secretAccessKey || !this.bucketName) {
+      const missing = [];
+      if (!this.accessKeyId) missing.push('SPACES_ACCESS_KEY');
+      if (!this.secretAccessKey) missing.push('SPACES_SECRET_KEY');
+      if (!this.bucketName) missing.push('SPACES_BUCKET');
+      this.logger.error(
+        `Storage credentials not configured. Missing: ${missing.join(', ')}. File uploads will fail.`,
       );
     }
 
     this.s3Client = new S3Client({
-      region,
+      region: this.region || 'nyc3',
       credentials:
-        accessKeyId && secretAccessKey
+        this.accessKeyId && this.secretAccessKey
           ? {
-              accessKeyId,
-              secretAccessKey,
+              accessKeyId: this.accessKeyId,
+              secretAccessKey: this.secretAccessKey,
             }
           : undefined,
-      ...(endpoint && { endpoint }),
-      forcePathStyle: !!endpoint,
+      ...(this.endpoint && { endpoint: this.endpoint }),
+      forcePathStyle: false,
     });
 
     this.circuitBreaker = new CircuitBreaker(5, 60000, this.logger);
@@ -62,6 +71,7 @@ export class AwsService implements IAwsService {
               Key: key,
               Body: file,
               ContentType: contentType,
+              ACL: 'public-read',
             });
 
             await this.s3Client.send(command);
@@ -75,7 +85,7 @@ export class AwsService implements IAwsService {
             backoff: 'exponential',
             onRetry: (error, attempt) => {
               this.logger.warn(
-                `Retrying S3 upload (attempt ${attempt}/3) for key: ${key}`,
+                `Retrying storage upload (attempt ${attempt}/3) for key: ${key}`,
                 error.message,
               );
             },
@@ -83,10 +93,25 @@ export class AwsService implements IAwsService {
         );
       })
       .catch((error) => {
-        this.logger.error(`Failed to upload file to S3: ${key}`, error);
-        throw new Error(
-          `Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        const errorDetails: {
+          message: string;
+          code: number;
+          resource: string;
+          bucket: string;
+          endpoint: string;
+        } = {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: error?.Code || error?.$metadata?.httpStatusCode,
+          resource: error?.Resource,
+          bucket: this.bucketName,
+          endpoint: this.endpoint || '',
+        };
+
+        this.logger.error(
+          `Failed to upload file to storage: ${key}`,
+          JSON.stringify(errorDetails, null, 2),
         );
+        throw error;
       });
   }
 
@@ -109,7 +134,7 @@ export class AwsService implements IAwsService {
             backoff: 'exponential',
             onRetry: (error, attempt) => {
               this.logger.warn(
-                `Retrying S3 delete (attempt ${attempt}/3) for key: ${key}`,
+                `Retrying storage delete (attempt ${attempt}/3) for key: ${key}`,
                 error.message,
               );
             },
@@ -117,14 +142,23 @@ export class AwsService implements IAwsService {
         );
       });
     } catch (error) {
-      this.logger.error(`Failed to delete file from S3: ${key}`, error);
+      this.logger.error(`Failed to delete file from storage: ${key}`, error);
       return false;
     }
   }
 
   getFileUrl(key: string): string {
-    const region = this.configService.get<string>('aws.region', 'us-east-1');
-    return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
+    if (this.publicUrl) {
+      return `${this.publicUrl}/${key}`;
+    }
+
+    if (this.endpoint) {
+      const endpointUrl = new URL(this.endpoint);
+      return `https://${this.bucketName}.${endpointUrl.hostname}/${key}`;
+    }
+
+    // Default to AWS S3 URL format
+    return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
 
   async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {

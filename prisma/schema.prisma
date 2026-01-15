@@ -1,7 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = []
-  binaryTargets    = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -9,39 +9,41 @@ datasource db {
 }
 
 model Auction {
-  id            String    @id @default(uuid())
+  id            String        @id @default(uuid())
   productId     String
   creatorId     String
-  startPrice    Decimal   @db.Decimal(10, 2)
-  currentPrice  Decimal   @db.Decimal(10, 2)
-  bidIncrement  Decimal   @db.Decimal(10, 2) @default(1000)
-  minBidAmount  Decimal   @db.Decimal(10, 2)
-  startTime     DateTime  @default(now())
+  startPrice    Decimal       @db.Decimal(10, 2)
+  currentPrice  Decimal       @db.Decimal(10, 2)
+  bidIncrement  Decimal       @default(1000) @db.Decimal(10, 2)
+  minBidAmount  Decimal       @db.Decimal(10, 2)
+  startTime     DateTime      @default(now())
   endTime       DateTime
-  durationHours Int       @default(2)
+  durationHours Int           @default(2)
   status        AuctionStatus @default(ACTIVE)
   winnerId      String?
-  autoExtend    Boolean   @default(true)
-  extendMinutes Int       @default(5)
-  views         Int       @default(0)
-  totalBids     Int       @default(0)
-  version       Int       @default(0)
+  autoExtend    Boolean       @default(true)
+  extendMinutes Int           @default(5)
+  views         Int           @default(0)
+  totalBids     Int           @default(0)
+  version       Int           @default(0)
   lastBidAt     DateTime?
+  isActive      Boolean       @default(true)
   deletedAt     DateTime?
   deletedBy     String?
   metadata      Json?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  creator       User      @relation("AuctionCreator", fields: [creatorId], references: [id], onDelete: Restrict)
-  bids          Bid[]
-  winner        User?     @relation("AuctionWinner", fields: [winnerId], references: [id], onDelete: SetNull)
-  orders        Order[]
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  creator User    @relation("AuctionCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  bids    Bid[]
+  winner  User?   @relation("AuctionWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  orders  Order[]
 
   @@index([productId, status])
   @@index([status, endTime])
-  @@index([status, deletedAt])
+  @@index([isActive, deletedAt])
+  @@index([status, isActive])
   @@index([status, createdAt])
   @@index([creatorId])
   @@index([productId])
@@ -52,62 +54,71 @@ model Auction {
 }
 
 model Bid {
-  id            String    @id @default(uuid())
-  auctionId     String
-  bidderId      String
-  amount        Decimal   @db.Decimal(10, 2)
-  isWinning     Boolean   @default(false)
-  isRetracted   Boolean   @default(false)
-  ipAddress     String?
-  userAgent     String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  auctionId   String
+  bidderId    String
+  amount      Decimal   @db.Decimal(10, 2)
+  isWinning   Boolean   @default(false)
+  isRetracted Boolean   @default(false)
+  ipAddress   String?
+  userAgent   String?
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  deletedBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  auction       Auction   @relation(fields: [auctionId], references: [id], onDelete: Restrict)
-  bidder        User      @relation(fields: [bidderId], references: [id], onDelete: Restrict)
+  auction Auction @relation(fields: [auctionId], references: [id], onDelete: Restrict)
+  bidder  User    @relation(fields: [bidderId], references: [id], onDelete: Restrict)
 
   @@index([auctionId, createdAt])
   @@index([bidderId])
   @@index([auctionId, bidderId])
   @@index([auctionId, isWinning])
   @@index([auctionId, isRetracted])
+  @@index([isActive, deletedAt])
   @@index([createdAt])
   @@index([ipAddress])
   @@map("bids")
 }
 
 model Favorite {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
   productId String
-  createdAt DateTime @default(now())
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  deletedBy String?
+  createdAt DateTime  @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@index([userId])
   @@index([productId])
+  @@index([isActive, deletedAt])
   @@map("favorites")
 }
 
 model Category {
-  id            String    @id @default(uuid())
-  name          String    @unique
-  slug          String    @unique
-  description   String?   @db.Text
-  imageId       String?
-  parentId      String?
-  order         Int       @default(0)
-  isActive      Boolean   @default(true)
-  deletedAt     DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?   @db.Text
+  imageId     String?
+  parentId    String?
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  deletedBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  parent        Category? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children      Category[] @relation("CategoryTree")
-  products      Product[]
-  image         File?     @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+  products Product[]
+  image    File?      @relation(fields: [imageId], references: [id], onDelete: SetNull)
 
   @@index([parentId])
   @@index([slug])
@@ -117,93 +128,129 @@ model Category {
 }
 
 model File {
-  id            String    @id @default(uuid())
-  url           String    @unique
-  key           String
-  filename      String
-  originalName  String
-  mimeType      String
-  size          Int
-  width         Int?
-  height        Int?
-  fileType      FileType
-  entityType    EntityType?
-  entityId      String?
-  uploadedById  String?
-  isPublic      Boolean   @default(true)
-  metadata      Json?
-  deletedAt     DateTime?
-  deletedBy     String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String      @id @default(uuid())
+  url          String      @unique
+  key          String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  fileType     FileType
+  entityType   EntityType?
+  entityId     String?
+  uploadedById String?
+  isPublic     Boolean     @default(true)
+  metadata     Json?
+  isActive     Boolean     @default(true)
+  deletedAt    DateTime?
+  deletedBy    String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
-  uploadedBy    User?     @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  productImages ProductImage[]
-  userAvatars   User[]    @relation("UserAvatar")
-  categoryImages Category[]
-  messageAttachments Message[] @relation("MessageFile")
+  uploadedBy         User?          @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  productImages      ProductImage[]
+  userAvatars        User[]         @relation("UserAvatar")
+  categoryImages     Category[]
+  messageAttachments Message[]      @relation("MessageFile")
 
   @@index([url])
   @@index([key])
   @@index([entityType, entityId])
   @@index([uploadedById])
   @@index([fileType])
+  @@index([isActive, deletedAt])
   @@index([deletedAt])
   @@index([createdAt])
   @@map("files")
 }
 
 model Notification {
-  id            String    @id @default(uuid())
-  userId        String
-  type          NotificationType
-  title         String
-  message       String    @db.Text
-  data          Json?
-  isRead        Boolean   @default(false)
-  readAt        DateTime?
-  createdAt     DateTime  @default(now())
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  isActive  Boolean          @default(true)
+  deletedAt DateTime?
+  deletedBy String?
+  createdAt DateTime         @default(now())
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([userId, createdAt])
   @@index([type])
+  @@index([isActive, deletedAt])
   @@map("notifications")
 }
 
-model Order {
-  id            String    @id @default(uuid())
-  orderNumber   String    @unique
-  buyerId       String
-  productId     String
-  auctionId     String?
-  amount        Decimal   @db.Decimal(10, 2)
-  status        OrderStatus @default(PENDING)
-  paymentStatus PaymentStatus @default(PENDING)
-  shippingAddress String? @db.Text
-  notes         String?   @db.Text
-  cancelledAt   DateTime?
-  cancelledBy   String?
-  cancellationReason String? @db.Text
-  shippedAt     DateTime?
-  deliveredAt   DateTime?
-  deletedAt     DateTime?
-  deletedBy     String?
-  metadata      Json?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  completedAt   DateTime?
+model NotificationPreference {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  auctionEndingSoon Boolean   @default(true)
+  auctionEnded      Boolean   @default(true)
+  auctionStarted    Boolean   @default(true)
+  newBid            Boolean   @default(true)
+  outbid            Boolean   @default(true)
+  orderConfirmed    Boolean   @default(true)
+  orderShipped      Boolean   @default(true)
+  orderDelivered    Boolean   @default(true)
+  reviewReceived    Boolean   @default(true)
+  newMessage        Boolean   @default(true)
+  system            Boolean   @default(true)
+  pushEnabled       Boolean   @default(true)
+  isActive          Boolean   @default(true)
+  deletedAt         DateTime?
+  deletedBy         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  buyer         User      @relation(fields: [buyerId], references: [id], onDelete: Restrict)
-  product       Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
-  auction       Auction?  @relation(fields: [auctionId], references: [id], onDelete: SetNull)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive, deletedAt])
+  @@map("notification_preferences")
+}
+
+model Order {
+  id                 String        @id @default(uuid())
+  orderNumber        String        @unique
+  buyerId            String
+  productId          String
+  auctionId          String?
+  amount             Decimal       @db.Decimal(10, 2)
+  status             OrderStatus   @default(PENDING)
+  paymentStatus      PaymentStatus @default(PENDING)
+  shippingAddress    String?       @db.Text
+  notes              String?       @db.Text
+  cancelledAt        DateTime?
+  cancelledBy        String?
+  cancellationReason String?       @db.Text
+  shippedAt          DateTime?
+  deliveredAt        DateTime?
+  isActive           Boolean       @default(true)
+  deletedAt          DateTime?
+  deletedBy          String?
+  metadata           Json?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  completedAt        DateTime?
+
+  buyer         User           @relation(fields: [buyerId], references: [id], onDelete: Restrict)
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  auction       Auction?       @relation(fields: [auctionId], references: [id], onDelete: SetNull)
   conversations Conversation[]
 
   @@index([buyerId])
   @@index([buyerId, status, createdAt])
   @@index([orderNumber])
   @@index([status])
+  @@index([isActive, deletedAt])
   @@index([status, deletedAt])
   @@index([paymentStatus])
   @@index([createdAt])
@@ -214,25 +261,27 @@ model Order {
 }
 
 model Payment {
-  id                  String    @id @default(uuid())
-  userId              String
-  paymentType         PaymentType @default(PUBLICATION)
-  amount              Decimal   @db.Decimal(10, 2)
-  quantity            Int       @default(1)
-  method              PaymentMethod
-  gateway             PaymentGateway?
-  transactionId       String?   @unique
+  id                   String          @id @default(uuid())
+  userId               String
+  paymentType          PaymentType     @default(PUBLICATION)
+  amount               Decimal         @db.Decimal(10, 2)
+  quantity             Int             @default(1)
+  method               PaymentMethod
+  gateway              PaymentGateway?
+  transactionId        String?         @unique
   gatewayTransactionId String?
-  gatewayOrderId      String?
-  status              PaymentStatus @default(PENDING)
-  paidAt              DateTime?
-  gatewayResponse     Json?
-  webhookData         Json?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  gatewayOrderId       String?
+  status               PaymentStatus   @default(PENDING)
+  paidAt               DateTime?
+  webhookData          Json?
+  isActive             Boolean         @default(true)
+  deletedAt            DateTime?
+  deletedBy            String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
-  user                User      @relation("PaymentUser", fields: [userId], references: [id], onDelete: Restrict)
-  products            Product[] @relation("ProductPublicationPayment")
+  user     User      @relation("PaymentUser", fields: [userId], references: [id], onDelete: Restrict)
+  products Product[] @relation("ProductPublicationPayment")
 
   @@index([userId])
   @@index([paymentType])
@@ -244,48 +293,50 @@ model Payment {
   @@index([gateway])
   @@index([status])
   @@index([paidAt])
+  @@index([isActive, deletedAt])
   @@map("payments")
 }
 
 model Product {
-  id            String    @id @default(uuid())
-  title         String    @db.VarChar(255)
-  slug          String    @unique
-  description   String?   @db.Text
-  price         Decimal   @db.Decimal(10, 2)
-  currency      String    @default("UZS")
-  categoryId    String
-  tags          String[]
-  type          ProductType @default(FRESH)
-  condition     ProductCondition?
-  quantity      Int       @default(1)
-  status        ProductStatus @default(ACTIVE)
-  isFeatured    Boolean   @default(false)
-  views         Int       @default(0)
-  region        String?
-  city          String?
-  district      String?
-  sellerId      String
+  id                   String            @id @default(uuid())
+  title                String            @db.VarChar(255)
+  slug                 String            @unique
+  description          String?           @db.Text
+  price                Decimal           @db.Decimal(10, 2)
+  currency             String            @default("UZS")
+  categoryId           String
+  tags                 String[]
+  type                 ProductType       @default(FRESH)
+  condition            ProductCondition?
+  quantity             Int               @default(1)
+  status               ProductStatus     @default(ACTIVE)
+  isFeatured           Boolean           @default(false)
+  views                Int               @default(0)
+  region               String?
+  city                 String?
+  district             String?
+  sellerId             String
   publicationPaymentId String?
-  deletedAt     DateTime?
-  deletedBy     String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  isActive             Boolean           @default(true)
+  deletedAt            DateTime?
+  deletedBy            String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
-  category      Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  seller        User      @relation(fields: [sellerId], references: [id], onDelete: Restrict)
-  publicationPayment Payment? @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id], onDelete: SetNull)
-  auctions      Auction[]
-  orders        Order[]
-  favorites     Favorite[]
-  reviews       Review[]
-  images        ProductImage[]
-  conversations Conversation[]
+  category           Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  seller             User           @relation(fields: [sellerId], references: [id], onDelete: Restrict)
+  publicationPayment Payment?       @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id], onDelete: SetNull)
+  auctions           Auction[]
+  orders             Order[]
+  favorites          Favorite[]
+  reviews            Review[]
+  images             ProductImage[]
+  conversations      Conversation[]
 
   @@index([publicationPaymentId])
-
   @@index([sellerId])
   @@index([slug])
+  @@index([isActive, deletedAt])
   @@index([status, deletedAt])
   @@index([status, type, categoryId])
   @@index([type, status])
@@ -301,43 +352,50 @@ model Product {
 }
 
 model ProductImage {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   productId String
   fileId    String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+  order     Int       @default(0)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  deletedBy String?
+  createdAt DateTime  @default(now())
 
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  file    File    @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   @@unique([productId, fileId])
   @@index([productId, order])
   @@index([fileId])
+  @@index([isActive, deletedAt])
   @@map("product_images")
 }
 
 model Review {
-  id            String    @id @default(uuid())
-  reviewerId    String
-  revieweeId    String
-  productId     String?
-  orderId       String?
-  parentId      String?
-  rating        Int       @db.SmallInt
-  comment       String?   @db.Text
-  isVerified    Boolean   @default(false)
-  isReported    Boolean   @default(false)
-  reportReason  String?   @db.Text
-  reportedAt    DateTime?
+  id           String    @id @default(uuid())
+  reviewerId   String
+  revieweeId   String
+  productId    String?
+  orderId      String?
+  parentId     String?
+  rating       Int       @db.SmallInt
+  comment      String?   @db.Text
+  isVerified   Boolean   @default(false)
+  isReported   Boolean   @default(false)
+  reportReason String?   @db.Text
+  reportedAt   DateTime?
   helpfulCount Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  deletedBy    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  reviewer      User      @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
-  reviewee      User      @relation("Reviewee", fields: [revieweeId], references: [id], onDelete: Restrict)
-  product       Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
-  parent        Review?   @relation("ReviewReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies       Review[]  @relation("ReviewReplies")
+  reviewer User     @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewee User     @relation("Reviewee", fields: [revieweeId], references: [id], onDelete: Restrict)
+  product  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  parent   Review?  @relation("ReviewReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Review[] @relation("ReviewReplies")
 
   @@unique([reviewerId, revieweeId, productId])
   @@index([revieweeId])
@@ -348,53 +406,61 @@ model Review {
   @@index([rating])
   @@index([parentId])
   @@index([isReported])
+  @@index([isActive, deletedAt])
   @@index([createdAt])
   @@map("reviews")
 }
 
 model User {
-  id            String    @id @default(uuid())
-  phoneNumber   String    @unique
-  firstName     String?
-  lastName      String?
-  email         String?   @unique
-  avatarId      String?   @unique
-  isVerified    Boolean   @default(false)
-  isActive      Boolean   @default(true)
-  role          UserRole  @default(USER)
-  rating        Decimal   @default(0) @db.Decimal(3, 2)
-  totalRatings  Int       @default(0)
-  refreshTokenVersion Int  @default(0)
-  balance       Decimal   @default(0) @db.Decimal(10, 2)
-  publicationCredits Int  @default(0)
-  region        String?
-  city          String?
-  district      String?
-  fcmToken      String?
-  lastLoginAt   DateTime?
-  deletedAt     DateTime?
-  deletedBy     String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  phoneNumber         String    @unique
+  username            String?   @unique
+  firstName           String?
+  lastName            String?
+  email               String?   @unique
+  gender              String?
+  birthDate           DateTime?
+  language            String?
+  country             String?
+  avatarId            String?   @unique
+  isVerified          Boolean   @default(false)
+  isActive            Boolean   @default(true)
+  role                UserRole  @default(USER)
+  rating              Decimal   @default(0) @db.Decimal(3, 2)
+  totalRatings        Int       @default(0)
+  refreshTokenVersion Int       @default(0)
+  balance             Decimal   @default(0) @db.Decimal(10, 2)
+  publicationCredits  Int       @default(0)
+  region              String?
+  city                String?
+  district            String?
+  fcmToken            String?
+  lastLoginAt         DateTime?
+  deletedAt           DateTime?
+  deletedBy           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  avatar            File?     @relation("UserAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
-  products          Product[]
-  createdAuctions   Auction[] @relation("AuctionCreator")
-  wonAuctions       Auction[] @relation("AuctionWinner")
-  bids              Bid[]
-  verificationCodes VerificationCode[]
-  orders            Order[]
-  reviews           Review[] @relation("Reviewer")
-  receivedReviews   Review[] @relation("Reviewee")
-  favorites         Favorite[]
-  notifications     Notification[]
-  uploadedFiles     File[]    @relation("FileUploader")
-  conversationsAsSeller Conversation[] @relation("ConversationSeller")
-  conversationsAsBuyer  Conversation[] @relation("ConversationBuyer")
-  sentMessages      Message[] @relation("MessageSender")
-  payments           Payment[] @relation("PaymentUser")
+  avatar                 File?                   @relation("UserAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+  products               Product[]
+  createdAuctions        Auction[]               @relation("AuctionCreator")
+  wonAuctions            Auction[]               @relation("AuctionWinner")
+  bids                   Bid[]
+  verificationCodes      VerificationCode[]
+  orders                 Order[]
+  reviews                Review[]                @relation("Reviewer")
+  receivedReviews        Review[]                @relation("Reviewee")
+  favorites              Favorite[]
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+  uploadedFiles          File[]                  @relation("FileUploader")
+  conversationsAsSeller  Conversation[]          @relation("ConversationSeller")
+  conversationsAsBuyer   Conversation[]          @relation("ConversationBuyer")
+  sentMessages           Message[]               @relation("MessageSender")
+  payments               Payment[]               @relation("PaymentUser")
 
   @@index([phoneNumber])
+  @@index([username])
   @@index([email])
   @@index([isActive, deletedAt])
   @@index([isActive, role])
@@ -406,54 +472,59 @@ model User {
 }
 
 model VerificationCode {
-  id            String    @id @default(uuid())
-  phoneNumber   String
-  code          String    @db.VarChar(6)
-  purpose       VerificationPurpose @default(SIGNUP)
-  expiresAt     DateTime
-  isUsed        Boolean   @default(false)
-  attempts      Int       @default(0)
-  maxAttempts   Int       @default(3)
-  userId        String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id          String              @id @default(uuid())
+  phoneNumber String
+  code        String              @db.VarChar(6)
+  purpose     VerificationPurpose @default(SIGNUP)
+  expiresAt   DateTime
+  isUsed      Boolean             @default(false)
+  attempts    Int                 @default(0)
+  maxAttempts Int                 @default(3)
+  userId      String?
+  isActive    Boolean             @default(true)
+  deletedAt   DateTime?
+  deletedBy   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([phoneNumber, code, isUsed])
   @@index([phoneNumber, expiresAt, isUsed])
   @@index([phoneNumber, purpose])
+  @@index([isActive, deletedAt])
   @@index([expiresAt])
   @@map("verification_codes")
 }
 
 model Conversation {
-  id                    String    @id @default(uuid())
-  sellerId              String
-  buyerId               String
-  orderId               String?
-  productId              String?
-  lastMessageAt         DateTime?
-  lastMessageId         String?
-  unreadCountBySeller   Int       @default(0)
-  unreadCountByBuyer    Int       @default(0)
-  isArchivedBySeller    Boolean   @default(false)
-  isArchivedByBuyer     Boolean   @default(false)
-  isBlockedBySeller     Boolean   @default(false)
-  isBlockedByBuyer      Boolean   @default(false)
-  sellerLastSeenAt      DateTime?
-  buyerLastSeenAt       DateTime?
-  metadata              Json?
-  deletedAt             DateTime?
-  deletedBy             String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  sellerId            String
+  buyerId             String
+  orderId             String?
+  productId           String?
+  lastMessageAt       DateTime?
+  lastMessageId       String?
+  unreadCountBySeller Int       @default(0)
+  unreadCountByBuyer  Int       @default(0)
+  isArchivedBySeller  Boolean   @default(false)
+  isArchivedByBuyer   Boolean   @default(false)
+  isBlockedBySeller   Boolean   @default(false)
+  isBlockedByBuyer    Boolean   @default(false)
+  sellerLastSeenAt    DateTime?
+  buyerLastSeenAt     DateTime?
+  metadata            Json?
+  isActive            Boolean   @default(true)
+  deletedAt           DateTime?
+  deletedBy           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  seller                User      @relation("ConversationSeller", fields: [sellerId], references: [id], onDelete: Cascade)
-  buyer                 User      @relation("ConversationBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
-  order                 Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  product               Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
-  lastMessage           Message?  @relation("ConversationLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
-  messages              Message[]
+  seller      User      @relation("ConversationSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  buyer       User      @relation("ConversationBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  product     Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  lastMessage Message?  @relation("ConversationLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+  messages    Message[]
 
   @@unique([sellerId, buyerId, orderId])
   @@unique([sellerId, buyerId, productId])
@@ -464,36 +535,37 @@ model Conversation {
   @@index([orderId])
   @@index([productId])
   @@index([lastMessageAt])
+  @@index([isActive, deletedAt])
   @@index([createdAt])
   @@index([deletedAt])
   @@map("conversations")
 }
 
 model Message {
-  id              String        @id @default(uuid())
-  conversationId  String
-  senderId        String
+  id               String         @id @default(uuid())
+  conversationId   String
+  senderId         String
   replyToMessageId String?
-  messageType     MessageType   @default(TEXT)
-  content         String        @db.Text
-  fileId          String?
-  deliveryStatus  DeliveryStatus @default(SENT)
-  isRead          Boolean       @default(false)
-  readAt          DateTime?
-  isEdited        Boolean       @default(false)
-  editedAt        DateTime?
-  isDeleted       Boolean       @default(false)
-  deletedAt       DateTime?
-  deletedBy       String?
-  metadata        Json?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  messageType      MessageType    @default(TEXT)
+  content          String         @db.Text
+  fileId           String?
+  deliveryStatus   DeliveryStatus @default(SENT)
+  isRead           Boolean        @default(false)
+  readAt           DateTime?
+  isEdited         Boolean        @default(false)
+  editedAt         DateTime?
+  isDeleted        Boolean        @default(false)
+  deletedAt        DateTime?
+  deletedBy        String?
+  metadata         Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  conversation    Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender          User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
-  file            File?         @relation("MessageFile", fields: [fileId], references: [id], onDelete: SetNull)
-  replyTo         Message?      @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies         Message[]     @relation("MessageReplies")
+  conversation              Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender                    User           @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  file                      File?          @relation("MessageFile", fields: [fileId], references: [id], onDelete: SetNull)
+  replyTo                   Message?       @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies                   Message[]      @relation("MessageReplies")
   conversationAsLastMessage Conversation[] @relation("ConversationLastMessage")
 
   @@index([conversationId, createdAt])
@@ -502,11 +574,24 @@ model Message {
   @@index([conversationId])
   @@index([replyToMessageId])
   @@index([isRead])
-  @@index([isDeleted])
+  @@index([isDeleted, deletedAt])
   @@index([deliveryStatus])
   @@index([createdAt])
   @@index([fileId])
   @@map("messages")
+}
+
+model PublicationPricing {
+  id           String   @id @default(uuid())
+  pricePerPost Decimal  @db.Decimal(10, 2)
+  currency     String   @default("UZS")
+  isActive     Boolean  @default(true)
+  description  String?  @db.Text
+  updatedBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("publication_pricing")
 }
 
 enum AuctionStatus {

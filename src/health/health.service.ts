@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
-import { AwsService } from '../infrastructure/aws/aws.service';
+import { StorageService } from '../infrastructure/storage/storage.service';
 import { SmsService } from '../infrastructure/sms/sms.service';
 
 export interface HealthStatus {
@@ -59,7 +59,7 @@ export class HealthService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly configService: ConfigService,
-    private readonly awsService?: AwsService,
+    private readonly storageService?: StorageService,
     private readonly smsService?: SmsService,
   ) {}
 
@@ -226,21 +226,21 @@ export class HealthService {
       }
     | undefined
   > {
-    if (!this.awsService) {
+    if (!this.storageService) {
       return Promise.resolve(undefined);
     }
 
     try {
-      const bucketName = this.configService.get<string>('aws.bucket');
+      const bucketName = this.configService.get<string>('storage.bucket');
       if (!bucketName) {
         return Promise.resolve({
           status: 'error',
-          message: 'AWS S3 bucket not configured',
+          message: 'Storage bucket not configured',
         });
       }
       return Promise.resolve({
         status: 'ok',
-        message: 'AWS S3 configured',
+        message: 'Storage configured',
       });
     } catch (error) {
       return Promise.resolve({
