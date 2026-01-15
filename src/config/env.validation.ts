@@ -86,41 +86,9 @@ class EnvironmentVariables {
   @IsOptional()
   ESKIZ_SENDER_ID?: string;
 
-  @IsUrl()
-  @IsOptional()
-  ESKIZ_CALLBACK_URL?: string;
-
-  @IsString()
-  @IsOptional()
-  PAYME_MERCHANT_ID?: string;
-
-  @IsString()
-  @IsOptional()
-  PAYME_SECRET_KEY?: string;
-
-  @IsString()
-  @IsOptional()
-  CLICK_MERCHANT_ID?: string;
-
-  @IsString()
-  @IsOptional()
-  CLICK_SERVICE_ID?: string;
-
-  @IsString()
-  @IsOptional()
-  CLICK_SECRET_KEY?: string;
-
   @IsNumber()
   @IsOptional()
   PORT?: number;
-
-  @IsString()
-  @IsOptional()
-  SENTRY_DSN?: string;
-
-  @IsString()
-  @IsOptional()
-  SENTRY_ENABLED?: string;
 
   @IsString()
   @IsOptional()
