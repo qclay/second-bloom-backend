@@ -13,6 +13,21 @@ export class UserRepository implements IUserRepository {
     });
   }
 
+  async findByIdWithAvatar(
+    id: string,
+  ): Promise<(User & { avatar: { url: string } | null }) | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        avatar: {
+          select: {
+            url: true,
+          },
+        },
+      },
+    }) as Promise<(User & { avatar: { url: string } | null }) | null>;
+  }
+
   async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { phoneNumber },

@@ -8,23 +8,35 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ChatService } from '../chat.service';
 import { SendMessageDto } from '../dto/send-message.dto';
 import { MessageResponseDto } from '../dto/message-response.dto';
+import { JoinConversationDto } from '../dto/join-conversation.dto';
+import { CHAT_EVENTS } from '../constants/chat-events.constants';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
 }
 
+@Injectable()
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin:
+      process.env.CORS_ORIGIN === '*'
+        ? true
+        : process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) || [
+            'http://localhost:3000',
+          ],
     credentials: true,
   },
   namespace: '/chat',
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  allowEIO3: true,
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -32,12 +44,57 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(ChatGateway.name);
   private readonly userSockets = new Map<string, Set<string>>();
+  private readonly userConversations = new Map<string, Set<string>>();
 
   constructor(
     private readonly chatService: ChatService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.setupKeepAlive();
+  }
+
+  private setupKeepAlive() {
+    setInterval(() => {
+      this.server.emit('ping', { timestamp: Date.now() });
+    }, 20000);
+  }
+
+  private async autoJoinUserConversations(
+    client: AuthenticatedSocket,
+  ): Promise<void> {
+    if (!client.userId) return;
+
+    try {
+      const conversations = await this.chatService.getConversations(
+        { page: 1, limit: 50 },
+        client.userId,
+      );
+
+      const conversationIds = conversations.data.map((conv) => conv.id);
+
+      for (const conversationId of conversationIds) {
+        await client.join(`conversation:${conversationId}`);
+      }
+
+      if (!this.userConversations.has(client.userId)) {
+        this.userConversations.set(client.userId, new Set());
+      }
+      conversationIds.forEach((id) => {
+        this.userConversations.get(client.userId!)?.add(id);
+      });
+
+      if (conversationIds.length > 0) {
+        this.logger.log(
+          `User ${client.userId} auto-joined ${conversationIds.length} conversations`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to auto-join conversations for user ${client.userId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
@@ -65,7 +122,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.addUserSocket(client.userId, client.id);
 
       this.logger.log(`Client ${client.id} connected as user ${client.userId}`);
-      client.emit('connected', { userId: client.userId });
+
+      await this.autoJoinUserConversations(client);
+
+      client.emit(CHAT_EVENTS.CONNECTED, {
+        userId: client.userId,
+        socketId: client.id,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       this.logger.warn(
         `Client ${client.id} disconnected: Invalid token - ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -83,10 +147,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('join_conversation')
+  @SubscribeMessage('pong')
+  handlePong(@ConnectedSocket() client: AuthenticatedSocket) {
+    if (client.userId) {
+      this.logger.debug(`Received pong from user ${client.userId}`);
+    }
+  }
+
+  @SubscribeMessage(CHAT_EVENTS.JOIN_CONVERSATION)
   async handleJoinConversation(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() data: JoinConversationDto,
   ) {
     if (!client.userId) {
       return { error: 'Unauthorized' };
@@ -103,6 +174,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       void client.join(`conversation:${data.conversationId}`);
+
+      if (!this.userConversations.has(client.userId)) {
+        this.userConversations.set(client.userId, new Set());
+      }
+      this.userConversations.get(client.userId)?.add(data.conversationId);
+
       this.logger.log(
         `User ${client.userId} joined conversation ${data.conversationId}`,
       );
@@ -118,16 +195,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('leave_conversation')
+  @SubscribeMessage(CHAT_EVENTS.LEAVE_CONVERSATION)
   handleLeaveConversation(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() data: JoinConversationDto,
   ) {
     if (!client.userId) {
       return { error: 'Unauthorized' };
     }
 
     void client.leave(`conversation:${data.conversationId}`);
+
+    const userConvs = this.userConversations.get(client.userId);
+    if (userConvs) {
+      userConvs.delete(data.conversationId);
+      if (userConvs.size === 0) {
+        this.userConversations.delete(client.userId);
+      }
+    }
+
     this.logger.log(
       `User ${client.userId} left conversation ${data.conversationId}`,
     );
@@ -135,7 +221,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true, conversationId: data.conversationId };
   }
 
-  @SubscribeMessage('send_message')
+  @SubscribeMessage(CHAT_EVENTS.SEND_MESSAGE)
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: SendMessageDto,
@@ -171,9 +257,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server
         .to(`conversation:${data.conversationId}`)
-        .emit('new_message', message);
+        .emit(CHAT_EVENTS.NEW_MESSAGE, message);
 
-      this.sendToUser(recipientId, 'new_message', message);
+      this.sendToUser(recipientId, CHAT_EVENTS.NEW_MESSAGE, message);
 
       this.logger.log(
         `Message sent in conversation ${data.conversationId} by user ${client.userId}`,
@@ -191,10 +277,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('typing_start')
+  @SubscribeMessage(CHAT_EVENTS.TYPING_START)
   handleTypingStart(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() data: JoinConversationDto,
   ) {
     if (!client.userId) {
       return { error: 'Unauthorized' };
@@ -204,19 +290,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { error: 'Invalid conversation ID' };
     }
 
-    client.to(`conversation:${data.conversationId}`).emit('user_typing', {
-      conversationId: data.conversationId,
-      userId: client.userId,
-      isTyping: true,
-    });
+    client
+      .to(`conversation:${data.conversationId}`)
+      .emit(CHAT_EVENTS.USER_TYPING, {
+        conversationId: data.conversationId,
+        userId: client.userId,
+        isTyping: true,
+      });
 
     return { success: true };
   }
 
-  @SubscribeMessage('typing_stop')
+  @SubscribeMessage(CHAT_EVENTS.TYPING_STOP)
   handleTypingStop(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() data: JoinConversationDto,
   ) {
     if (!client.userId) {
       return { error: 'Unauthorized' };
@@ -226,16 +314,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { error: 'Invalid conversation ID' };
     }
 
-    client.to(`conversation:${data.conversationId}`).emit('user_typing', {
-      conversationId: data.conversationId,
-      userId: client.userId,
-      isTyping: false,
-    });
+    client
+      .to(`conversation:${data.conversationId}`)
+      .emit(CHAT_EVENTS.USER_TYPING, {
+        conversationId: data.conversationId,
+        userId: client.userId,
+        isTyping: false,
+      });
 
     return { success: true };
   }
 
-  @SubscribeMessage('mark_read')
+  @SubscribeMessage(CHAT_EVENTS.MARK_READ)
   async handleMarkRead(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { conversationId: string; messageIds?: string[] },
@@ -259,7 +349,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server
         .to(`conversation:${data.conversationId}`)
-        .emit('messages_read', {
+        .emit(CHAT_EVENTS.MESSAGES_READ, {
           conversationId: data.conversationId,
           userId: client.userId,
           count: result.count,
@@ -276,7 +366,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('delete_message')
+  @SubscribeMessage(CHAT_EVENTS.DELETE_MESSAGE)
   async handleDeleteMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { messageId: string },
@@ -311,12 +401,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server
         .to(`conversation:${message.conversationId}`)
-        .emit('message_deleted', {
+        .emit(CHAT_EVENTS.MESSAGE_DELETED, {
           messageId: message.id,
           conversationId: message.conversationId,
         });
 
-      this.sendToUser(recipientId, 'message_deleted', {
+      this.sendToUser(recipientId, CHAT_EVENTS.MESSAGE_DELETED, {
         messageId: message.id,
         conversationId: message.conversationId,
       });
@@ -337,7 +427,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('edit_message')
+  @SubscribeMessage(CHAT_EVENTS.EDIT_MESSAGE)
   async handleEditMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { messageId: string; content: string },
@@ -377,9 +467,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server
         .to(`conversation:${message.conversationId}`)
-        .emit('message_edited', message);
+        .emit(CHAT_EVENTS.MESSAGE_EDITED, message);
 
-      this.sendToUser(recipientId, 'message_edited', message);
+      this.sendToUser(recipientId, CHAT_EVENTS.MESSAGE_EDITED, message);
 
       this.logger.log(
         `Message ${data.messageId} edited by user ${client.userId}`,
@@ -402,10 +492,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     message: MessageResponseDto,
     recipientId: string,
   ): void {
-    this.sendToUser(recipientId, 'new_message', message);
+    this.sendToUser(recipientId, CHAT_EVENTS.NEW_MESSAGE, message);
     this.server
       .to(`conversation:${conversationId}`)
-      .emit('new_message', message);
+      .emit(CHAT_EVENTS.NEW_MESSAGE, message);
   }
 
   notifyMessageRead(
@@ -413,11 +503,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     userId: string,
     count: number,
   ): void {
-    this.server.to(`conversation:${conversationId}`).emit('messages_read', {
-      conversationId,
-      userId,
-      count,
+    this.server
+      .to(`conversation:${conversationId}`)
+      .emit(CHAT_EVENTS.MESSAGES_READ, {
+        conversationId,
+        userId,
+        count,
+      });
+  }
+
+  getConnectionCount(): number {
+    return this.server.sockets.sockets.size;
+  }
+
+  getRoomCount(): number {
+    const rooms = new Set<string>();
+    this.server.sockets.adapter.rooms.forEach((_, roomName) => {
+      if (roomName.startsWith('conversation:')) {
+        rooms.add(roomName);
+      }
     });
+    return rooms.size;
   }
 
   private sendToUser(userId: string, event: string, data: unknown): void {

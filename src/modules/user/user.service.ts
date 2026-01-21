@@ -15,6 +15,7 @@ import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { Prisma } from '@prisma/client';
 import { UserRole } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   IFirebaseService,
   FIREBASE_SERVICE_TOKEN,
@@ -26,6 +27,7 @@ export class UserService {
 
   constructor(
     private readonly userRepository: UserRepository,
+    private readonly prisma: PrismaService,
     @Inject(FIREBASE_SERVICE_TOKEN)
     private readonly firebaseService: IFirebaseService,
   ) {}
@@ -140,7 +142,7 @@ export class UserService {
   }
 
   async findProfile(userId: string): Promise<UserResponseDto> {
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userRepository.findByIdWithAvatar(userId);
 
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
@@ -153,17 +155,34 @@ export class UserService {
     userId: string,
     dto: UpdateProfileDto,
   ): Promise<UserResponseDto> {
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userRepository.findByIdWithAvatar(userId);
 
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
     }
 
-    if (dto.email && dto.email !== user.email) {
+    if (
+      dto.email !== undefined &&
+      dto.email !== null &&
+      dto.email !== user.email
+    ) {
       await this.validateEmailUniqueness(dto.email, userId);
     }
 
-    const updatedUser = await this.userRepository.update(userId, dto);
+    if (dto.avatarId !== undefined && dto.avatarId !== null) {
+      const avatarExists = await this.validateAvatarExists(dto.avatarId);
+      if (!avatarExists) {
+        throw new NotFoundException('Avatar file not found');
+      }
+    }
+
+    await this.userRepository.update(userId, dto);
+    const updatedUser = await this.userRepository.findByIdWithAvatar(userId);
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found after update');
+    }
+
     return UserResponseDto.fromEntity(updatedUser);
   }
 
@@ -270,5 +289,12 @@ export class UserService {
     this.logger.log(`FCM token removed for user ${userId}`);
 
     return UserResponseDto.fromEntity(updatedUser);
+  }
+
+  private async validateAvatarExists(avatarId: string): Promise<boolean> {
+    const file = await this.prisma.file.findUnique({
+      where: { id: avatarId },
+    });
+    return file !== null && file.deletedAt === null;
   }
 }
