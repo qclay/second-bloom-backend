@@ -4,6 +4,7 @@ import {
   IsEmail,
   MaxLength,
   IsUUID,
+  IsDateString,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
@@ -90,4 +91,14 @@ export class UpdateProfileDto {
   @IsOptional()
   @Transform(({ value }) => (value === '' ? null : value))
   avatarId?: string | null;
+
+  @ApiProperty({
+    description: 'Birth date (ISO 8601 format)',
+    example: '1990-01-15',
+    required: false,
+  })
+  @IsDateString()
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? null : value))
+  birthDate?: string | null;
 }

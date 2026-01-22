@@ -419,7 +419,7 @@ model User {
   lastName            String?
   email               String?   @unique
   gender              String?
-  birthDate           DateTime?
+  birthDate           String?
   language            String?
   country             String?
   avatarId            String?   @unique

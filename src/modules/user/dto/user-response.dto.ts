@@ -48,6 +48,9 @@ export class UserResponseDto {
   district!: string | null;
 
   @ApiProperty({ required: false, nullable: true })
+  birthDate!: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
   lastLoginAt!: Date | null;
 
   @ApiProperty()
@@ -59,8 +62,7 @@ export class UserResponseDto {
   static fromEntity(
     user: User | (User & { avatar?: { url: string } | null }),
   ): UserResponseDto {
-    const avatarUrl =
-      'avatar' in user && user.avatar ? user.avatar.url : null;
+    const avatarUrl = 'avatar' in user && user.avatar ? user.avatar.url : null;
 
     return {
       id: user.id,
@@ -78,6 +80,7 @@ export class UserResponseDto {
       region: user.region,
       city: user.city,
       district: user.district,
+      birthDate: user.birthDate || null,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
