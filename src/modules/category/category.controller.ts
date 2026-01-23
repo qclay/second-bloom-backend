@@ -37,12 +37,10 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @Roles(UserRole.ADMIN)
+  @Public()
   @UsePipes(new SanitizePipe())
   @HttpCode(HttpStatus.CREATED)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new category (Admin only)' })
+  @ApiOperation({ summary: 'Create a new category' })
   @ApiCommonErrorResponses({ conflict: true })
   @ApiResponse({
     status: 201,
@@ -51,9 +49,8 @@ export class CategoryController {
   })
   async create(
     @Body() createCategoryDto: CreateCategoryDto,
-    @CurrentUser('role') role: UserRole,
   ): Promise<CategoryResponseDto> {
-    return this.categoryService.createCategory(createCategoryDto, role);
+    return this.categoryService.createCategory(createCategoryDto);
   }
 
   @Get()

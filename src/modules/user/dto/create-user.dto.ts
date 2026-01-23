@@ -48,4 +48,48 @@ export class CreateUserDto {
   @IsOptional()
   @MaxLength(255)
   email?: string;
+
+  @ApiProperty({
+    description: 'Username (unique identifier)',
+    example: 'johndoe',
+    maxLength: 50,
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  username?: string;
+
+  @ApiProperty({
+    description: 'Gender',
+    example: 'male',
+    maxLength: 20,
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  gender?: string;
+
+  @ApiProperty({
+    description: 'Language preference',
+    example: 'uz',
+    maxLength: 10,
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(10)
+  language?: string;
+
+  @ApiProperty({
+    description: 'Country',
+    example: 'Uzbekistan',
+    maxLength: 100,
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  country?: string;
 }

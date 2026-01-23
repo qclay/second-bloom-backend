@@ -21,7 +21,4 @@ export class SellerIncomeDto {
 
   @ApiProperty({ example: 4500000, description: 'Income for last month' })
   lastMonth!: number;
-
-  @ApiProperty({ example: 0, description: 'Refunded amount (deprecated)' })
-  refundedAmount!: number;
 }

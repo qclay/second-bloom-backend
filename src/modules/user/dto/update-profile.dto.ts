@@ -101,4 +101,52 @@ export class UpdateProfileDto {
   @IsOptional()
   @Transform(({ value }) => (value === '' ? null : value))
   birthDate?: string | null;
+
+  @ApiProperty({
+    description: 'Username (unique identifier)',
+    example: 'johndoe',
+    maxLength: 50,
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  @Transform(({ value }) => (value === '' ? null : value))
+  username?: string | null;
+
+  @ApiProperty({
+    description: 'Gender',
+    example: 'male',
+    maxLength: 20,
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  @Transform(({ value }) => (value === '' ? null : value))
+  gender?: string | null;
+
+  @ApiProperty({
+    description: 'Language preference',
+    example: 'uz',
+    maxLength: 10,
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(10)
+  @Transform(({ value }) => (value === '' ? null : value))
+  language?: string | null;
+
+  @ApiProperty({
+    description: 'Country',
+    example: 'Uzbekistan',
+    maxLength: 100,
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  @Transform(({ value }) => (value === '' ? null : value))
+  country?: string | null;
 }

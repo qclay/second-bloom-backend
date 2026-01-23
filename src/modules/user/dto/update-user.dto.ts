@@ -32,4 +32,24 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   @MaxLength(100)
   district?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  username?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  gender?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(10)
+  language?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  country?: string;
 }

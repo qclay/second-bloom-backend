@@ -40,25 +40,48 @@ export class PaymentService {
   }
 
   async createInvoice(userId: string, dto: CreatePaymentDto) {
-    const pricing = await this.prisma.publicationPricing.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const paymentType = dto.paymentType || PaymentType.PUBLICATION;
 
-    if (!pricing) {
-      throw new NotFoundException(
-        'Publication pricing not configured. Please contact administrator.',
-      );
+    let totalAmount: Prisma.Decimal;
+    let quantity = 1;
+    let pricePerPost: Prisma.Decimal | undefined;
+
+    if (paymentType === PaymentType.TOP_UP) {
+      if (!dto.amount || dto.amount <= 0) {
+        throw new BadRequestException(
+          'Amount is required for balance top-up and must be greater than 0',
+        );
+      }
+      totalAmount = new Prisma.Decimal(dto.amount);
+      quantity = 1;
+    } else {
+      const pricing = await this.prisma.publicationPricing.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!pricing) {
+        throw new NotFoundException(
+          'Publication pricing not configured. Please contact administrator.',
+        );
+      }
+
+      if (!dto.quantity || dto.quantity < 1) {
+        throw new BadRequestException(
+          'Quantity is required for publication payment and must be at least 1',
+        );
+      }
+
+      pricePerPost = pricing.pricePerPost;
+      totalAmount = pricePerPost.mul(dto.quantity);
+      quantity = dto.quantity;
     }
-
-    const pricePerPost = pricing.pricePerPost;
-    const totalAmount = pricePerPost.mul(dto.quantity);
 
     const payment = await this.paymentRepository.create({
       userId,
-      paymentType: PaymentType.PUBLICATION,
+      paymentType,
       amount: totalAmount,
-      quantity: dto.quantity,
+      quantity,
       method: PaymentMethod.CARD,
       gateway: dto.gateway || 'PAYME',
       status: PaymentStatus.PENDING,
@@ -67,15 +90,16 @@ export class PaymentService {
     const invoiceUrl = `${this.paymentApiUrl}/create-invoice`;
 
     this.logger.log(
-      `Payment invoice created: ${payment.id} for user: ${userId}, quantity: ${dto.quantity}, amount: ${totalAmount}`,
+      `Payment invoice created: ${payment.id} for user: ${userId}, type: ${paymentType}, quantity: ${quantity}, amount: ${totalAmount.toString()}`,
     );
 
     return {
       paymentId: payment.id,
       invoiceUrl,
       amount: totalAmount,
-      quantity: dto.quantity,
-      pricePerPost,
+      quantity,
+      paymentType,
+      ...(pricePerPost && { pricePerPost }),
     };
   }
 
@@ -138,7 +162,7 @@ export class PaymentService {
 
         if (recentPayment) {
           this.logger.log(
-            `Found pending payment ${recentPayment.id} for user ${recentPayment.userId}, amount: ${recentPayment.amount}. Matching with invoice_id ${payload.invoice_id}.`,
+            `Found pending payment ${recentPayment.id} for user ${recentPayment.userId}, amount: ${recentPayment.amount.toString()}. Matching with invoice_id ${payload.invoice_id}.`,
           );
           break;
         }
@@ -185,8 +209,6 @@ export class PaymentService {
       return { success: true, message: 'Payment already processed' };
     }
 
-    const creditsToAdd = payment.quantity;
-
     return await this.prisma.$transaction(async (tx) => {
       await tx.payment.update({
         where: { id: payment.id },
@@ -199,23 +221,35 @@ export class PaymentService {
         },
       });
 
+      const updateData: Prisma.UserUpdateInput = {};
+
+      if (payment.paymentType === PaymentType.TOP_UP) {
+        updateData.balance = {
+          increment: payment.amount,
+        };
+        this.logger.log(
+          `Added ${payment.amount.toString()} to balance for user ${payment.userId}`,
+        );
+      } else {
+        updateData.publicationCredits = {
+          increment: payment.quantity,
+        };
+        this.logger.log(
+          `Added ${payment.quantity} credits to user ${payment.userId}`,
+        );
+      }
+
       await tx.user.update({
         where: { id: payment.userId },
-        data: {
-          publicationCredits: {
-            increment: creditsToAdd,
-          },
-        },
+        data: updateData,
       });
-
-      this.logger.log(
-        `Added ${creditsToAdd} credits to user ${payment.userId}`,
-      );
 
       return {
         success: true,
         message: 'Payment completed successfully',
-        creditsAdded: creditsToAdd,
+        ...(payment.paymentType === PaymentType.TOP_UP
+          ? { balanceAdded: payment.amount }
+          : { creditsAdded: payment.quantity }),
       };
     });
   }

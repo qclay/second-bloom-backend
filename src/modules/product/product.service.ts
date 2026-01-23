@@ -21,7 +21,7 @@ import { CacheService } from '../../common/services/cache.service';
 export class ProductService {
   private readonly logger = new Logger(ProductService.name);
   private readonly CACHE_PREFIX = 'product';
-  private readonly CACHE_TTL = 1800; // 30 minutes (products change more frequently than categories)
+  private readonly CACHE_TTL = 1800;
 
   constructor(
     private readonly productRepository: ProductRepository,
@@ -34,6 +34,21 @@ export class ProductService {
     dto: CreateProductDto,
     sellerId: string,
   ): Promise<ProductResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: sellerId },
+      select: { publicationCredits: true, role: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role !== UserRole.ADMIN && user.publicationCredits < 1) {
+      throw new BadRequestException(
+        'Insufficient publication credits. Please purchase credits to create a product.',
+      );
+    }
+
     const category = await this.categoryRepository.findById(dto.categoryId);
     if (!category || category.deletedAt || !category.isActive) {
       throw new NotFoundException('Category not found or inactive');
@@ -56,6 +71,17 @@ export class ProductService {
 
     const product = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
+        if (user.role !== UserRole.ADMIN) {
+          await tx.user.update({
+            where: { id: sellerId },
+            data: {
+              publicationCredits: {
+                decrement: 1,
+              },
+            },
+          });
+        }
+
         const createdProduct = await tx.product.create({
           data: {
             title: dto.title,
@@ -99,6 +125,10 @@ export class ProductService {
 
     await this.cacheService.invalidateEntity(this.CACHE_PREFIX);
 
+    this.logger.log(
+      `Product created: ${product.id} by user: ${sellerId}. Credits remaining: ${user.role !== UserRole.ADMIN ? user.publicationCredits - 1 : 'unlimited (admin)'}`,
+    );
+
     return result;
   }
 
@@ -124,6 +154,8 @@ export class ProductService {
 
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
+      isActive: true,
+      ...(status ? {} : { status: ProductStatus.ACTIVE }),
     };
 
     if (search) {

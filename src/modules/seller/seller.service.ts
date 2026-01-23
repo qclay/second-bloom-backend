@@ -101,7 +101,6 @@ export class SellerService {
       completedIncome: Number(income.completed_income),
       thisMonth: Number(income.this_month),
       lastMonth: Number(income.last_month),
-      refundedAmount: 0,
     };
   }
 

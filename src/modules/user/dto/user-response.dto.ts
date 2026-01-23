@@ -51,6 +51,18 @@ export class UserResponseDto {
   birthDate!: string | null;
 
   @ApiProperty({ required: false, nullable: true })
+  username!: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  gender!: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  language!: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  country!: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
   lastLoginAt!: Date | null;
 
   @ApiProperty()
@@ -67,6 +79,7 @@ export class UserResponseDto {
     return {
       id: user.id,
       phoneNumber: user.phoneNumber,
+      username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
@@ -81,6 +94,9 @@ export class UserResponseDto {
       city: user.city,
       district: user.district,
       birthDate: user.birthDate || null,
+      gender: user.gender,
+      language: user.language,
+      country: user.country,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

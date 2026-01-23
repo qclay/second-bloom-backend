@@ -29,14 +29,7 @@ export class CategoryService {
     private readonly redisService: RedisService,
   ) {}
 
-  async createCategory(
-    dto: CreateCategoryDto,
-    userRole: UserRole,
-  ): Promise<CategoryResponseDto> {
-    if (userRole !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only admins can create categories');
-    }
-
+  async createCategory(dto: CreateCategoryDto): Promise<CategoryResponseDto> {
     const slug = this.generateSlug(dto.name);
     const existingCategory = await this.categoryRepository.findBySlug(slug);
 

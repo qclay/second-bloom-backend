@@ -1,16 +1,49 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsObject, IsInt, Min } from 'class-validator';
-import { PaymentGateway } from '@prisma/client';
+import {
+  IsOptional,
+  IsEnum,
+  IsInt,
+  Min,
+  IsObject,
+  IsNumber,
+} from 'class-validator';
+import { PaymentGateway, PaymentType } from '@prisma/client';
+import { Type } from 'class-transformer';
 
 export class CreatePaymentDto {
   @ApiProperty({
+    enum: PaymentType,
+    example: PaymentType.PUBLICATION,
+    description: 'Type of payment: PUBLICATION for posts, TOP_UP for balance',
+    default: PaymentType.PUBLICATION,
+    required: false,
+  })
+  @IsEnum(PaymentType)
+  @IsOptional()
+  paymentType?: PaymentType = PaymentType.PUBLICATION;
+
+  @ApiProperty({
     example: 2,
-    description: 'Number of posts to purchase',
+    description: 'Number of posts to purchase (for PUBLICATION type)',
     minimum: 1,
+    required: false,
   })
   @IsInt()
   @Min(1)
-  quantity!: number;
+  @IsOptional()
+  quantity?: number;
+
+  @ApiProperty({
+    example: 100000,
+    description: 'Amount to top up in UZS (for TOP_UP type)',
+    minimum: 0,
+    required: false,
+  })
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  @IsOptional()
+  amount?: number;
 
   @ApiProperty({
     example: 'PAYME',

@@ -162,15 +162,28 @@ export class UserController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete user (Admin only)' })
+  @ApiOperation({
+    summary: 'Delete user',
+    description:
+      'Users can delete their own account. Admins can delete any user.',
+  })
   @ApiResponse({ status: 204, description: 'User deleted' })
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: { id: string },
   ): Promise<void> {
     return this.userService.deleteUser(id, user.id);
+  }
+
+  @Delete('profile')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete current user profile' })
+  @ApiResponse({ status: 204, description: 'Profile deleted' })
+  async deleteProfile(@CurrentUser() user: { id: string }): Promise<void> {
+    return this.userService.deleteUser(user.id, user.id);
   }
 }

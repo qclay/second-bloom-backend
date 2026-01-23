@@ -42,6 +42,16 @@ export class UserService {
     }
   }
 
+  private async validateUsernameUniqueness(
+    username: string,
+    excludeUserId?: string,
+  ): Promise<void> {
+    const existingUsername = await this.userRepository.findByUsername(username);
+    if (existingUsername && existingUsername.id !== excludeUserId) {
+      throw new ConflictException('User with this username already exists');
+    }
+  }
+
   async createUser(dto: CreateUserDto): Promise<UserResponseDto> {
     const existingUser = await this.userRepository.findByPhoneNumber(
       dto.phoneNumber,
@@ -55,11 +65,19 @@ export class UserService {
       await this.validateEmailUniqueness(dto.email);
     }
 
+    if (dto.username) {
+      await this.validateUsernameUniqueness(dto.username);
+    }
+
     const user = await this.userRepository.create({
       phoneNumber: dto.phoneNumber,
       firstName: dto.firstName,
       lastName: dto.lastName,
       email: dto.email,
+      username: dto.username,
+      gender: dto.gender,
+      language: dto.language,
+      country: dto.country,
     });
 
     return UserResponseDto.fromEntity(user);
@@ -77,6 +95,7 @@ export class UserService {
     if (search) {
       where.OR = [
         { phoneNumber: { contains: search, mode: 'insensitive' } },
+        { username: { contains: search, mode: 'insensitive' } },
         { firstName: { contains: search, mode: 'insensitive' } },
         { lastName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
@@ -169,6 +188,14 @@ export class UserService {
       await this.validateEmailUniqueness(dto.email, userId);
     }
 
+    if (
+      dto.username !== undefined &&
+      dto.username !== null &&
+      dto.username !== user.username
+    ) {
+      await this.validateUsernameUniqueness(dto.username, userId);
+    }
+
     if (dto.avatarId !== undefined && dto.avatarId !== null) {
       const avatarExists = await this.validateAvatarExists(dto.avatarId);
       if (!avatarExists) {
@@ -207,6 +234,10 @@ export class UserService {
       await this.validateEmailUniqueness(dto.email, id);
     }
 
+    if (dto.username && dto.username !== user.username) {
+      await this.validateUsernameUniqueness(dto.username, id);
+    }
+
     const updatedUser = await this.userRepository.update(id, dto);
     return UserResponseDto.fromEntity(updatedUser);
   }
@@ -214,8 +245,15 @@ export class UserService {
   async deleteUser(id: string, currentUserId: string): Promise<void> {
     const currentUser = await this.userRepository.findById(currentUserId);
 
-    if (currentUser?.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only admins can delete users');
+    if (!currentUser) {
+      throw new NotFoundException('Current user not found');
+    }
+
+    // Users can delete themselves, or admins can delete any user
+    if (currentUser.id !== id && currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'You can only delete your own account or be an admin to delete other users',
+      );
     }
 
     const user = await this.userRepository.findById(id);
