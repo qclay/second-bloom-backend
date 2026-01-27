@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { User, Prisma } from '@prisma/client';
+import {
+  normalizePhoneNumber,
+  normalizePhoneNumberForSearch,
+} from '../../../common/utils/phone.util';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -29,8 +33,12 @@ export class UserRepository implements IUserRepository {
   }
 
   async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
+    const normalized = normalizePhoneNumberForSearch(phoneNumber);
+    if (!normalized) {
+      return null;
+    }
     return this.prisma.user.findUnique({
-      where: { phoneNumber },
+      where: { phoneNumber: normalized },
     });
   }
 
@@ -59,12 +67,11 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  async softDelete(id: string, deletedBy: string): Promise<User> {
+  async softDelete(id: string): Promise<User> {
     return this.prisma.user.update({
       where: { id },
       data: {
         deletedAt: new Date(),
-        deletedBy,
         isActive: false,
       },
     });
@@ -76,15 +83,6 @@ export class UserRepository implements IUserRepository {
 
   async count(args: Prisma.UserCountArgs): Promise<number> {
     return this.prisma.user.count(args);
-  }
-
-  async updateLastLogin(id: string): Promise<User> {
-    return this.prisma.user.update({
-      where: { id },
-      data: {
-        lastLoginAt: new Date(),
-      },
-    });
   }
 
   async updateAvatar(id: string, avatarId: string | null): Promise<User> {
@@ -101,6 +99,16 @@ export class UserRepository implements IUserRepository {
       where: { id },
       data: {
         fcmToken,
+      },
+    });
+  }
+
+  async updatePhoneNumber(id: string, phoneNumber: string): Promise<User> {
+    const normalized = normalizePhoneNumber(phoneNumber);
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        phoneNumber: normalized,
       },
     });
   }

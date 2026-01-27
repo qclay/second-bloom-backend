@@ -62,9 +62,6 @@ export class UserResponseDto {
   @ApiProperty({ required: false, nullable: true })
   country!: string | null;
 
-  @ApiProperty({ required: false, nullable: true })
-  lastLoginAt!: Date | null;
-
   @ApiProperty()
   createdAt!: Date;
 
@@ -97,7 +94,6 @@ export class UserResponseDto {
       gender: user.gender,
       language: user.language,
       country: user.country,
-      lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

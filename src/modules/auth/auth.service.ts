@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import type { StringValue } from 'ms';
 import { PrismaService } from '../../prisma/prisma.service';
 import { VerificationCodeRepository } from './repositories/verification-code.repository';
 import { OtpService } from './services/otp.service';
@@ -16,6 +17,8 @@ import { MessageResponseDto } from './dto/message-response.dto';
 import { VerificationPurpose, UserRole } from '@prisma/client';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ErrorCode } from '../../common/constants/error-codes.constant';
+import { normalizePhoneNumber } from '../../common/utils/phone.util';
+import type { JwtSignOptions } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -29,8 +32,9 @@ export class AuthService {
 
   async sendOtp(dto: SendOtpDto): Promise<MessageResponseDto> {
     try {
+      const normalizedPhoneNumber = normalizePhoneNumber(dto.phoneNumber);
       await this.otpService.sendOtp(
-        dto.phoneNumber,
+        normalizedPhoneNumber,
         VerificationPurpose.SIGNUP,
       );
       return {
@@ -45,9 +49,11 @@ export class AuthService {
   }
 
   async verifyOtp(dto: VerifyOtpDto): Promise<AuthResponseDto> {
+    const normalizedPhoneNumber = normalizePhoneNumber(dto.phoneNumber);
+
     const isValid = await this.otpService.verifyOtp(
-      dto.phoneNumber,
-      dto.code,
+      normalizedPhoneNumber,
+      dto.code.toString(),
       VerificationPurpose.SIGNUP,
     );
 
@@ -58,13 +64,13 @@ export class AuthService {
     }
 
     let user = await this.prisma.user.findUnique({
-      where: { phoneNumber: dto.phoneNumber },
+      where: { phoneNumber: normalizedPhoneNumber },
     });
 
     if (!user) {
       user = await this.prisma.user.create({
         data: {
-          phoneNumber: dto.phoneNumber,
+          phoneNumber: normalizedPhoneNumber,
           role: UserRole.USER,
           isActive: true,
           isVerified: true,
@@ -190,8 +196,17 @@ export class AuthService {
       throw new Error('JWT secrets are not configured');
     }
 
+    const accessTokenOptions: JwtSignOptions = {
+      secret: accessSecret,
+      expiresIn: accessExpiresIn as StringValue,
+    };
+
+    const refreshTokenOptions: JwtSignOptions = {
+      secret: refreshSecret,
+      expiresIn: refreshExpiresIn as StringValue,
+    };
+
     const [accessToken, refreshToken] = await Promise.all([
-      // @ts-expect-error - JWT library has strict types for expiresIn
       this.jwtService.signAsync(
         {
           sub: payload.sub,
@@ -199,12 +214,8 @@ export class AuthService {
           role: payload.role,
           tokenVersion: payload.tokenVersion,
         },
-        {
-          secret: accessSecret,
-          expiresIn: accessExpiresIn,
-        },
+        accessTokenOptions,
       ),
-      // @ts-expect-error - JWT library has strict types for expiresIn
       this.jwtService.signAsync(
         {
           sub: payload.sub,
@@ -212,10 +223,7 @@ export class AuthService {
           role: payload.role,
           tokenVersion: payload.tokenVersion,
         },
-        {
-          secret: refreshSecret,
-          expiresIn: refreshExpiresIn,
-        },
+        refreshTokenOptions,
       ),
     ]);
 

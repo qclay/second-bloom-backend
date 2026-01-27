@@ -157,7 +157,6 @@ export class StorageService implements IStorageService {
       return `https://${this.bucketName}.${endpointUrl.hostname}/${key}`;
     }
 
-    // Default to AWS S3 URL format
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
 

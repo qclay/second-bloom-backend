@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import {
   ConfigModule as NestConfigModule,
   ConfigService,
 } from '@nestjs/config';
+import type { StringValue } from 'ms';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { VerificationCodeRepository } from './repositories/verification-code.repository';
@@ -20,8 +21,7 @@ import { InfrastructureModule } from '../../infrastructure/infrastructure.module
     PassportModule,
     JwtModule.registerAsync({
       imports: [NestConfigModule],
-      // @ts-expect-error - JWT library has strict types for expiresIn
-      useFactory: (configService: ConfigService) => {
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
         const secret = configService.get<string>('jwt.secret');
         const expiresIn = configService.get<string>('jwt.expiresIn', '15m');
         if (!secret) {
@@ -30,7 +30,7 @@ import { InfrastructureModule } from '../../infrastructure/infrastructure.module
         return {
           secret,
           signOptions: {
-            expiresIn,
+            expiresIn: expiresIn as StringValue,
           },
         };
       },
@@ -39,6 +39,6 @@ import { InfrastructureModule } from '../../infrastructure/infrastructure.module
   ],
   controllers: [AuthController],
   providers: [AuthService, VerificationCodeRepository, OtpService, JwtStrategy],
-  exports: [AuthService, JwtStrategy],
+  exports: [AuthService, JwtStrategy, OtpService],
 })
 export class AuthModule {}

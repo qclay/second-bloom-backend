@@ -5,9 +5,10 @@ import { UserRepository } from './repositories/user.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { FileModule } from '../file/file.module';
 import { FirebaseModule } from '../../infrastructure/firebase/firebase.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, FileModule, FirebaseModule],
+  imports: [PrismaModule, FileModule, FirebaseModule, AuthModule],
   controllers: [UserController],
   providers: [UserService, UserRepository],
   exports: [UserService, UserRepository],

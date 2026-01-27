@@ -5,7 +5,6 @@ import { sanitize } from 'class-sanitizer';
 export class SanitizePipe implements PipeTransform {
   transform(
     value: unknown,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _metadata: ArgumentMetadata,
   ): unknown {
     if (typeof value === 'object' && value !== null) {

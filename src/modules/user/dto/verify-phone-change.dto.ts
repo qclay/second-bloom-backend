@@ -1,27 +1,23 @@
-import { IsNumber, IsNotEmpty, IsPhoneNumber, Min, Max } from 'class-validator';
+import { IsPhoneNumber, IsNumber, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
-export class VerifyOtpDto {
+export class VerifyPhoneChangeDto {
   @ApiProperty({
-    description: 'Phone number in Uzbekistan format',
+    description: 'New phone number in Uzbekistan format',
     example: '+998901234567',
     required: true,
   })
   @IsPhoneNumber('UZ')
-  @IsNotEmpty()
-  phoneNumber!: string;
+  newPhoneNumber!: string;
 
   @ApiProperty({
-    description: '6-digit verification code',
+    description: 'Verification code sent to the new phone number',
     example: 123456,
-    minimum: 100000,
-    maximum: 999999,
     required: true,
     type: Number,
   })
   @IsNumber()
-  @IsNotEmpty()
   @Min(100000)
   @Max(999999)
   @Type(() => Number)

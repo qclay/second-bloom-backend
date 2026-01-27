@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IVerificationCodeRepository } from '../interfaces/verification-code-repository.interface';
 import { VerificationCode, VerificationPurpose, Prisma } from '@prisma/client';
+import { normalizePhoneNumber, normalizePhoneNumberForSearch } from '../../../common/utils/phone.util';
 
 @Injectable()
 export class VerificationCodeRepository implements IVerificationCodeRepository {
@@ -10,8 +11,15 @@ export class VerificationCodeRepository implements IVerificationCodeRepository {
   async create(
     data: Prisma.VerificationCodeCreateInput,
   ): Promise<VerificationCode> {
+    const normalizedData = {
+      ...data,
+      phoneNumber:
+        typeof data.phoneNumber === 'string'
+          ? normalizePhoneNumber(data.phoneNumber)
+          : data.phoneNumber,
+    };
     return this.prisma.verificationCode.create({
-      data,
+      data: normalizedData,
     });
   }
 
@@ -20,9 +28,13 @@ export class VerificationCodeRepository implements IVerificationCodeRepository {
     code: string,
     purpose: VerificationPurpose,
   ): Promise<VerificationCode | null> {
+    const normalized = normalizePhoneNumberForSearch(phoneNumber);
+    if (!normalized) {
+      return null;
+    }
     return this.prisma.verificationCode.findFirst({
       where: {
-        phoneNumber,
+        phoneNumber: normalized,
         code,
         purpose,
         isUsed: false,
@@ -69,9 +81,13 @@ export class VerificationCodeRepository implements IVerificationCodeRepository {
     phoneNumber: string,
     purpose: VerificationPurpose,
   ): Promise<VerificationCode | null> {
+    const normalized = normalizePhoneNumberForSearch(phoneNumber);
+    if (!normalized) {
+      return null;
+    }
     return this.prisma.verificationCode.findFirst({
       where: {
-        phoneNumber,
+        phoneNumber: normalized,
         purpose,
         isUsed: false,
         expiresAt: {

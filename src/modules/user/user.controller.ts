@@ -16,8 +16,11 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
+import { SendPhoneChangeOtpDto } from './dto/send-phone-change-otp.dto';
+import { VerifyPhoneChangeDto } from './dto/verify-phone-change.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { MessageResponseDto } from '../auth/dto/message-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -144,20 +147,14 @@ export class UserController {
     return this.userService.updateFcmToken(user.id, updateFcmTokenDto);
   }
 
-  @Delete('fcm-token')
+  @Delete('profile')
   @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Remove FCM token' })
-  @ApiResponse({
-    status: 200,
-    description: 'FCM token removed',
-    type: UserResponseDto,
-  })
-  async removeFcmToken(
-    @CurrentUser() user: { id: string },
-  ): Promise<UserResponseDto> {
-    return this.userService.removeFcmToken(user.id);
+  @ApiOperation({ summary: 'Delete current user profile' })
+  @ApiResponse({ status: 204, description: 'Profile deleted' })
+  async deleteProfile(@CurrentUser() user: { id: string }): Promise<void> {
+    return this.userService.deleteUser(user.id);
   }
 
   @Delete(':id')
@@ -170,20 +167,49 @@ export class UserController {
       'Users can delete their own account. Admins can delete any user.',
   })
   @ApiResponse({ status: 204, description: 'User deleted' })
-  async remove(
-    @Param('id') id: string,
-    @CurrentUser() user: { id: string },
-  ): Promise<void> {
-    return this.userService.deleteUser(id, user.id);
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.userService.deleteUser(id);
   }
 
-  @Delete('profile')
+  @Post('phone/send-otp')
   @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete current user profile' })
-  @ApiResponse({ status: 204, description: 'Profile deleted' })
-  async deleteProfile(@CurrentUser() user: { id: string }): Promise<void> {
-    return this.userService.deleteUser(user.id, user.id);
+  @ApiOperation({
+    summary: 'Send OTP to new phone number for verification',
+    description:
+      'Sends a verification code to the new phone number. The code must be verified before the phone number can be updated.',
+  })
+  @ApiCommonErrorResponses({ conflict: true })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+    type: MessageResponseDto,
+  })
+  async sendPhoneChangeOtp(
+    @CurrentUser() user: { id: string },
+    @Body() sendPhoneChangeOtpDto: SendPhoneChangeOtpDto,
+  ): Promise<MessageResponseDto> {
+    return this.userService.sendPhoneChangeOtp(user.id, sendPhoneChangeOtpDto);
+  }
+
+  @Post('phone/verify')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Verify OTP and update phone number',
+    description:
+      'Verifies the OTP code sent to the new phone number and updates the user phone number if verification is successful.',
+  })
+  @ApiCommonErrorResponses({ conflict: true })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone number updated successfully',
+    type: UserResponseDto,
+  })
+  async verifyPhoneChange(
+    @CurrentUser() user: { id: string },
+    @Body() verifyPhoneChangeDto: VerifyPhoneChangeDto,
+  ): Promise<UserResponseDto> {
+    return this.userService.verifyPhoneChange(user.id, verifyPhoneChangeDto);
   }
 }

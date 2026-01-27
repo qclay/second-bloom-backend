@@ -171,13 +171,10 @@ export class BidService {
       `Bid created: ${bid.id} for auction ${dto.auctionId} by user ${bidderId}. Amount: ${bidAmount}`,
     );
 
-    // Get the full bid response with relations for WebSocket notification
     const bidResponse = await this.findById(bid.id);
 
-    // Notify all users in the auction room about the new bid
     this.auctionGateway.notifyNewBid(dto.auctionId, bidResponse);
 
-    // Notify the outbid user if there was one
     if (outbidUserId && outbidUserId !== bidderId) {
       this.logger.log(
         `User ${outbidUserId} was outbid on auction ${dto.auctionId}`,
@@ -189,13 +186,11 @@ export class BidService {
       );
     }
 
-    // Check if auction was extended and notify
     const updatedAuction = await this.auctionRepository.findById(dto.auctionId);
     if (updatedAuction) {
       const auctionEndTime = new Date(updatedAuction.endTime);
       const originalEndTime = new Date(auction.endTime);
 
-      // If end time was extended, notify users
       if (auctionEndTime > originalEndTime) {
         this.auctionGateway.notifyAuctionExtended(
           dto.auctionId,
@@ -204,19 +199,14 @@ export class BidService {
         );
       }
 
-      // Notify about auction update (current price, total bids, etc.)
       const auctionResponse = await this.auctionRepository
         .findById(dto.auctionId)
         .then((a) => {
           if (!a) return null;
-          // You may need to convert to AuctionResponseDto here
           return a;
         });
 
       if (auctionResponse) {
-        // Import and use AuctionResponseDto.fromEntity if available
-        // For now, we'll just notify with the updated auction data
-        // The gateway will handle the formatting
       }
     }
 

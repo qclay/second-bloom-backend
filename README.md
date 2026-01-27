@@ -5,6 +5,7 @@ Flower marketplace backend API built with NestJS, PostgreSQL, and Prisma.
 ## 🚀 Features
 
 - **Authentication**: OTP-based authentication with JWT tokens
+- **User Management**: Profile management with phone number update via OTP verification
 - **Products**: Full CRUD operations with search and filtering
 - **Auctions**: Real-time auction system with auto-extension
 - **Orders**: Order management with status tracking
@@ -68,6 +69,56 @@ Once the server is running, access Swagger documentation at:
 - Development: `http://localhost:3000/api/docs`
 - Production: Disabled by default (set `SWAGGER_ENABLED=true` to enable)
 
+### 🔄 Phone Number Update API
+
+The API supports secure phone number updates with OTP verification:
+
+**Step 1: Send OTP to new phone number**
+```http
+POST /api/v1/users/phone/send-otp
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "newPhoneNumber": "+998901234567"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Verification code sent successfully to the new phone number"
+}
+```
+
+**Step 2: Verify OTP and update phone number**
+```http
+POST /api/v1/users/phone/verify
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "newPhoneNumber": "+998901234567",
+  "code": "123456"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "user-id",
+  "phoneNumber": "+998901234567",
+  "firstName": "John",
+  "lastName": "Doe",
+  ...
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: New phone number is the same as current, or phone number is already in use
+- `401 Unauthorized`: Invalid or expired verification code
+- `409 Conflict`: Phone number is already registered to another user
+
 ## 🧪 Testing
 
 ```bash
@@ -121,6 +172,7 @@ src/
 - CORS configuration
 - Rate limiting (per-user)
 - JWT authentication
+- OTP-based phone number verification
 - Input validation
 - SQL injection protection (Prisma)
 - Request size limits

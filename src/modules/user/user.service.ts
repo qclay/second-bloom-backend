@@ -5,21 +5,28 @@ import {
   ForbiddenException,
   Logger,
   Inject,
+  BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserRepository } from './repositories/user.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
+import { SendPhoneChangeOtpDto } from './dto/send-phone-change-otp.dto';
+import { VerifyPhoneChangeDto } from './dto/verify-phone-change.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { Prisma } from '@prisma/client';
-import { UserRole } from '@prisma/client';
+import { UserRole, VerificationPurpose } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   IFirebaseService,
   FIREBASE_SERVICE_TOKEN,
 } from '../../infrastructure/firebase/firebase-service.interface';
+import { OtpService } from '../auth/services/otp.service';
+import { MessageResponseDto } from '../auth/dto/message-response.dto';
+import { normalizePhoneNumber } from '../../common/utils/phone.util';
 
 @Injectable()
 export class UserService {
@@ -30,6 +37,7 @@ export class UserService {
     private readonly prisma: PrismaService,
     @Inject(FIREBASE_SERVICE_TOKEN)
     private readonly firebaseService: IFirebaseService,
+    private readonly otpService: OtpService,
   ) {}
 
   private async validateEmailUniqueness(
@@ -53,8 +61,10 @@ export class UserService {
   }
 
   async createUser(dto: CreateUserDto): Promise<UserResponseDto> {
+    const normalizedPhoneNumber = normalizePhoneNumber(dto.phoneNumber);
+
     const existingUser = await this.userRepository.findByPhoneNumber(
-      dto.phoneNumber,
+      normalizedPhoneNumber,
     );
 
     if (existingUser) {
@@ -70,7 +80,7 @@ export class UserService {
     }
 
     const user = await this.userRepository.create({
-      phoneNumber: dto.phoneNumber,
+      phoneNumber: normalizedPhoneNumber,
       firstName: dto.firstName,
       lastName: dto.lastName,
       email: dto.email,
@@ -242,27 +252,14 @@ export class UserService {
     return UserResponseDto.fromEntity(updatedUser);
   }
 
-  async deleteUser(id: string, currentUserId: string): Promise<void> {
-    const currentUser = await this.userRepository.findById(currentUserId);
-
-    if (!currentUser) {
-      throw new NotFoundException('Current user not found');
-    }
-
-    // Users can delete themselves, or admins can delete any user
-    if (currentUser.id !== id && currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException(
-        'You can only delete your own account or be an admin to delete other users',
-      );
-    }
-
+  async deleteUser(id: string): Promise<void> {
     const user = await this.userRepository.findById(id);
 
     if (!user || user.deletedAt) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    await this.userRepository.softDelete(id, currentUserId);
+    await this.userRepository.softDelete(id);
   }
 
   async updateAvatar(
@@ -280,10 +277,6 @@ export class UserService {
       avatarId,
     );
     return UserResponseDto.fromEntity(updatedUser);
-  }
-
-  async updateLastLogin(userId: string): Promise<void> {
-    await this.userRepository.updateLastLogin(userId);
   }
 
   async updateFcmToken(
@@ -315,24 +308,100 @@ export class UserService {
     return UserResponseDto.fromEntity(updatedUser);
   }
 
-  async removeFcmToken(userId: string): Promise<UserResponseDto> {
+  private async validateAvatarExists(avatarId: string): Promise<boolean> {
+    const file = await this.prisma.file.findUnique({
+      where: { id: avatarId },
+    });
+    return file !== null && file.deletedAt === null;
+  }
+
+  async sendPhoneChangeOtp(
+    userId: string,
+    dto: SendPhoneChangeOtpDto,
+  ): Promise<MessageResponseDto> {
     const user = await this.userRepository.findById(userId);
 
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
     }
 
-    const updatedUser = await this.userRepository.updateFcmToken(userId, null);
+    const normalizedPhoneNumber = normalizePhoneNumber(dto.newPhoneNumber);
 
-    this.logger.log(`FCM token removed for user ${userId}`);
+    if (normalizedPhoneNumber === user.phoneNumber) {
+      throw new BadRequestException(
+        'New phone number must be different from current phone number',
+      );
+    }
 
-    return UserResponseDto.fromEntity(updatedUser);
+    const existingUser = await this.userRepository.findByPhoneNumber(
+      normalizedPhoneNumber,
+    );
+    if (existingUser) {
+      throw new ConflictException('Phone number is already in use');
+    }
+
+    try {
+      await this.otpService.sendOtp(
+        normalizedPhoneNumber,
+        VerificationPurpose.PHONE_CHANGE,
+      );
+      return {
+        message: 'Verification code sent successfully to the new phone number',
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to send verification code');
+    }
   }
 
-  private async validateAvatarExists(avatarId: string): Promise<boolean> {
-    const file = await this.prisma.file.findUnique({
-      where: { id: avatarId },
-    });
-    return file !== null && file.deletedAt === null;
+  async verifyPhoneChange(
+    userId: string,
+    dto: VerifyPhoneChangeDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.userRepository.findByIdWithAvatar(userId);
+
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    const normalizedPhoneNumber = normalizePhoneNumber(dto.newPhoneNumber);
+
+    if (normalizedPhoneNumber === user.phoneNumber) {
+      throw new BadRequestException(
+        'New phone number must be different from current phone number',
+      );
+    }
+
+    const existingUser = await this.userRepository.findByPhoneNumber(
+      normalizedPhoneNumber,
+    );
+    if (existingUser) {
+      throw new ConflictException('Phone number is already in use');
+    }
+
+    const isValid = await this.otpService.verifyOtp(
+      normalizedPhoneNumber,
+      dto.code.toString(),
+      VerificationPurpose.PHONE_CHANGE,
+    );
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid or expired verification code');
+    }
+
+    await this.userRepository.updatePhoneNumber(userId, normalizedPhoneNumber);
+
+    this.logger.log(
+      `Phone number updated for user ${userId} from ${user.phoneNumber} to ${dto.newPhoneNumber}`,
+    );
+
+    const userWithAvatar = await this.userRepository.findByIdWithAvatar(userId);
+    if (!userWithAvatar) {
+      throw new NotFoundException('User not found after update');
+    }
+
+    return UserResponseDto.fromEntity(userWithAvatar);
   }
 }

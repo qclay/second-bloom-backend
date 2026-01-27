@@ -32,7 +32,6 @@ export class LoggingInterceptor implements NestInterceptor {
     const requestId = (request as Request & { id?: string }).id;
     const userId = (request as Request & { user?: { id: string } }).user?.id;
 
-    // Only log incoming requests in development to reduce noise
     if (this.isDevelopment) {
       const meta = {
         context: 'LoggingInterceptor',
