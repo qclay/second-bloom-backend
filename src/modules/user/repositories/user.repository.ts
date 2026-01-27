@@ -2,10 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { User, Prisma } from '@prisma/client';
-import {
-  normalizePhoneNumber,
-  normalizePhoneNumberForSearch,
-} from '../../../common/utils/phone.util';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -32,13 +28,17 @@ export class UserRepository implements IUserRepository {
     }) as Promise<(User & { avatar: { url: string } | null }) | null>;
   }
 
-  async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
-    const normalized = normalizePhoneNumberForSearch(phoneNumber);
-    if (!normalized) {
-      return null;
-    }
+  async findByPhoneNumber(
+    phoneCountryCode: string,
+    phoneNumber: string,
+  ): Promise<User | null> {
     return this.prisma.user.findUnique({
-      where: { phoneNumber: normalized },
+      where: {
+        phoneCountryCode_phoneNumber: {
+          phoneCountryCode,
+          phoneNumber,
+        },
+      },
     });
   }
 
@@ -103,12 +103,16 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  async updatePhoneNumber(id: string, phoneNumber: string): Promise<User> {
-    const normalized = normalizePhoneNumber(phoneNumber);
+  async updatePhoneNumber(
+    id: string,
+    phoneCountryCode: string,
+    phoneNumber: string,
+  ): Promise<User> {
     return this.prisma.user.update({
       where: { id },
       data: {
-        phoneNumber: normalized,
+        phoneCountryCode,
+        phoneNumber,
       },
     });
   }

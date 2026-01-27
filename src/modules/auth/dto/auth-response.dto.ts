@@ -18,10 +18,13 @@ export class AuthResponseDto {
     accessToken: string,
     refreshToken: string,
   ): AuthResponseDto {
+    const phoneNumberE164 = user.phoneCountryCode
+      ? user.phoneCountryCode + user.phoneNumber
+      : user.phoneNumber;
     return {
       user: {
         id: user.id,
-        phoneNumber: user.phoneNumber,
+        phoneNumber: phoneNumberE164,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,

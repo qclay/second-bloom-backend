@@ -17,7 +17,6 @@ import { MessageResponseDto } from './dto/message-response.dto';
 import { VerificationPurpose, UserRole } from '@prisma/client';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ErrorCode } from '../../common/constants/error-codes.constant';
-import { normalizePhoneNumber } from '../../common/utils/phone.util';
 import type { JwtSignOptions } from '@nestjs/jwt';
 
 @Injectable()
@@ -32,9 +31,9 @@ export class AuthService {
 
   async sendOtp(dto: SendOtpDto): Promise<MessageResponseDto> {
     try {
-      const normalizedPhoneNumber = normalizePhoneNumber(dto.phoneNumber);
       await this.otpService.sendOtp(
-        normalizedPhoneNumber,
+        dto.countryCode,
+        dto.phoneNumber,
         VerificationPurpose.SIGNUP,
       );
       return {
@@ -49,10 +48,9 @@ export class AuthService {
   }
 
   async verifyOtp(dto: VerifyOtpDto): Promise<AuthResponseDto> {
-    const normalizedPhoneNumber = normalizePhoneNumber(dto.phoneNumber);
-
     const isValid = await this.otpService.verifyOtp(
-      normalizedPhoneNumber,
+      dto.countryCode,
+      dto.phoneNumber,
       dto.code.toString(),
       VerificationPurpose.SIGNUP,
     );
@@ -63,14 +61,29 @@ export class AuthService {
       throw error;
     }
 
+    const phoneCountryCode = dto.countryCode;
+    const phoneNumber = dto.phoneNumber;
+
     let user = await this.prisma.user.findUnique({
-      where: { phoneNumber: normalizedPhoneNumber },
+      where: {
+        phoneCountryCode_phoneNumber: {
+          phoneCountryCode,
+          phoneNumber,
+        },
+      },
     });
+
+    if (!user) {
+      user = await this.prisma.user.findFirst({
+        where: { phoneNumber: phoneCountryCode + phoneNumber },
+      });
+    }
 
     if (!user) {
       user = await this.prisma.user.create({
         data: {
-          phoneNumber: normalizedPhoneNumber,
+          phoneCountryCode,
+          phoneNumber,
           role: UserRole.USER,
           isActive: true,
           isVerified: true,
@@ -173,13 +186,17 @@ export class AuthService {
 
   private async generateTokens(user: {
     id: string;
+    phoneCountryCode: string | null;
     phoneNumber: string;
     role: UserRole;
     refreshTokenVersion: number;
   }): Promise<{ accessToken: string; refreshToken: string }> {
+    const phoneNumberE164 = user.phoneCountryCode
+      ? user.phoneCountryCode + user.phoneNumber
+      : user.phoneNumber;
     const payload: JwtPayload = {
       sub: user.id,
-      phoneNumber: user.phoneNumber,
+      phoneNumber: phoneNumberE164,
       role: user.role,
       tokenVersion: user.refreshTokenVersion,
     };

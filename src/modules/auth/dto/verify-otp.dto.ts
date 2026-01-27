@@ -1,15 +1,39 @@
-import { IsNumber, IsNotEmpty, IsPhoneNumber, Min, Max } from 'class-validator';
+import {
+  IsNumber,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  Min,
+  Max,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class VerifyOtpDto {
   @ApiProperty({
-    description: 'Phone number in Uzbekistan format',
-    example: '+998901234567',
+    example: '+998',
+    description: 'Country calling code (e.g. +998, +1, +44)',
     required: true,
   })
-  @IsPhoneNumber('UZ')
+  @IsString()
   @IsNotEmpty()
+  @Matches(/^\+?[1-9]\d{0,3}$/, {
+    message: 'countryCode must be a valid calling code (e.g. +998, +1)',
+  })
+  countryCode!: string;
+
+  @ApiProperty({
+    description: 'Local phone number without country code',
+    example: '901234567',
+    required: true,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  @MaxLength(15)
+  @Matches(/^\d+$/, { message: 'phoneNumber must contain only digits' })
   phoneNumber!: string;
 
   @ApiProperty({

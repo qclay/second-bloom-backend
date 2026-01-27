@@ -2,7 +2,10 @@ import { User, Prisma } from '@prisma/client';
 
 export interface IUserRepository {
   findById(id: string): Promise<User | null>;
-  findByPhoneNumber(phoneNumber: string): Promise<User | null>;
+  findByPhoneNumber(
+    phoneCountryCode: string,
+    phoneNumber: string,
+  ): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   findByUsername(username: string): Promise<User | null>;
   create(data: Prisma.UserCreateInput): Promise<User>;
@@ -12,5 +15,9 @@ export interface IUserRepository {
   count(args: Prisma.UserCountArgs): Promise<number>;
   updateAvatar(id: string, avatarId: string | null): Promise<User>;
   updateFcmToken(id: string, fcmToken: string | null): Promise<User>;
-  updatePhoneNumber(id: string, phoneNumber: string): Promise<User>;
+  updatePhoneNumber(
+    id: string,
+    phoneCountryCode: string,
+    phoneNumber: string,
+  ): Promise<User>;
 }

@@ -26,7 +26,6 @@ import {
 } from '../../infrastructure/firebase/firebase-service.interface';
 import { OtpService } from '../auth/services/otp.service';
 import { MessageResponseDto } from '../auth/dto/message-response.dto';
-import { normalizePhoneNumber } from '../../common/utils/phone.util';
 
 @Injectable()
 export class UserService {
@@ -61,26 +60,22 @@ export class UserService {
   }
 
   async createUser(dto: CreateUserDto): Promise<UserResponseDto> {
-    const normalizedPhoneNumber = normalizePhoneNumber(dto.phoneNumber);
-
     const existingUser = await this.userRepository.findByPhoneNumber(
-      normalizedPhoneNumber,
+      dto.countryCode,
+      dto.phoneNumber,
     );
-
     if (existingUser) {
       throw new ConflictException('User with this phone number already exists');
     }
-
     if (dto.email) {
       await this.validateEmailUniqueness(dto.email);
     }
-
     if (dto.username) {
       await this.validateUsernameUniqueness(dto.username);
     }
-
     const user = await this.userRepository.create({
-      phoneNumber: normalizedPhoneNumber,
+      phoneCountryCode: dto.countryCode,
+      phoneNumber: dto.phoneNumber,
       firstName: dto.firstName,
       lastName: dto.lastName,
       email: dto.email,
@@ -89,7 +84,6 @@ export class UserService {
       language: dto.language,
       country: dto.country,
     });
-
     return UserResponseDto.fromEntity(user);
   }
 
@@ -325,24 +319,26 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    const normalizedPhoneNumber = normalizePhoneNumber(dto.newPhoneNumber);
-
-    if (normalizedPhoneNumber === user.phoneNumber) {
+    const currentFull = user.phoneCountryCode
+      ? user.phoneCountryCode + user.phoneNumber
+      : user.phoneNumber;
+    const newFull = dto.newCountryCode + dto.newPhoneNumber;
+    if (newFull === currentFull) {
       throw new BadRequestException(
         'New phone number must be different from current phone number',
       );
     }
-
     const existingUser = await this.userRepository.findByPhoneNumber(
-      normalizedPhoneNumber,
+      dto.newCountryCode,
+      dto.newPhoneNumber,
     );
     if (existingUser) {
       throw new ConflictException('Phone number is already in use');
     }
-
     try {
       await this.otpService.sendOtp(
-        normalizedPhoneNumber,
+        dto.newCountryCode,
+        dto.newPhoneNumber,
         VerificationPurpose.PHONE_CHANGE,
       );
       return {
@@ -366,35 +362,38 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    const normalizedPhoneNumber = normalizePhoneNumber(dto.newPhoneNumber);
-
-    if (normalizedPhoneNumber === user.phoneNumber) {
+    const currentFull = user.phoneCountryCode
+      ? user.phoneCountryCode + user.phoneNumber
+      : user.phoneNumber;
+    const newFull = dto.newCountryCode + dto.newPhoneNumber;
+    if (newFull === currentFull) {
       throw new BadRequestException(
         'New phone number must be different from current phone number',
       );
     }
-
     const existingUser = await this.userRepository.findByPhoneNumber(
-      normalizedPhoneNumber,
+      dto.newCountryCode,
+      dto.newPhoneNumber,
     );
     if (existingUser) {
       throw new ConflictException('Phone number is already in use');
     }
-
     const isValid = await this.otpService.verifyOtp(
-      normalizedPhoneNumber,
+      dto.newCountryCode,
+      dto.newPhoneNumber,
       dto.code.toString(),
       VerificationPurpose.PHONE_CHANGE,
     );
-
     if (!isValid) {
       throw new UnauthorizedException('Invalid or expired verification code');
     }
-
-    await this.userRepository.updatePhoneNumber(userId, normalizedPhoneNumber);
-
+    await this.userRepository.updatePhoneNumber(
+      userId,
+      dto.newCountryCode,
+      dto.newPhoneNumber,
+    );
     this.logger.log(
-      `Phone number updated for user ${userId} from ${user.phoneNumber} to ${dto.newPhoneNumber}`,
+      `Phone number updated for user ${userId} from ${currentFull} to ${newFull}`,
     );
 
     const userWithAvatar = await this.userRepository.findByIdWithAvatar(userId);

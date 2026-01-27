@@ -5,8 +5,20 @@ export class UserResponseDto {
   @ApiProperty()
   id!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Local phone number without country code',
+    example: '901234567',
+  })
   phoneNumber!: string;
+
+  @ApiProperty({
+    description:
+      'Country calling code (e.g. +998, +1, +44)',
+    example: '+998',
+    required: false,
+    nullable: true,
+  })
+  countryCode!: string | null;
 
   @ApiProperty({ required: false, nullable: true })
   firstName!: string | null;
@@ -76,6 +88,11 @@ export class UserResponseDto {
     return {
       id: user.id,
       phoneNumber: user.phoneNumber,
+      countryCode:
+        user.phoneCountryCode ??
+        (typeof user.phoneNumber === 'string'
+          ? user.phoneNumber.match(/^\+(\d{1,3})/)?.[0] ?? null
+          : null),
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
