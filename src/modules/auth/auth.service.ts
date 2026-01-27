@@ -76,13 +76,16 @@ export class AuthService {
           isVerified: true,
         },
       });
-    } else if (!user.isActive) {
-      const error = new UnauthorizedException(
-        'Account has been deactivated. Please contact support.',
-      );
-      (error as unknown as { code: ErrorCode }).code =
-        ErrorCode.ACCOUNT_DEACTIVATED;
-      throw error;
+    } else if (!user.isActive || user.deletedAt) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          deletedAt: null,
+          deletedBy: null,
+          isActive: true,
+          isVerified: true,
+        },
+      });
     } else {
       user = await this.prisma.user.update({
         where: { id: user.id },
