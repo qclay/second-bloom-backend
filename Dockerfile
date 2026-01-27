@@ -18,7 +18,7 @@ WORKDIR /app
 RUN npm install -g npm@latest
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends dumb-init && \
+    apt-get install -y --no-install-recommends dumb-init openssl ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd -g 1001 nodejs && \
