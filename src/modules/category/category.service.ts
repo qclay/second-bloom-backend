@@ -11,8 +11,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryQueryDto } from './dto/category-query.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
-import { Prisma, Category } from '@prisma/client';
-import { UserRole } from '@prisma/client';
+import { Prisma, Category, ProductStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 
@@ -159,9 +158,32 @@ export class CategoryService {
       this.categoryRepository.count({ where }),
     ]);
 
+    const categoryIds = categories.map((c) => c.id);
+    const productCounts =
+      categoryIds.length === 0
+        ? []
+        : await this.prisma.product.groupBy({
+            by: ['categoryId'],
+            where: {
+              categoryId: { in: categoryIds },
+              deletedAt: null,
+              isActive: true,
+              status: ProductStatus.ACTIVE,
+            },
+            _count: { _all: true },
+          });
+
+    const countMap = new Map<string, number>();
+    for (const row of productCounts) {
+      countMap.set(row.categoryId, row._count._all);
+    }
+
     const result = {
       data: categories.map((category) =>
-        CategoryResponseDto.fromEntity(category),
+        CategoryResponseDto.fromEntity({
+          ...category,
+          activeProductCount: countMap.get(category.id) ?? 0,
+        }),
       ),
       meta: {
         total,
@@ -207,7 +229,19 @@ export class CategoryService {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
 
-    const result = CategoryResponseDto.fromEntity(category);
+    const activeProductCount = await this.prisma.product.count({
+      where: {
+        categoryId: id,
+        deletedAt: null,
+        isActive: true,
+        status: ProductStatus.ACTIVE,
+      },
+    });
+
+    const result = CategoryResponseDto.fromEntity({
+      ...(category as Category & { children?: Category[] }),
+      activeProductCount,
+    });
 
     await this.redisService.set(cacheKey, result, this.CACHE_TTL);
     this.logger.debug(`Cached category: ${id}`);

@@ -27,6 +27,9 @@ export class CategoryResponseDto {
   @ApiProperty({ example: true })
   isActive!: boolean;
 
+  @ApiProperty({ example: 12 })
+  activeProductCount!: number;
+
   @ApiProperty()
   createdAt!: Date;
 
@@ -43,6 +46,7 @@ export class CategoryResponseDto {
     category: Category & {
       children?: (Category & { image?: File | null })[];
       image?: File | null;
+      activeProductCount?: number;
     },
   ): CategoryResponseDto {
     return {
@@ -54,6 +58,7 @@ export class CategoryResponseDto {
       parentId: category.parentId,
       order: category.order,
       isActive: category.isActive,
+      activeProductCount: category.activeProductCount ?? 0,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
       deletedAt: category.deletedAt,
