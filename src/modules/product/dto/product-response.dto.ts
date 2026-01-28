@@ -112,6 +112,19 @@ export class ProductResponseDto {
   @ApiProperty({ type: () => [ProductImageResponseDto], required: false })
   images?: ProductImageResponseDto[];
 
+  @ApiProperty({
+    required: false,
+    description:
+      'Active auction for this product (when includeActiveAuction=true). Use id for GET /bids/auction/:auctionId and endTime for timer.',
+  })
+  activeAuction?: {
+    id: string;
+    endTime: Date;
+    status: string;
+    currentPrice: number;
+    totalBids: number;
+  };
+
   static fromEntity(
     product: Product & {
       category?: { id: string; name: string; slug: string };
@@ -122,6 +135,13 @@ export class ProductResponseDto {
         phoneNumber: string;
       };
       images?: (ProductImage & { file?: { url: string } })[];
+      activeAuction?: {
+        id: string;
+        endTime: Date;
+        status: string;
+        currentPrice: unknown;
+        totalBids: number;
+      };
     },
   ): ProductResponseDto {
     return {
@@ -163,6 +183,18 @@ export class ProductResponseDto {
         : undefined,
       images: product.images
         ? product.images.map((img) => ProductImageResponseDto.fromEntity(img))
+        : undefined,
+      activeAuction: product.activeAuction
+        ? {
+            id: product.activeAuction.id,
+            endTime: product.activeAuction.endTime,
+            status: product.activeAuction.status,
+            currentPrice:
+              typeof product.activeAuction.currentPrice === 'number'
+                ? product.activeAuction.currentPrice
+                : Number(product.activeAuction.currentPrice) || 0,
+            totalBids: product.activeAuction.totalBids,
+          }
         : undefined,
     };
   }

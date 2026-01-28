@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
   Param,
@@ -13,7 +12,6 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { AuctionService } from './auction.service';
-import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { AuctionQueryDto } from './dto/auction-query.dto';
 import { AuctionResponseDto } from './dto/auction-response.dto';
@@ -38,25 +36,6 @@ import { ApiCommonErrorResponses } from '../../common/decorators/api-error-respo
 @Controller('auctions')
 export class AuctionController {
   constructor(private readonly auctionService: AuctionService) {}
-
-  @Post()
-  @UseGuards(JwtAuthGuard)
-  @UsePipes(new SanitizePipe())
-  @HttpCode(HttpStatus.CREATED)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new auction' })
-  @ApiCommonErrorResponses({ conflict: true })
-  @ApiResponse({
-    status: 201,
-    description: 'Auction created successfully',
-    type: AuctionResponseDto,
-  })
-  async create(
-    @Body() createAuctionDto: CreateAuctionDto,
-    @CurrentUser('id') userId: string,
-  ): Promise<AuctionResponseDto> {
-    return await this.auctionService.createAuction(createAuctionDto, userId);
-  }
 
   @Get()
   @Public()

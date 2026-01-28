@@ -9,10 +9,13 @@ import {
   IsBoolean,
   Min,
   ArrayMaxSize,
+  ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 import { ProductType, ProductCondition, ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ProductAuctionOptionDto } from './product-auction-option.dto';
 
 export class CreateProductDto {
   @ApiProperty({
@@ -38,15 +41,17 @@ export class CreateProductDto {
   description?: string;
 
   @ApiProperty({
-    description: 'Product price in UZS',
+    description:
+      'Product price in UZS. Required for fixed price; optional for auction (use auctionStartPrice instead).',
     example: 150000,
     minimum: 0,
-    required: true,
+    required: false,
   })
+  @ValidateIf((o) => o.createAuction !== true)
   @IsNumber()
   @Type(() => Number)
   @Min(0)
-  price!: number;
+  price?: number;
 
   @ApiProperty({
     description: 'Currency code',
@@ -117,4 +122,24 @@ export class CreateProductDto {
   @ArrayMaxSize(10)
   @IsOptional()
   imageIds?: string[];
+
+  @ApiProperty({
+    description: 'Whether to create an auction for this product.',
+    example: false,
+    default: false,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  createAuction?: boolean = false;
+
+  @ApiPropertyOptional({
+    description:
+      'Auction options. Used when createAuction is true. Field names match auction domain (startPrice, endTime, durationHours, autoExtend, extendMinutes).',
+    type: ProductAuctionOptionDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProductAuctionOptionDto)
+  auction?: ProductAuctionOptionDto;
 }

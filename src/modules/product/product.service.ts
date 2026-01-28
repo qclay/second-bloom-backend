@@ -1,7 +1,8 @@
 import {
   Injectable,
+  Inject,
+  forwardRef,
   NotFoundException,
-  ConflictException,
   BadRequestException,
   ForbiddenException,
   Logger,
@@ -16,6 +17,8 @@ import { Prisma, ProductStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRepository } from '../category/repositories/category.repository';
 import { CacheService } from '../../common/services/cache.service';
+import { AuctionService } from '../auction/auction.service';
+import { CreateAuctionDto } from '../auction/dto/create-auction.dto';
 
 @Injectable()
 export class ProductService {
@@ -28,6 +31,8 @@ export class ProductService {
     private readonly categoryRepository: CategoryRepository,
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
+    @Inject(forwardRef(() => AuctionService))
+    private readonly auctionService: AuctionService,
   ) {}
 
   async createProduct(
@@ -49,17 +54,34 @@ export class ProductService {
       );
     }
 
+    if (!dto.createAuction && (dto.price === undefined || dto.price === null)) {
+      throw new BadRequestException(
+        'Price is required for fixed-price products',
+      );
+    }
+    if (dto.createAuction) {
+      const hasPrice = dto.price !== undefined && dto.price !== null;
+      const hasStartPrice =
+        dto.auction?.startPrice !== undefined &&
+        dto.auction?.startPrice !== null;
+      if (!hasPrice && !hasStartPrice) {
+        throw new BadRequestException(
+          'Either price or auction.startPrice is required when creating an auction',
+        );
+      }
+    }
+
     const category = await this.categoryRepository.findById(dto.categoryId);
     if (!category || category.deletedAt || !category.isActive) {
       throw new NotFoundException('Category not found or inactive');
     }
 
-    const slug = this.generateSlug(dto.title);
-    const existingProduct = await this.productRepository.findBySlug(slug);
+    const effectivePrice =
+      dto.createAuction === true
+        ? (dto.auction?.startPrice ?? dto.price ?? 0)
+        : (dto.price ?? 0);
 
-    if (existingProduct) {
-      throw new ConflictException('Product with this title already exists');
-    }
+    const slug = await this.ensureUniqueSlug(this.generateSlug(dto.title));
 
     const validatedImageIds = dto.imageIds
       ? this.validateAndDeduplicateImages(dto.imageIds)
@@ -87,7 +109,7 @@ export class ProductService {
             title: dto.title,
             slug,
             description: dto.description,
-            price: dto.price,
+            price: effectivePrice,
             currency: dto.currency ?? 'UZS',
             category: {
               connect: { id: dto.categoryId },
@@ -120,6 +142,21 @@ export class ProductService {
         return createdProduct;
       },
     );
+
+    if (dto.createAuction) {
+      const auctionDto: CreateAuctionDto = {
+        productId: product.id,
+        startPrice: dto.auction?.startPrice ?? effectivePrice,
+        endTime: dto.auction?.endTime,
+        durationHours: dto.auction?.durationHours ?? 2,
+        autoExtend: dto.auction?.autoExtend ?? true,
+        extendMinutes: dto.auction?.extendMinutes ?? 5,
+      };
+      await this.auctionService.createAuction(auctionDto, sellerId);
+      this.logger.log(
+        `Auction created for product ${product.id} (seller: ${sellerId})`,
+      );
+    }
 
     const result = await this.findById(product.id);
 
@@ -493,19 +530,6 @@ export class ProductService {
     id: string,
     incrementViews = false,
   ): Promise<ProductResponseDto> {
-    const shouldCache = !incrementViews;
-    const cacheKey = shouldCache
-      ? this.cacheService.generateKey(this.CACHE_PREFIX, id)
-      : null;
-
-    if (shouldCache && cacheKey) {
-      const cached = await this.cacheService.get<ProductResponseDto>(cacheKey);
-      if (cached) {
-        this.logger.debug(`Cache hit for product: ${id}`);
-        return cached;
-      }
-    }
-
     const productWithRelations = await this.prisma.product.findUnique({
       where: { id },
       include: {
@@ -545,17 +569,41 @@ export class ProductService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
+    const now = new Date();
+    const activeAuction = await this.prisma.auction.findFirst({
+      where: {
+        productId: id,
+        status: 'ACTIVE',
+        isActive: true,
+        deletedAt: null,
+        endTime: { gte: now },
+      },
+      select: {
+        id: true,
+        endTime: true,
+        status: true,
+        currentPrice: true,
+        totalBids: true,
+      },
+    });
+
     if (incrementViews) {
       await this.productRepository.incrementViews(id);
       await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
     }
 
-    const result = ProductResponseDto.fromEntity(productWithRelations);
-
-    if (shouldCache && cacheKey) {
-      await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
-      this.logger.debug(`Cached product: ${id}`);
-    }
+    const result = ProductResponseDto.fromEntity({
+      ...productWithRelations,
+      activeAuction: activeAuction ?? undefined,
+    } as typeof productWithRelations & {
+      activeAuction?: {
+        id: string;
+        endTime: Date;
+        status: string;
+        currentPrice: unknown;
+        totalBids: number;
+      };
+    });
 
     return result;
   }
@@ -579,11 +627,10 @@ export class ProductService {
     const updateData: Prisma.ProductUpdateInput = {};
 
     if (dto.title && dto.title !== product.title) {
-      const slug = this.generateSlug(dto.title);
-      const existingProduct = await this.productRepository.findBySlug(slug);
-      if (existingProduct && existingProduct.id !== id) {
-        throw new ConflictException('Product with this title already exists');
-      }
+      const slug = await this.ensureUniqueSlug(
+        this.generateSlug(dto.title),
+        id,
+      );
       updateData.slug = slug;
       updateData.title = dto.title;
     }
@@ -735,6 +782,32 @@ export class ProductService {
     }
 
     return baseSlug;
+  }
+
+  private async ensureUniqueSlug(
+    baseSlug: string,
+    excludeProductId?: string,
+  ): Promise<string> {
+    let slug = baseSlug;
+    let suffix = 1;
+
+    const maxSuffix = 1000;
+
+    while (suffix <= maxSuffix) {
+      const existing = await this.productRepository.findBySlug(slug);
+      const isOwnProduct =
+        excludeProductId && existing?.id === excludeProductId;
+
+      if (!existing || isOwnProduct) {
+        return slug;
+      }
+
+      suffix += 1;
+      slug = `${baseSlug}-${suffix}`;
+    }
+
+    const fallbackSuffix = Date.now().toString(36);
+    return `${baseSlug}-${fallbackSuffix}`;
   }
 
   private validateAndDeduplicateImages(imageIds: string[]): string[] {

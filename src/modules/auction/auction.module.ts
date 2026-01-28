@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuctionService } from './auction.service';
 import { AuctionController } from './auction.controller';
 import { AuctionRepository } from './repositories/auction.repository';
@@ -12,7 +12,7 @@ import {
 
 @Module({
   imports: [
-    ProductModule,
+    forwardRef(() => ProductModule),
     JwtModule.registerAsync({
       imports: [NestConfigModule],
       useFactory: (configService: ConfigService) => {
