@@ -8,6 +8,7 @@ import {
 import { ConversationRepository } from './repositories/conversation.repository';
 import { MessageRepository } from './repositories/message.repository';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { ConversationQueryDto } from './dto/conversation-query.dto';
@@ -73,6 +74,7 @@ export class ChatService {
     private readonly conversationRepository: ConversationRepository,
     private readonly messageRepository: MessageRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createConversation(
@@ -505,6 +507,25 @@ export class ChatService {
           : { unreadCountBySeller: { increment: 1 } }),
       },
     });
+
+    const recipientId = isSeller ? conversation.buyerId : conversation.sellerId;
+    const sender = isSeller ? conversation.seller : conversation.buyer;
+
+    try {
+      await this.notificationService.notifyNewMessage({
+        recipientId,
+        conversationId: dto.conversationId,
+        productId: conversation.productId ?? undefined,
+        orderId: conversation.orderId ?? undefined,
+        senderName:
+          sender.firstName || sender.lastName || sender.phoneNumber || null,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send NEW_MESSAGE notification for conversation ${dto.conversationId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
 
     return this.mapMessageToDto(message);
   }

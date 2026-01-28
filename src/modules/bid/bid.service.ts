@@ -15,6 +15,7 @@ import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuctionRepository } from '../auction/repositories/auction.repository';
 import { AuctionGateway } from '../auction/gateways/auction.gateway';
+import { NotificationService } from '../notification/notification.service';
 import type { Request } from 'express';
 
 @Injectable()
@@ -27,6 +28,7 @@ export class BidService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => AuctionGateway))
     private readonly auctionGateway: AuctionGateway,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createBid(
@@ -175,6 +177,22 @@ export class BidService {
 
     this.auctionGateway.notifyNewBid(dto.auctionId, bidResponse);
 
+    // Notify seller about new bid
+    try {
+      await this.notificationService.notifyNewBidForSeller({
+        sellerId: auction.creatorId,
+        auctionId: auction.id,
+        productId: auction.productId,
+        amount: Number(bidAmount),
+        currency: 'UZS',
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send NEW_BID notification for auction ${auction.id}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
+
     if (outbidUserId && outbidUserId !== bidderId) {
       this.logger.log(
         `User ${outbidUserId} was outbid on auction ${dto.auctionId}`,
@@ -184,6 +202,21 @@ export class BidService {
         dto.auctionId,
         bidResponse,
       );
+
+      try {
+        await this.notificationService.notifyOutbid({
+          userId: outbidUserId,
+          auctionId: auction.id,
+          productId: auction.productId,
+          amount: Number(bidAmount),
+          currency: 'UZS',
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to send OUTBID notification for auction ${auction.id}`,
+          error instanceof Error ? error.stack : error,
+        );
+      }
     }
 
     const updatedAuction = await this.auctionRepository.findById(dto.auctionId);
@@ -199,15 +232,7 @@ export class BidService {
         );
       }
 
-      const auctionResponse = await this.auctionRepository
-        .findById(dto.auctionId)
-        .then((a) => {
-          if (!a) return null;
-          return a;
-        });
-
-      if (auctionResponse) {
-      }
+      // no-op: gateway notifications above already propagate updated auction state
     }
 
     return bidResponse;

@@ -5,6 +5,7 @@ import { ChatGateway } from './gateways/chat.gateway';
 import { ConversationRepository } from './repositories/conversation.repository';
 import { MessageRepository } from './repositories/message.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { NotificationModule } from '../notification/notification.module';
 import { JwtModule } from '@nestjs/jwt';
 import {
   ConfigModule as NestConfigModule,
@@ -16,6 +17,7 @@ import { OrderModule } from '../order/order.module';
 @Module({
   imports: [
     PrismaModule,
+    NotificationModule,
     JwtModule.registerAsync({
       imports: [NestConfigModule],
       useFactory: (configService: ConfigService) => {

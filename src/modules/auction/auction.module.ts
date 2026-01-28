@@ -4,6 +4,7 @@ import { AuctionController } from './auction.controller';
 import { AuctionRepository } from './repositories/auction.repository';
 import { AuctionGateway } from './gateways/auction.gateway';
 import { ProductModule } from '../product/product.module';
+import { NotificationModule } from '../notification/notification.module';
 import { JwtModule } from '@nestjs/jwt';
 import {
   ConfigModule as NestConfigModule,
@@ -13,6 +14,7 @@ import {
 @Module({
   imports: [
     forwardRef(() => ProductModule),
+    NotificationModule,
     JwtModule.registerAsync({
       imports: [NestConfigModule],
       useFactory: (configService: ConfigService) => {

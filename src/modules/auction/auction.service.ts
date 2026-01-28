@@ -14,6 +14,7 @@ import { AuctionResponseDto } from './dto/auction-response.dto';
 import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AuctionService {
@@ -23,6 +24,7 @@ export class AuctionService {
     private readonly auctionRepository: AuctionRepository,
     private readonly productRepository: ProductRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createAuction(
@@ -521,6 +523,43 @@ export class AuctionService {
           this.logger.log(
             `Auction ${auction.id} ended. Winner: ${auction.bids[0]?.bidderId ?? 'none'}`,
           );
+
+          try {
+            const product = await this.prisma.product.findUnique({
+              where: { id: auction.productId },
+              select: { title: true },
+            });
+
+            const participants = await this.prisma.bid.findMany({
+              where: {
+                auctionId: auction.id,
+                isRetracted: false,
+              },
+              select: {
+                bidderId: true,
+              },
+              distinct: ['bidderId'],
+            });
+
+            const winnerId = auction.bids[0]?.bidderId ?? null;
+
+            await Promise.all(
+              participants.map((p) =>
+                this.notificationService.notifyAuctionEndedForParticipant({
+                  userId: p.bidderId,
+                  auctionId: auction.id,
+                  productId: auction.productId,
+                  productTitle: product?.title,
+                  isWinner: winnerId !== null && p.bidderId === winnerId,
+                }),
+              ),
+            );
+          } catch (error) {
+            this.logger.error(
+              `Failed to send AUCTION_ENDED notifications for auction ${auction.id}`,
+              error instanceof Error ? error.stack : error,
+            );
+          }
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
