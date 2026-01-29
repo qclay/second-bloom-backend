@@ -26,7 +26,7 @@ export class ProductImageResponseDto {
     return {
       id: image.id,
       fileId: image.fileId,
-      order: image.order,
+      order: image.displayOrder,
       createdAt: image.createdAt,
       url: image.file?.url,
     };
@@ -67,7 +67,11 @@ export class ProductResponseDto {
   @ApiProperty({
     required: false,
     description: 'Condition (id, name, slug).',
-    example: { id: '550e8400-e29b-41d4-a716-446655440020', name: 'New', slug: 'new' },
+    example: {
+      id: '550e8400-e29b-41d4-a716-446655440020',
+      name: 'New',
+      slug: 'new',
+    },
   })
   condition?: {
     id: string;
@@ -78,7 +82,11 @@ export class ProductResponseDto {
   @ApiProperty({
     required: false,
     description: 'Size (id, name, slug).',
-    example: { id: '550e8400-e29b-41d4-a716-446655440021', name: 'Large', slug: 'large' },
+    example: {
+      id: '550e8400-e29b-41d4-a716-446655440021',
+      name: 'Large',
+      slug: 'large',
+    },
   })
   size?: {
     id: string;
@@ -132,7 +140,11 @@ export class ProductResponseDto {
   @ApiProperty({
     required: false,
     description: 'Category (id, name, slug).',
-    example: { id: '550e8400-e29b-41d4-a716-446655440010', name: 'Roses', slug: 'roses' },
+    example: {
+      id: '550e8400-e29b-41d4-a716-446655440010',
+      name: 'Roses',
+      slug: 'roses',
+    },
   })
   category?: {
     id: string;

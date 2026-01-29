@@ -162,7 +162,7 @@ export class ProductService {
             data: validatedImageIds.map((fileId, index) => ({
               productId: createdProduct.id,
               fileId,
-              order: index,
+              displayOrder: index,
             })),
           });
         }
@@ -382,7 +382,7 @@ export class ProductService {
                 },
               },
             },
-            orderBy: { order: 'asc' },
+            orderBy: { displayOrder: 'asc' },
           },
         },
       }),
@@ -590,7 +590,7 @@ export class ProductService {
                 },
               },
             },
-            orderBy: { order: 'asc' },
+            orderBy: { displayOrder: 'asc' },
           },
         },
       }),
@@ -654,7 +654,7 @@ export class ProductService {
               },
             },
           },
-          orderBy: { order: 'asc' },
+          orderBy: { displayOrder: 'asc' },
         },
       },
     });
@@ -852,7 +852,7 @@ export class ProductService {
               data: validatedImageIds.map((fileId, index) => ({
                 productId: id,
                 fileId,
-                order: index,
+                displayOrder: index,
               })),
             });
           }

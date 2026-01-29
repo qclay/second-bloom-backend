@@ -278,7 +278,7 @@ export class OrderService {
                     },
                   },
                 },
-                orderBy: { order: 'asc' },
+                orderBy: { displayOrder: 'asc' },
                 take: 1,
               },
             },
@@ -370,7 +370,7 @@ export class OrderService {
                   },
                 },
               },
-              orderBy: { order: 'asc' },
+              orderBy: { displayOrder: 'asc' },
               take: 5,
             },
             seller: {

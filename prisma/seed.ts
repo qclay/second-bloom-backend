@@ -251,18 +251,55 @@ async function main() {
   console.log(`✅ Created ${categories.length} categories`);
 
   console.log('📋 Seeding conditions...');
-  const [conditionNew, conditionExcellent, conditionGood] = await Promise.all([
+  const [
+    conditionFreshest,
+    conditionGoodCondition,
+    conditionLosingFreshness,
+    conditionSlightlyWilted,
+    conditionNoticeablyWilting,
+    conditionWilted,
+  ] = await Promise.all([
     prisma.condition.create({
-      data: { name: 'New', slug: 'new' },
+      data: { name: 'Freshest', slug: 'freshest' },
     }),
     prisma.condition.create({
-      data: { name: 'Excellent', slug: 'excellent' },
+      data: { name: 'Good condition', slug: 'good-condition' },
     }),
     prisma.condition.create({
-      data: { name: 'Good', slug: 'good' },
+      data: { name: 'Losing freshness', slug: 'losing-freshness' },
+    }),
+    prisma.condition.create({
+      data: { name: 'Slightly wilted', slug: 'slightly-wilted' },
+    }),
+    prisma.condition.create({
+      data: { name: 'Noticeably wilting', slug: 'noticeably-wilting' },
+    }),
+    prisma.condition.create({
+      data: { name: 'Wilted', slug: 'wilted' },
     }),
   ]);
-  console.log('✅ Created 3 conditions');
+  console.log('✅ Created 6 conditions');
+
+  console.log('📐 Seeding sizes...');
+  const [sizeSmall, sizeMedium, sizeVoluminous, sizeLarge, sizeHuge] =
+    await Promise.all([
+      prisma.size.create({
+        data: { name: 'Small', slug: 'small' },
+      }),
+      prisma.size.create({
+        data: { name: 'Medium', slug: 'medium' },
+      }),
+      prisma.size.create({
+        data: { name: 'Voluminous', slug: 'voluminous' },
+      }),
+      prisma.size.create({
+        data: { name: 'Large', slug: 'large' },
+      }),
+      prisma.size.create({
+        data: { name: 'Huge', slug: 'huge' },
+      }),
+    ]);
+  console.log('✅ Created 5 sizes');
 
   console.log('🌹 Seeding products...');
   const products = await Promise.all([
@@ -277,7 +314,8 @@ async function main() {
         categoryId: rosesCategory.id,
         tags: ['roses', 'bouquet', 'romantic', 'red'],
         type: 'FRESH',
-        conditionId: conditionNew.id,
+        conditionId: conditionFreshest.id,
+        sizeId: sizeLarge.id,
         quantity: 10,
         status: 'ACTIVE',
         isFeatured: true,
@@ -299,7 +337,8 @@ async function main() {
         categoryId: tulipsCategory.id,
         tags: ['tulips', 'white', 'wedding', 'fresh'],
         type: 'FRESH',
-        conditionId: conditionNew.id,
+        conditionId: conditionFreshest.id,
+        sizeId: sizeMedium.id,
         quantity: 15,
         status: 'ACTIVE',
         isFeatured: false,
@@ -321,7 +360,8 @@ async function main() {
         categoryId: bouquetsCategory.id,
         tags: ['bouquet', 'mixed', 'colorful', 'gift'],
         type: 'FRESH',
-        conditionId: conditionNew.id,
+        conditionId: conditionFreshest.id,
+        sizeId: sizeVoluminous.id,
         quantity: 8,
         status: 'ACTIVE',
         isFeatured: true,
@@ -343,7 +383,8 @@ async function main() {
         categoryId: orchidsCategory.id,
         tags: ['orchids', 'pink', 'pot', 'decoration'],
         type: 'FRESH',
-        conditionId: conditionExcellent.id,
+        conditionId: conditionGoodCondition.id,
+        sizeId: sizeMedium.id,
         quantity: 5,
         status: 'ACTIVE',
         isFeatured: false,
@@ -365,7 +406,8 @@ async function main() {
         categoryId: rosesCategory.id,
         tags: ['roses', 'yellow', 'friendship', 'joy'],
         type: 'FRESH',
-        conditionId: conditionNew.id,
+        conditionId: conditionFreshest.id,
+        sizeId: sizeLarge.id,
         quantity: 12,
         status: 'ACTIVE',
         isFeatured: false,
@@ -387,7 +429,8 @@ async function main() {
         categoryId: bouquetsCategory.id,
         tags: ['wedding', 'arrangement', 'white', 'elegant'],
         type: 'FRESH',
-        conditionId: conditionNew.id,
+        conditionId: conditionFreshest.id,
+        sizeId: sizeHuge.id,
         quantity: 3,
         status: 'ACTIVE',
         isFeatured: true,
@@ -408,7 +451,8 @@ async function main() {
         categoryId: tulipsCategory.id,
         tags: ['tulips', 'purple', 'rare', 'elegant'],
         type: 'FRESH',
-        conditionId: conditionNew.id,
+        conditionId: conditionFreshest.id,
+        sizeId: sizeMedium.id,
         quantity: 7,
         status: 'ACTIVE',
         isFeatured: false,
@@ -430,7 +474,8 @@ async function main() {
         categoryId: plantsCategory.id,
         tags: ['plants', 'indoor', 'collection', 'decorative'],
         type: 'RESALE',
-        conditionId: conditionGood.id,
+        conditionId: conditionGoodCondition.id,
+        sizeId: sizeLarge.id,
         quantity: 4,
         status: 'ACTIVE',
         isFeatured: false,

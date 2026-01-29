@@ -23,7 +23,7 @@ export class OtpService {
   }
 
   async sendOtp(
-    phoneCountryCode: string,
+    countryCode: string,
     phoneNumber: string,
     purpose: VerificationPurpose,
   ): Promise<{ code: string; expiresAt: Date }> {
@@ -36,7 +36,7 @@ export class OtpService {
     if (isProduction && !rateLimitDisabled) {
       const existingCode =
         await this.verificationCodeRepository.findLatestByPhone(
-          phoneCountryCode,
+          countryCode,
           phoneNumber,
           purpose,
         );
@@ -53,7 +53,7 @@ export class OtpService {
       }
     } else {
       this.logger.debug(
-        `Development mode: OTP rate limiting disabled for ${phoneCountryCode}${phoneNumber}`,
+        `Development mode: OTP rate limiting disabled for ${countryCode}${phoneNumber}`,
       );
     }
 
@@ -62,7 +62,7 @@ export class OtpService {
     expiresAt.setMinutes(expiresAt.getMinutes() + this.OTP_EXPIRY_MINUTES);
 
     await this.verificationCodeRepository.create({
-      phoneCountryCode,
+      countryCode,
       phoneNumber,
       code,
       purpose,
@@ -95,13 +95,13 @@ export class OtpService {
   }
 
   async verifyOtp(
-    phoneCountryCode: string,
+    countryCode: string,
     phoneNumber: string,
     code: string,
     purpose: VerificationPurpose,
   ): Promise<boolean> {
     const verificationCode = await this.verificationCodeRepository.findValid(
-      phoneCountryCode,
+      countryCode,
       phoneNumber,
       code,
       purpose,

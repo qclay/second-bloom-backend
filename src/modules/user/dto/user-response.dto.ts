@@ -88,7 +88,7 @@ export class UserResponseDto {
       id: user.id,
       phoneNumber: user.phoneNumber,
       countryCode:
-        user.phoneCountryCode ??
+        user.countryCode ??
         (typeof user.phoneNumber === 'string'
           ? (user.phoneNumber.match(/^\+(\d{1,3})/)?.[0] ?? null)
           : null),

@@ -74,7 +74,7 @@ export class UserService {
       await this.validateUsernameUniqueness(dto.username);
     }
     const user = await this.userRepository.create({
-      phoneCountryCode: dto.countryCode,
+      countryCode: dto.countryCode,
       phoneNumber: dto.phoneNumber,
       firstName: dto.firstName,
       lastName: dto.lastName,
@@ -319,8 +319,8 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    const currentFull = user.phoneCountryCode
-      ? user.phoneCountryCode + user.phoneNumber
+    const currentFull = user.countryCode
+      ? user.countryCode + user.phoneNumber
       : user.phoneNumber;
     const newFull = dto.newCountryCode + dto.newPhoneNumber;
     if (newFull === currentFull) {
@@ -362,8 +362,8 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    const currentFull = user.phoneCountryCode
-      ? user.phoneCountryCode + user.phoneNumber
+    const currentFull = user.countryCode
+      ? user.countryCode + user.phoneNumber
       : user.phoneNumber;
     const newFull = dto.newCountryCode + dto.newPhoneNumber;
     if (newFull === currentFull) {

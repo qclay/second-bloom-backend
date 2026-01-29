@@ -536,7 +536,7 @@ export class BidService {
                         },
                       },
                     },
-                    orderBy: { order: 'asc' },
+                    orderBy: { displayOrder: 'asc' },
                     take: 1,
                   },
                 },
