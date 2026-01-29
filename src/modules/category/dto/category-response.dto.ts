@@ -1,6 +1,13 @@
 import { Category, File } from '@prisma/client';
-import { FileResponseDto } from '../../file/dto/file-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
+
+export class CategoryImageDto {
+  @ApiProperty({ example: '59fd6deb-0728-4aff-852a-33908e8c657b' })
+  id!: string;
+
+  @ApiProperty({ example: 'https://example.com/image.jpg' })
+  url!: string;
+}
 
 export class CategoryResponseDto {
   @ApiProperty({ example: 'cm5h1234567890' })
@@ -15,8 +22,8 @@ export class CategoryResponseDto {
   @ApiProperty({ example: 'Fresh and beautiful flowers', nullable: true })
   description!: string | null;
 
-  @ApiProperty({ type: () => FileResponseDto, nullable: true })
-  image!: FileResponseDto | null;
+  @ApiProperty({ type: () => CategoryImageDto, nullable: true })
+  image!: CategoryImageDto | null;
 
   @ApiProperty({ example: null, nullable: true })
   parentId!: string | null;
@@ -54,7 +61,9 @@ export class CategoryResponseDto {
       name: category.name,
       slug: category.slug,
       description: category.description,
-      image: category.image ? FileResponseDto.fromEntity(category.image) : null,
+      image: category.image
+        ? { id: category.image.id, url: category.image.url }
+        : null,
       parentId: category.parentId,
       order: category.order,
       isActive: category.isActive,

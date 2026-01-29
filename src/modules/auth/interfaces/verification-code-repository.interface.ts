@@ -3,7 +3,7 @@ import { VerificationCode, VerificationPurpose, Prisma } from '@prisma/client';
 export interface IVerificationCodeRepository {
   create(data: Prisma.VerificationCodeCreateInput): Promise<VerificationCode>;
   findValid(
-    countryCode: string,
+    phoneCountryCode: string,
     phoneNumber: string,
     code: string,
     purpose: VerificationPurpose,
@@ -12,7 +12,7 @@ export interface IVerificationCodeRepository {
   incrementAttempts(id: string): Promise<VerificationCode>;
   deleteExpired(): Promise<number>;
   findLatestByPhone(
-    countryCode: string,
+    phoneCountryCode: string,
     phoneNumber: string,
     purpose: VerificationPurpose,
   ): Promise<VerificationCode | null>;

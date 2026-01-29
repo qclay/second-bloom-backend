@@ -34,6 +34,9 @@ export const setupSwagger = (app: INestApplication): void => {
     );
   }
 
+  const apiVersion = config.get<string>('API_VERSION', 'v1');
+  const globalPrefix = `api/${apiVersion}`;
+
   const document = SwaggerModule.createDocument(
     app,
     new DocumentBuilder()
@@ -55,6 +58,36 @@ export const setupSwagger = (app: INestApplication): void => {
       ],
     },
   );
+
+  // Health routes are excluded from global prefix (mounted at /health).
+  // Ensure OpenAPI paths use /health so "Try it out" works.
+  if (document.paths) {
+    const prefixedHealth = `/${globalPrefix}/health`;
+    const paths = document.paths as Record<
+      string,
+      import('@nestjs/swagger').OpenAPIObject['paths'] extends Record<
+        string,
+        infer V
+      >
+        ? V
+        : never
+    >;
+    const healthPaths: Record<string, (typeof paths)[string]> = {};
+    for (const path of Object.keys(paths)) {
+      if (path === prefixedHealth || path.startsWith(prefixedHealth + '/')) {
+        const suffix = path.slice(prefixedHealth.length) || '';
+        healthPaths['/health' + suffix] = paths[path];
+      }
+    }
+    for (const [p, spec] of Object.entries(healthPaths)) {
+      document.paths[p] = spec;
+    }
+    for (const path of Object.keys(paths)) {
+      if (path.startsWith(prefixedHealth)) {
+        delete document.paths[path];
+      }
+    }
+  }
 
   const downloadPath = `/${path}/openapi.json`;
   app.getHttpAdapter().get(downloadPath, (_req: unknown, res: unknown) => {

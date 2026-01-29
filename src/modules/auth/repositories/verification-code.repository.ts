@@ -16,14 +16,14 @@ export class VerificationCodeRepository implements IVerificationCodeRepository {
   }
 
   async findValid(
-    countryCode: string,
+    phoneCountryCode: string,
     phoneNumber: string,
     code: string,
     purpose: VerificationPurpose,
   ): Promise<VerificationCode | null> {
     return this.prisma.verificationCode.findFirst({
       where: {
-        countryCode,
+        phoneCountryCode,
         phoneNumber,
         code,
         purpose,
@@ -66,13 +66,13 @@ export class VerificationCodeRepository implements IVerificationCodeRepository {
   }
 
   async findLatestByPhone(
-    countryCode: string,
+    phoneCountryCode: string,
     phoneNumber: string,
     purpose: VerificationPurpose,
   ): Promise<VerificationCode | null> {
     return this.prisma.verificationCode.findFirst({
       where: {
-        countryCode,
+        phoneCountryCode,
         phoneNumber,
         purpose,
         isUsed: false,

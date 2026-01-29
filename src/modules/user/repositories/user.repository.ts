@@ -29,13 +29,13 @@ export class UserRepository implements IUserRepository {
   }
 
   async findByPhoneNumber(
-    countryCode: string,
+    phoneCountryCode: string,
     phoneNumber: string,
   ): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: {
-        countryCode_phoneNumber: {
-          countryCode,
+        phoneCountryCode_phoneNumber: {
+          phoneCountryCode,
           phoneNumber,
         },
       },
@@ -105,13 +105,13 @@ export class UserRepository implements IUserRepository {
 
   async updatePhoneNumber(
     id: string,
-    countryCode: string,
+    phoneCountryCode: string,
     phoneNumber: string,
   ): Promise<User> {
     return this.prisma.user.update({
       where: { id },
       data: {
-        countryCode,
+        phoneCountryCode,
         phoneNumber,
       },
     });

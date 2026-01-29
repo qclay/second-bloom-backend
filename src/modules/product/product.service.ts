@@ -76,29 +76,25 @@ export class ProductService {
       throw new NotFoundException('Category not found or inactive');
     }
 
-    if (dto.conditionId) {
-      const condition = await this.prisma.condition.findFirst({
-        where: {
-          id: dto.conditionId,
-          deletedAt: null,
-          isActive: true,
-        },
-      });
-      if (!condition) {
-        throw new NotFoundException('Condition not found or inactive');
-      }
+    const condition = await this.prisma.condition.findFirst({
+      where: {
+        id: dto.conditionId,
+        deletedAt: null,
+        isActive: true,
+      },
+    });
+    if (!condition) {
+      throw new NotFoundException('Condition not found or inactive');
     }
-    if (dto.sizeId) {
-      const size = await this.prisma.size.findFirst({
-        where: {
-          id: dto.sizeId,
-          deletedAt: null,
-          isActive: true,
-        },
-      });
-      if (!size) {
-        throw new NotFoundException('Size not found or inactive');
-      }
+    const size = await this.prisma.size.findFirst({
+      where: {
+        id: dto.sizeId,
+        deletedAt: null,
+        isActive: true,
+      },
+    });
+    if (!size) {
+      throw new NotFoundException('Size not found or inactive');
     }
 
     const effectivePrice =
@@ -141,10 +137,8 @@ export class ProductService {
             },
             tags: dto.tags ?? [],
             type: dto.type ?? 'FRESH',
-            condition: dto.conditionId
-              ? { connect: { id: dto.conditionId } }
-              : undefined,
-            size: dto.sizeId ? { connect: { id: dto.sizeId } } : undefined,
+            condition: { connect: { id: dto.conditionId } },
+            size: { connect: { id: dto.sizeId } },
             quantity: dto.quantity ?? 1,
             status: dto.status ?? ProductStatus.ACTIVE,
             isFeatured: dto.isFeatured ?? false,

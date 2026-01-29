@@ -92,7 +92,7 @@ export class AuctionResponseDto {
         title: string;
         slug: string;
         price: unknown;
-        images?: Array<{ file?: { url: string } }>;
+        images?: Array<{ fileId: string; file?: { url: string } }>;
       };
       creator?: {
         id: string;
@@ -140,8 +140,9 @@ export class AuctionResponseDto {
                 ? auction.product.price
                 : Number(auction.product.price) || 0,
             images: auction.product.images?.map((img) => ({
-              url: img.file?.url,
-            })) as Array<{ url?: string }>,
+              id: img.fileId,
+              url: img.file?.url ?? '',
+            })),
           }
         : undefined,
       creator: auction.creator

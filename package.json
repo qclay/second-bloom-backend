@@ -18,6 +18,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node -r dotenv/config prisma/seed.ts",
+    "prisma:fix-checksum": "ts-node -r dotenv/config scripts/fix-migration-checksum.ts",
+    "prisma:sync": "npm run prisma:fix-checksum && prisma migrate deploy && prisma generate",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",

@@ -7,6 +7,13 @@ import { ApiErrorResponseDto } from '../common/dto/api-error-response.dto';
 import { ChatGateway } from '../modules/chat/gateways/chat.gateway';
 import { AuctionGateway } from '../modules/auction/gateways/auction.gateway';
 import { WebSocketMetricsService } from '../common/services/websocket-metrics.service';
+import {
+  HealthCheckResponseDto,
+  HealthDetailedResponseDto,
+  HealthLivenessResponseDto,
+  HealthReadinessResponseDto,
+  HealthWebSocketResponseDto,
+} from './dto/health-response.dto';
 
 @ApiTags('Health')
 @Controller('health')
@@ -21,7 +28,11 @@ export class HealthController {
   @Get()
   @Public()
   @ApiOperation({ summary: 'Basic health check' })
-  @ApiResponse({ status: 200, description: 'Service is healthy' })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is healthy',
+    type: HealthCheckResponseDto,
+  })
   async check() {
     const health = await this.healthService.checkHealth();
     return {
@@ -33,7 +44,11 @@ export class HealthController {
   @Get('detailed')
   @Public()
   @ApiOperation({ summary: 'Detailed health check with all services' })
-  @ApiResponse({ status: 200, description: 'Detailed health status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Detailed health status',
+    type: HealthDetailedResponseDto,
+  })
   async detailed() {
     return this.healthService.checkHealth();
   }
@@ -42,7 +57,11 @@ export class HealthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Readiness probe - can app serve requests?' })
-  @ApiResponse({ status: 200, description: 'Service is ready' })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is ready',
+    type: HealthReadinessResponseDto,
+  })
   @ApiResponse({
     status: 503,
     description: 'Service is not ready',
@@ -59,7 +78,11 @@ export class HealthController {
   @Get('liveness')
   @Public()
   @ApiOperation({ summary: 'Liveness probe - is app running?' })
-  @ApiResponse({ status: 200, description: 'Service is alive' })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is alive',
+    type: HealthLivenessResponseDto,
+  })
   liveness() {
     return { status: 'alive', timestamp: new Date().toISOString() };
   }
@@ -67,7 +90,11 @@ export class HealthController {
   @Get('websocket')
   @Public()
   @ApiOperation({ summary: 'WebSocket health check' })
-  @ApiResponse({ status: 200, description: 'WebSocket status' })
+  @ApiResponse({
+    status: 200,
+    description: 'WebSocket status',
+    type: HealthWebSocketResponseDto,
+  })
   websocket() {
     try {
       const response: {

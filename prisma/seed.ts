@@ -1,16 +1,23 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is not set in environment variables');
 }
 
-const prisma = new PrismaClient();
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Starting database seed...');
 
+  // Delete in dependency order (children before parents) to avoid FK violations
   console.log('🧹 Cleaning existing data...');
+  await prisma.message.deleteMany();
+  await prisma.conversation.deleteMany();
   await prisma.bid.deleteMany();
   await prisma.auction.deleteMany();
   await prisma.order.deleteMany();
@@ -22,6 +29,8 @@ async function main() {
   await prisma.size.deleteMany();
   await prisma.category.deleteMany();
   await prisma.notification.deleteMany();
+  await prisma.notificationPreference.deleteMany();
+  await prisma.payment.deleteMany();
   await prisma.verificationCode.deleteMany();
   await prisma.user.deleteMany();
 
@@ -250,15 +259,9 @@ async function main() {
   ];
   console.log(`✅ Created ${categories.length} categories`);
 
+  // Conditions (RU → EN): Самый свежий, Хорошее состояние, Теряет свежесть, Немного подвял, Заметно вянет, Вялый
   console.log('📋 Seeding conditions...');
-  const [
-    conditionFreshest,
-    conditionGoodCondition,
-    conditionLosingFreshness,
-    conditionSlightlyWilted,
-    conditionNoticeablyWilting,
-    conditionWilted,
-  ] = await Promise.all([
+  const conditions = await Promise.all([
     prisma.condition.create({
       data: { name: 'Freshest', slug: 'freshest' },
     }),
@@ -280,25 +283,15 @@ async function main() {
   ]);
   console.log('✅ Created 6 conditions');
 
+  // Sizes (RU → EN): Маленький, Средний, Объемный, Большой, Огромный
   console.log('📐 Seeding sizes...');
-  const [sizeSmall, sizeMedium, sizeVoluminous, sizeLarge, sizeHuge] =
-    await Promise.all([
-      prisma.size.create({
-        data: { name: 'Small', slug: 'small' },
-      }),
-      prisma.size.create({
-        data: { name: 'Medium', slug: 'medium' },
-      }),
-      prisma.size.create({
-        data: { name: 'Voluminous', slug: 'voluminous' },
-      }),
-      prisma.size.create({
-        data: { name: 'Large', slug: 'large' },
-      }),
-      prisma.size.create({
-        data: { name: 'Huge', slug: 'huge' },
-      }),
-    ]);
+  const sizes = await Promise.all([
+    prisma.size.create({ data: { name: 'Small', slug: 'small' } }),
+    prisma.size.create({ data: { name: 'Medium', slug: 'medium' } }),
+    prisma.size.create({ data: { name: 'Voluminous', slug: 'voluminous' } }),
+    prisma.size.create({ data: { name: 'Large', slug: 'large' } }),
+    prisma.size.create({ data: { name: 'Huge', slug: 'huge' } }),
+  ]);
   console.log('✅ Created 5 sizes');
 
   console.log('🌹 Seeding products...');
@@ -314,8 +307,8 @@ async function main() {
         categoryId: rosesCategory.id,
         tags: ['roses', 'bouquet', 'romantic', 'red'],
         type: 'FRESH',
-        conditionId: conditionFreshest.id,
-        sizeId: sizeLarge.id,
+        conditionId: conditions[0].id,
+        sizeId: sizes[3].id,
         quantity: 10,
         status: 'ACTIVE',
         isFeatured: true,
@@ -337,8 +330,8 @@ async function main() {
         categoryId: tulipsCategory.id,
         tags: ['tulips', 'white', 'wedding', 'fresh'],
         type: 'FRESH',
-        conditionId: conditionFreshest.id,
-        sizeId: sizeMedium.id,
+        conditionId: conditions[0].id,
+        sizeId: sizes[1].id,
         quantity: 15,
         status: 'ACTIVE',
         isFeatured: false,
@@ -360,8 +353,8 @@ async function main() {
         categoryId: bouquetsCategory.id,
         tags: ['bouquet', 'mixed', 'colorful', 'gift'],
         type: 'FRESH',
-        conditionId: conditionFreshest.id,
-        sizeId: sizeVoluminous.id,
+        conditionId: conditions[0].id,
+        sizeId: sizes[2].id,
         quantity: 8,
         status: 'ACTIVE',
         isFeatured: true,
@@ -383,8 +376,8 @@ async function main() {
         categoryId: orchidsCategory.id,
         tags: ['orchids', 'pink', 'pot', 'decoration'],
         type: 'FRESH',
-        conditionId: conditionGoodCondition.id,
-        sizeId: sizeMedium.id,
+        conditionId: conditions[1].id,
+        sizeId: sizes[1].id,
         quantity: 5,
         status: 'ACTIVE',
         isFeatured: false,
@@ -406,8 +399,8 @@ async function main() {
         categoryId: rosesCategory.id,
         tags: ['roses', 'yellow', 'friendship', 'joy'],
         type: 'FRESH',
-        conditionId: conditionFreshest.id,
-        sizeId: sizeLarge.id,
+        conditionId: conditions[0].id,
+        sizeId: sizes[3].id,
         quantity: 12,
         status: 'ACTIVE',
         isFeatured: false,
@@ -429,8 +422,8 @@ async function main() {
         categoryId: bouquetsCategory.id,
         tags: ['wedding', 'arrangement', 'white', 'elegant'],
         type: 'FRESH',
-        conditionId: conditionFreshest.id,
-        sizeId: sizeHuge.id,
+        conditionId: conditions[0].id,
+        sizeId: sizes[4].id,
         quantity: 3,
         status: 'ACTIVE',
         isFeatured: true,
@@ -451,8 +444,8 @@ async function main() {
         categoryId: tulipsCategory.id,
         tags: ['tulips', 'purple', 'rare', 'elegant'],
         type: 'FRESH',
-        conditionId: conditionFreshest.id,
-        sizeId: sizeMedium.id,
+        conditionId: conditions[0].id,
+        sizeId: sizes[1].id,
         quantity: 7,
         status: 'ACTIVE',
         isFeatured: false,
@@ -474,8 +467,8 @@ async function main() {
         categoryId: plantsCategory.id,
         tags: ['plants', 'indoor', 'collection', 'decorative'],
         type: 'RESALE',
-        conditionId: conditionGoodCondition.id,
-        sizeId: sizeLarge.id,
+        conditionId: conditions[1].id,
+        sizeId: sizes[3].id,
         quantity: 4,
         status: 'ACTIVE',
         isFeatured: false,
@@ -491,10 +484,11 @@ async function main() {
   console.log(`✅ Created ${products.length} products`);
 
   console.log('📦 Seeding orders...');
+  const orderBase = Date.now();
   const orders = await Promise.all([
     prisma.order.create({
       data: {
-        orderNumber: `ORD-${Date.now()}-1`,
+        orderNumber: `ORD-${orderBase}-1`,
         buyerId: buyers[0].id,
         productId: products[0].id,
         amount: 150000,
@@ -507,7 +501,7 @@ async function main() {
     }),
     prisma.order.create({
       data: {
-        orderNumber: `ORD-${Date.now()}-2`,
+        orderNumber: `ORD-${orderBase}-2`,
         buyerId: buyers[1].id,
         productId: products[3].id,
         amount: 180000,
@@ -520,7 +514,7 @@ async function main() {
     }),
     prisma.order.create({
       data: {
-        orderNumber: `ORD-${Date.now()}-3`,
+        orderNumber: `ORD-${orderBase}-3`,
         buyerId: buyers[0].id,
         productId: products[5].id,
         amount: 350000,
@@ -725,6 +719,8 @@ async function main() {
   console.log('\n📊 Summary:');
   console.log(`   - Users: ${allUsers.length}`);
   console.log(`   - Categories: ${categories.length}`);
+  console.log(`   - Conditions: 6`);
+  console.log(`   - Sizes: 5`);
   console.log(`   - Products: ${products.length}`);
   console.log(`   - Orders: ${orders.length}`);
   console.log(`   - Auctions: ${auctions.length}`);
@@ -741,4 +737,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

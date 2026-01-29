@@ -89,7 +89,7 @@ export class ProductController {
   @ApiOperation({
     summary: 'Create product',
     description:
-      'Create a flower/bouquet listing. Fixed price: send price. With auction: set createAuction: true and auction (startPrice, endTime). Use categoryId from GET /categories; optional conditionId, sizeId from GET /conditions, GET /sizes.',
+      'Create a flower/bouquet listing. Fixed price: send price. With auction: set createAuction: true and auction (startPrice, endTime). Use categoryId from GET /categories; conditionId and sizeId required from GET /conditions, GET /sizes.',
   })
   @ApiCommonErrorResponses({ conflict: true })
   @ApiResponse({

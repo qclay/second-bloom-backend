@@ -103,7 +103,7 @@ export class OrderResponseDto {
         slug: string;
         price: unknown;
         sellerId: string;
-        images?: Array<{ file?: { url: string } }>;
+        images?: Array<{ fileId: string; file?: { url: string } }>;
       };
       auction?: {
         id: string;
@@ -158,8 +158,9 @@ export class OrderResponseDto {
                 : Number(order.product.price) || 0,
             sellerId: order.product.sellerId,
             images: order.product.images?.map((img) => ({
-              url: img.file?.url,
-            })) as Array<{ url?: string }>,
+              id: img.fileId,
+              url: img.file?.url ?? '',
+            })),
           }
         : undefined,
       auction: order.auction

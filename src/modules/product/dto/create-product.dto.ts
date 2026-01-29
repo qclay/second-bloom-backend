@@ -2,6 +2,7 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
+  IsUUID,
   MaxLength,
   IsNumber,
   IsArray,
@@ -94,21 +95,23 @@ export class CreateProductDto {
   @IsOptional()
   type?: ProductType = ProductType.FRESH;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Condition ID (from GET /conditions).',
     example: 'clx1234567890abcdef',
+    required: true,
   })
-  @IsString()
-  @IsOptional()
-  conditionId?: string;
+  @IsUUID()
+  @IsNotEmpty()
+  conditionId!: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Size ID (from GET /sizes).',
     example: 'clx1234567890abcdef',
+    required: true,
   })
-  @IsString()
-  @IsOptional()
-  sizeId?: string;
+  @IsUUID()
+  @IsNotEmpty()
+  sizeId!: string;
 
   @ApiPropertyOptional({
     description: 'Quantity',

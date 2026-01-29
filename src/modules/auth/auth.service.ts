@@ -61,13 +61,13 @@ export class AuthService {
       throw error;
     }
 
-    const countryCode = dto.countryCode;
+    const phoneCountryCode = dto.countryCode;
     const phoneNumber = dto.phoneNumber;
 
     let user = await this.prisma.user.findUnique({
       where: {
-        countryCode_phoneNumber: {
-          countryCode,
+        phoneCountryCode_phoneNumber: {
+          phoneCountryCode,
           phoneNumber,
         },
       },
@@ -75,14 +75,14 @@ export class AuthService {
 
     if (!user) {
       user = await this.prisma.user.findFirst({
-        where: { phoneNumber: countryCode + phoneNumber },
+        where: { phoneNumber: phoneCountryCode + phoneNumber },
       });
     }
 
     if (!user) {
       user = await this.prisma.user.create({
         data: {
-          countryCode,
+          phoneCountryCode,
           phoneNumber,
           role: UserRole.USER,
           isActive: true,
@@ -186,13 +186,13 @@ export class AuthService {
 
   private async generateTokens(user: {
     id: string;
-    countryCode: string | null;
+    phoneCountryCode: string | null;
     phoneNumber: string;
     role: UserRole;
     refreshTokenVersion: number;
   }): Promise<{ accessToken: string; refreshToken: string }> {
-    const phoneNumberE164 = user.countryCode
-      ? user.countryCode + user.phoneNumber
+    const phoneNumberE164 = user.phoneCountryCode
+      ? user.phoneCountryCode + user.phoneNumber
       : user.phoneNumber;
     const payload: JwtPayload = {
       sub: user.id,

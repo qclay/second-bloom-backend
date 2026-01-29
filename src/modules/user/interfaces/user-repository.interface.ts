@@ -3,7 +3,7 @@ import { User, Prisma } from '@prisma/client';
 export interface IUserRepository {
   findById(id: string): Promise<User | null>;
   findByPhoneNumber(
-    countryCode: string,
+    phoneCountryCode: string,
     phoneNumber: string,
   ): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
@@ -17,7 +17,7 @@ export interface IUserRepository {
   updateFcmToken(id: string, fcmToken: string | null): Promise<User>;
   updatePhoneNumber(
     id: string,
-    countryCode: string,
+    phoneCountryCode: string,
     phoneNumber: string,
   ): Promise<User>;
 }

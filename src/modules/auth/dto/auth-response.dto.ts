@@ -18,8 +18,8 @@ export class AuthResponseDto {
     accessToken: string,
     refreshToken: string,
   ): AuthResponseDto {
-    const phoneNumberE164 = user.countryCode
-      ? user.countryCode + user.phoneNumber
+    const phoneNumberE164 = user.phoneCountryCode
+      ? user.phoneCountryCode + user.phoneNumber
       : user.phoneNumber;
     return {
       user: {

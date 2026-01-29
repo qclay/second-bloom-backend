@@ -26,6 +26,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { ThrottlerPerUserGuard } from './common/guards/throttler-per-user.guard';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -71,7 +72,7 @@ import { ThrottlerPerUserGuard } from './common/guards/throttler-per-user.guard'
     JobsModule,
     MetricsModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,

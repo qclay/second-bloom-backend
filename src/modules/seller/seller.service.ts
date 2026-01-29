@@ -182,6 +182,7 @@ export class SellerService {
                   sellerId: true,
                   images: {
                     select: {
+                      fileId: true,
                       file: {
                         select: {
                           url: true,
@@ -245,6 +246,7 @@ export class SellerService {
                   price: true,
                   images: {
                     select: {
+                      fileId: true,
                       file: {
                         select: {
                           url: true,

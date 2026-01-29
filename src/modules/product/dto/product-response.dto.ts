@@ -5,30 +5,15 @@ export class ProductImageResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001' })
   id!: string;
 
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440002' })
-  fileId!: string;
-
-  @ApiProperty({ example: 0 })
-  order!: number;
-
-  @ApiProperty({ example: '2026-01-04T17:15:29.000Z' })
-  createdAt!: Date;
-
-  @ApiProperty({
-    required: false,
-    example: 'https://cdn.example.com/images/rose.jpg',
-  })
-  url?: string;
+  @ApiProperty({ example: 'https://cdn.example.com/images/rose.jpg' })
+  url!: string;
 
   static fromEntity(
     image: ProductImage & { file?: { url: string } },
   ): ProductImageResponseDto {
     return {
-      id: image.id,
-      fileId: image.fileId,
-      order: image.displayOrder,
-      createdAt: image.createdAt,
-      url: image.file?.url,
+      id: image.fileId,
+      url: image.file?.url ?? '',
     };
   }
 }

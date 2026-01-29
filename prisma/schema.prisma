@@ -442,7 +442,7 @@ model Review {
 
 model User {
   id                     String                  @id @default(uuid())
-  countryCode            String?
+  phoneCountryCode       String?
   phoneNumber            String
   firstName              String?
   lastName               String?
@@ -489,9 +489,9 @@ model User {
   avatar                 File?                   @relation("UserAvatar", fields: [avatarId], references: [id])
   verificationCodes      VerificationCode[]
 
-  @@unique([countryCode, phoneNumber])
+  @@unique([phoneCountryCode, phoneNumber])
   @@index([phoneNumber])
-  @@index([countryCode, phoneNumber])
+  @@index([phoneCountryCode, phoneNumber])
   @@index([username])
   @@index([email])
   @@index([isActive, deletedAt])
@@ -505,25 +505,25 @@ model User {
 
 model VerificationCode {
   id           String              @id @default(uuid())
-  countryCode  String
-  phoneNumber  String
-  code         String             @db.VarChar(6)
-  purpose      VerificationPurpose @default(SIGNUP)
-  expiresAt    DateTime
-  isUsed       Boolean            @default(false)
-  attempts     Int                @default(0)
-  maxAttempts  Int                @default(3)
-  userId       String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  deletedAt    DateTime?
-  deletedBy    String?
-  isActive     Boolean            @default(true)
-  user         User?              @relation(fields: [userId], references: [id])
+  phoneCountryCode String
+  phoneNumber      String
+  code             String             @db.VarChar(6)
+  purpose          VerificationPurpose @default(SIGNUP)
+  expiresAt        DateTime
+  isUsed           Boolean            @default(false)
+  attempts         Int                @default(0)
+  maxAttempts      Int                @default(3)
+  userId           String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+  deletedBy        String?
+  isActive         Boolean            @default(true)
+  user             User?              @relation(fields: [userId], references: [id])
 
-  @@index([countryCode, phoneNumber, code, isUsed])
-  @@index([countryCode, phoneNumber, expiresAt, isUsed])
-  @@index([countryCode, phoneNumber, purpose])
+  @@index([phoneCountryCode, phoneNumber, code, isUsed])
+  @@index([phoneCountryCode, phoneNumber, expiresAt, isUsed])
+  @@index([phoneCountryCode, phoneNumber, purpose])
   @@index([isActive, deletedAt])
   @@index([expiresAt])
   @@map("verification_codes")
