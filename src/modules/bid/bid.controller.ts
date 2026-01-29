@@ -26,6 +26,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
@@ -40,7 +41,11 @@ export class BidController {
   @UsePipes(new SanitizePipe())
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Place a bid on an auction' })
+  @ApiOperation({
+    summary: 'Place a bid',
+    description:
+      'Place a bid on an auction. Body: auctionId, amount. Amount must be >= current price + bid increment.',
+  })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 201,
@@ -73,7 +78,15 @@ export class BidController {
 
   @Get('auction/:auctionId')
   @Public()
-  @ApiOperation({ summary: 'Get all bids for an auction' })
+  @ApiOperation({
+    summary: 'Get bids for an auction',
+    description:
+      'List of bids for an auction. Use auction id from product.activeAuction.id on product detail page.',
+  })
+  @ApiParam({
+    name: 'auctionId',
+    description: 'Auction UUID (e.g. from product.activeAuction.id)',
+  })
   @ApiResponse({ status: 200, description: 'List of bids for auction' })
   async getAuctionBids(@Param('auctionId') auctionId: string) {
     return await this.bidService.getAuctionBids(auctionId);
@@ -96,6 +109,7 @@ export class BidController {
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get bid by ID' })
+  @ApiParam({ name: 'id', description: 'Bid UUID' })
   @ApiResponse({
     status: 200,
     description: 'Bid details',
@@ -110,7 +124,12 @@ export class BidController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Retract a bid' })
+  @ApiOperation({
+    summary: 'Retract a bid',
+    description:
+      'Only bidder or admin. Bid can be retracted before auction ends.',
+  })
+  @ApiParam({ name: 'id', description: 'Bid UUID' })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({ status: 204, description: 'Bid retracted' })
   async remove(

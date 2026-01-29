@@ -29,6 +29,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiParam,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 
@@ -39,7 +40,11 @@ export class AuctionController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Get all auctions' })
+  @ApiOperation({
+    summary: 'Get all auctions',
+    description:
+      'Paginated list of auctions. Use query params for status, productId, etc.',
+  })
   @ApiCommonErrorResponses({
     unauthorized: false,
     forbidden: false,
@@ -56,8 +61,9 @@ export class AuctionController {
   @ApiOperation({
     summary: 'Get auction participants',
     description:
-      'Returns list of all bidders who placed bids, grouped by user with their bid counts and highest bid amount',
+      'List of bidders with bid counts and highest bid. Use for participant list on auction detail.',
   })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
   @ApiResponse({
     status: 200,
     description: 'List of participants with bid statistics',
@@ -75,8 +81,9 @@ export class AuctionController {
   @ApiOperation({
     summary: 'Get top winners',
     description:
-      'Returns top 3 bidders ranked by highest bid amount. Used for displaying winners leaderboard.',
+      'Top 3 bidders by highest bid. Use after auction ends for winners leaderboard.',
   })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
   @ApiResponse({
     status: 200,
     description: 'Top 3 winners ranked by bid amount',
@@ -91,9 +98,9 @@ export class AuctionController {
   @Public()
   @ApiOperation({
     summary: 'Get auction leaderboard',
-    description:
-      'Returns all bidders ranked by highest bid amount, with their bid counts and statistics',
+    description: 'All bidders ranked by highest bid. Optional limit (max 100).',
   })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
   @ApiQuery({
     name: 'limit',
     required: false,
@@ -116,7 +123,12 @@ export class AuctionController {
 
   @Get(':id')
   @Public()
-  @ApiOperation({ summary: 'Get auction by ID' })
+  @ApiOperation({
+    summary: 'Get auction by ID',
+    description:
+      'Auction detail. Product detail page can use GET /products/:productId instead; response includes activeAuction with id for linking to bids.',
+  })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
   @ApiQuery({
     name: 'incrementViews',
     required: false,
@@ -140,7 +152,11 @@ export class AuctionController {
   @UseGuards(JwtAuthGuard)
   @UsePipes(new SanitizePipe())
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update auction' })
+  @ApiOperation({
+    summary: 'Update auction',
+    description: 'Only owner or admin.',
+  })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
@@ -165,7 +181,11 @@ export class AuctionController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete auction' })
+  @ApiOperation({
+    summary: 'Delete auction',
+    description: 'Only owner or admin.',
+  })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({ status: 204, description: 'Auction deleted' })
   async remove(

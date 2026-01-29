@@ -53,9 +53,47 @@ export const setupSwagger = (app: INestApplication): void => {
 
   const config = new DocumentBuilder()
     .setTitle('Second Bloom API')
-    .setDescription('Flower Marketplace API Documentation')
     .setVersion('1.0.0')
-    .addBearerAuth()
+    .addServer('http://localhost:3000', 'Local development')
+    .setDescription(
+      `REST API for the Second Bloom flower marketplace.
+
+## Base URL
+All endpoints (except \`/health\`) are prefixed with **\`/api/v1\`**.  
+Example: \`GET /api/v1/products\`, \`POST /api/v1/auth/otp\`.
+
+## Authentication
+- **Public endpoints** (e.g. \`POST /auth/otp\`, \`POST /auth/verify\`, \`GET /products\`) do not require a token.
+- **Protected endpoints** require a JWT in the header: \`Authorization: Bearer <access_token>\`.
+- Obtain tokens via \`POST /auth/otp\` → \`POST /auth/verify\` (or \`POST /auth/refresh\` to refresh).
+
+## Frontend integration
+- Use **\`POST /auth/otp\`** with phone (e.g. \`+998901234567\`) then **\`POST /auth/verify\`** with \`phone\` + \`code\` to get \`accessToken\` and \`refreshToken\`.
+- Store tokens and send \`Authorization: Bearer <accessToken>\` on every protected request.
+- On 401, call **\`POST /auth/refresh\`** with \`refreshToken\` to get a new token pair.
+- **Product detail page**: \`GET /products/:id\` returns product with \`activeAuction\` (id, endTime, status, currentPrice, totalBids) when the product has an active auction. Use \`GET /bids/auction/:auctionId\` for the bids list.
+- **Create product with optional auction**: \`POST /products\` with \`createAuction: true\` and \`auction: { startPrice, endTime, ... }\` to create product and auction in one call.
+- Paginated list responses include \`data\` and \`meta.pagination\` (page, limit, total, totalPages).`,
+    )
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
+      'access-token',
+    )
+    .addTag('Authentication', 'Login, OTP, refresh token, logout')
+    .addTag('Users', 'Profile, FCM, phone change')
+    .addTag('Products', 'List, create, update, search products (bouquets)')
+    .addTag('Categories', 'Product categories and tree')
+    .addTag('Auctions', 'Auction list, detail, participants, leaderboard')
+    .addTag('Bids', 'Place bid, list bids by auction/user')
+    .addTag('Orders', 'Create and manage orders')
+    .addTag('Payments', 'Payment creation and webhooks')
+    .addTag('Chat', 'Conversations and messages')
+    .addTag('Notifications', 'Push and in-app notifications')
+    .addTag('Reviews', 'Product and user reviews')
+    .addTag('Seller', 'Seller dashboard and stats')
+    .addTag('File', 'Upload and manage files')
+    .addTag('Settings', 'App and publication settings')
+    .addTag('Health', 'Health check')
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {

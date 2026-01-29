@@ -28,6 +28,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 
@@ -41,11 +42,15 @@ export class ProductController {
   @UsePipes(new SanitizePipe())
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new product' })
+  @ApiOperation({
+    summary: 'Create a new product',
+    description:
+      'Create a product (bouquet). Optionally create an auction in the same call by setting createAuction: true and providing auction (startPrice, endTime, durationHours). When createAuction is true, price can be omitted and auction.startPrice is used.',
+  })
   @ApiCommonErrorResponses({ conflict: true })
   @ApiResponse({
     status: 201,
-    description: 'Product created successfully',
+    description: 'Product created successfully (with optional auction)',
     type: ProductResponseDto,
   })
   async create(
@@ -57,7 +62,11 @@ export class ProductController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Get all products (simple query)' })
+  @ApiOperation({
+    summary: 'Get all products',
+    description:
+      'Paginated list of products. Use query params for page, limit, categoryId, sort.',
+  })
   @ApiCommonErrorResponses({
     unauthorized: false,
     forbidden: false,
@@ -72,7 +81,11 @@ export class ProductController {
   @Post('search')
   @Public()
   @UsePipes(new SanitizePipe())
-  @ApiOperation({ summary: 'Search products with complex filters (POST)' })
+  @ApiOperation({
+    summary: 'Search products (POST)',
+    description:
+      'Search with filters: categories, price range, search text, pagination. Returns paginated results.',
+  })
   @ApiCommonErrorResponses({
     unauthorized: false,
     forbidden: false,
@@ -86,10 +99,15 @@ export class ProductController {
 
   @Get(':id')
   @Public()
-  @ApiOperation({ summary: 'Get product by ID' })
+  @ApiOperation({
+    summary: 'Get product by ID',
+    description:
+      'Product detail (for bouquet/auction detail page). Response includes activeAuction (id, endTime, status, currentPrice, totalBids) when the product has an active auction. Use GET /bids/auction/:auctionId for the bids list.',
+  })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiResponse({
     status: 200,
-    description: 'Product details',
+    description: 'Product details with optional activeAuction',
     type: ProductResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Product not found' })
@@ -104,7 +122,11 @@ export class ProductController {
   @UseGuards(JwtAuthGuard)
   @UsePipes(new SanitizePipe())
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update product' })
+  @ApiOperation({
+    summary: 'Update product',
+    description: 'Partial update. Only owner or admin.',
+  })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
@@ -129,7 +151,11 @@ export class ProductController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete product' })
+  @ApiOperation({
+    summary: 'Delete product',
+    description: 'Only owner or admin.',
+  })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({ status: 204, description: 'Product deleted' })
   async remove(

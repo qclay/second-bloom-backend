@@ -74,49 +74,95 @@ export class CreateProductDto {
   @IsNotEmpty()
   categoryId!: string;
 
+  @ApiPropertyOptional({
+    description: 'Tags for filtering/search',
+    example: ['roses', 'bouquet'],
+    maxItems: 10,
+  })
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(10)
   @IsOptional()
   tags?: string[];
 
+  @ApiPropertyOptional({
+    description: 'Product type',
+    enum: ProductType,
+    default: ProductType.FRESH,
+  })
   @IsEnum(ProductType)
   @IsOptional()
   type?: ProductType = ProductType.FRESH;
 
+  @ApiPropertyOptional({
+    description: 'Product condition',
+    enum: ProductCondition,
+  })
   @IsEnum(ProductCondition)
   @IsOptional()
   condition?: ProductCondition;
 
+  @ApiPropertyOptional({
+    description: 'Quantity',
+    example: 1,
+    minimum: 1,
+    default: 1,
+  })
   @IsNumber()
   @Type(() => Number)
   @Min(1)
   @IsOptional()
   quantity?: number = 1;
 
+  @ApiPropertyOptional({
+    description: 'Product status',
+    enum: ProductStatus,
+    default: ProductStatus.ACTIVE,
+  })
   @IsEnum(ProductStatus)
   @IsOptional()
   status?: ProductStatus = ProductStatus.ACTIVE;
 
+  @ApiPropertyOptional({
+    description: 'Feature on homepage',
+    example: false,
+    default: false,
+  })
   @IsBoolean()
   @IsOptional()
   isFeatured?: boolean = false;
 
+  @ApiPropertyOptional({
+    description: 'Region',
+    example: 'Tashkent',
+    maxLength: 100,
+  })
   @IsString()
   @IsOptional()
   @MaxLength(100)
   region?: string;
 
+  @ApiPropertyOptional({
+    description: 'City',
+    example: 'Tashkent',
+    maxLength: 100,
+  })
   @IsString()
   @IsOptional()
   @MaxLength(100)
   city?: string;
 
+  @ApiPropertyOptional({ description: 'District', maxLength: 100 })
   @IsString()
   @IsOptional()
   @MaxLength(100)
   district?: string;
 
+  @ApiPropertyOptional({
+    description: 'Uploaded file IDs for product images (order preserved)',
+    example: ['file-uuid-1', 'file-uuid-2'],
+    maxItems: 10,
+  })
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(10)

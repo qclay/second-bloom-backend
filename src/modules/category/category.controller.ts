@@ -55,7 +55,11 @@ export class CategoryController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Get all categories' })
+  @ApiOperation({
+    summary: 'Get all categories',
+    description:
+      'List of categories. Each category includes activeProductCount (number of active products).',
+  })
   @ApiCommonErrorResponses({
     unauthorized: false,
     forbidden: false,
@@ -69,7 +73,11 @@ export class CategoryController {
 
   @Get(':id')
   @Public()
-  @ApiOperation({ summary: 'Get category by ID' })
+  @ApiOperation({
+    summary: 'Get category by ID',
+    description:
+      'Category detail with activeProductCount. Use includeChildren=true for child categories.',
+  })
   @ApiResponse({
     status: 200,
     description: 'Category details',
