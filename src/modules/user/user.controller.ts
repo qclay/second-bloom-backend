@@ -32,6 +32,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -60,7 +61,10 @@ export class UserController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all users (Admin only)' })
   @ApiCommonErrorResponses({ notFound: false, conflict: false })
-  @ApiResponse({ status: 200, description: 'List of users' })
+  @ApiPaginatedResponse(
+    UserResponseDto,
+    'Paginated list of users (data + meta.pagination)',
+  )
   async findAll(@Query() query: UserQueryDto) {
     return this.userService.findAll(query);
   }
@@ -69,6 +73,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({
     status: 200,
     description: 'User profile',
@@ -84,6 +89,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update current user profile' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({
     status: 200,
     description: 'Profile updated',
@@ -118,6 +124,7 @@ export class UserController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update user (Admin only)' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
     description: 'User updated',
@@ -135,6 +142,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Register or update FCM token' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({
     status: 200,
     description: 'FCM token updated',
@@ -152,6 +160,7 @@ export class UserController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete current user profile' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({ status: 204, description: 'Profile deleted' })
   async deleteProfile(@CurrentUser() user: { id: string }): Promise<void> {
     return this.userService.deleteUser(user.id);
@@ -166,6 +175,7 @@ export class UserController {
     description:
       'Users can delete their own account. Admins can delete any user.',
   })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({ status: 204, description: 'User deleted' })
   async remove(@Param('id') id: string): Promise<void> {
     return this.userService.deleteUser(id);

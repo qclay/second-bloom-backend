@@ -123,6 +123,42 @@ model Category {
   @@map("categories")
 }
 
+model Condition {
+  id         String    @id @default(uuid())
+  name       String    @db.VarChar(100)
+  slug       String    @unique
+  createdById String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  isActive   Boolean   @default(true)
+  createdBy  User?     @relation("ConditionCreator", fields: [createdById], references: [id])
+  products   Product[]
+
+  @@index([slug])
+  @@index([createdById])
+  @@index([isActive, deletedAt])
+  @@map("conditions")
+}
+
+model Size {
+  id         String    @id @default(uuid())
+  name       String    @db.VarChar(100)
+  slug       String    @unique
+  createdById String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  isActive   Boolean   @default(true)
+  createdBy  User?     @relation("SizeCreator", fields: [createdById], references: [id])
+  products   Product[]
+
+  @@index([slug])
+  @@index([createdById])
+  @@index([isActive, deletedAt])
+  @@map("sizes")
+}
+
 model File {
   id                 String         @id @default(uuid())
   url                String         @unique
@@ -298,7 +334,8 @@ model Product {
   categoryId           String
   tags                 String[]
   type                 ProductType       @default(FRESH)
-  condition            ProductCondition?
+  conditionId          String?
+  sizeId               String?
   quantity             Int               @default(1)
   status               ProductStatus     @default(ACTIVE)
   isFeatured           Boolean           @default(false)
@@ -319,6 +356,8 @@ model Product {
   orders               Order[]
   images               ProductImage[]
   category             Category          @relation(fields: [categoryId], references: [id])
+  condition            Condition?        @relation(fields: [conditionId], references: [id])
+  size                 Size?             @relation(fields: [sizeId], references: [id])
   publicationPayment   Payment?          @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id])
   seller               User              @relation(fields: [sellerId], references: [id])
   reviews              Review[]
@@ -326,6 +365,8 @@ model Product {
   @@index([publicationPaymentId])
   @@index([sellerId])
   @@index([slug])
+  @@index([conditionId])
+  @@index([sizeId])
   @@index([isActive, deletedAt])
   @@index([status, deletedAt])
   @@index([status, type, categoryId])
@@ -431,6 +472,8 @@ model User {
   createdAuctions        Auction[]               @relation("AuctionCreator")
   wonAuctions            Auction[]               @relation("AuctionWinner")
   bids                   Bid[]
+  conditionsCreated      Condition[]             @relation("ConditionCreator")
+  sizesCreated           Size[]                  @relation("SizeCreator")
   conversationsAsBuyer   Conversation[]          @relation("ConversationBuyer")
   conversationsAsSeller  Conversation[]          @relation("ConversationSeller")
   favorites              Favorite[]
@@ -650,14 +693,6 @@ enum PaymentStatus {
   FAILED
   PENDING
   PROCESSING
-}
-
-enum ProductCondition {
-  EXCELLENT
-  FAIR
-  GOOD
-  LIKE_NEW
-  NEW
 }
 
 enum ProductStatus {

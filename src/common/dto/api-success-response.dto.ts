@@ -27,7 +27,8 @@ export class ApiSuccessResponseDto<T = unknown> {
   message?: string;
 
   @ApiProperty({
-    description: 'The response payload data',
+    description:
+      'The response payload: array of items for list/paginated endpoints, or single object for get-by-id. Never null for list endpoints.',
     nullable: true,
     example: null,
   })

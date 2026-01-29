@@ -29,8 +29,52 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
+
+const PRODUCT_LIST_EXAMPLE: ProductResponseDto[] = [
+  {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    title: 'Red Roses Bouquet',
+    slug: 'red-roses-bouquet',
+    description: 'Beautiful fresh red roses bouquet. 12 stems.',
+    price: 150000,
+    currency: 'UZS',
+    categoryId: '550e8400-e29b-41d4-a716-446655440010',
+    tags: ['roses', 'bouquet', 'romantic'],
+    type: 'FRESH',
+    condition: {
+      id: '550e8400-e29b-41d4-a716-446655440020',
+      name: 'New',
+      slug: 'new',
+    },
+    quantity: 10,
+    status: 'ACTIVE',
+    isFeatured: true,
+    views: 45,
+    region: 'Tashkent',
+    city: 'Tashkent',
+    district: 'Mirobod',
+    sellerId: '550e8400-e29b-41d4-a716-446655440030',
+    createdAt: new Date('2026-01-04T17:15:29.000Z'),
+    updatedAt: new Date('2026-01-04T17:15:29.000Z'),
+    deletedAt: null,
+    category: {
+      id: '550e8400-e29b-41d4-a716-446655440010',
+      name: 'Roses',
+      slug: 'roses',
+    },
+    seller: {
+      id: '550e8400-e29b-41d4-a716-446655440030',
+      firstName: 'Ali',
+      lastName: 'Karimov',
+      phoneNumber: '+998901234569',
+    },
+  } as ProductResponseDto,
+];
 
 @ApiTags('Products')
 @Controller('products')
@@ -43,15 +87,20 @@ export class ProductController {
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Create a new product',
+    summary: 'Create product',
     description:
-      'Create a product (bouquet). Optionally create an auction in the same call by setting createAuction: true and providing auction (startPrice, endTime, durationHours). When createAuction is true, price can be omitted and auction.startPrice is used.',
+      'Create a flower/bouquet listing. Fixed price: send price. With auction: set createAuction: true and auction (startPrice, endTime). Use categoryId from GET /categories; optional conditionId, sizeId from GET /conditions, GET /sizes.',
   })
   @ApiCommonErrorResponses({ conflict: true })
   @ApiResponse({
     status: 201,
-    description: 'Product created successfully (with optional auction)',
+    description: 'Product created.',
     type: ProductResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error.',
+    type: ApiErrorResponseDto,
   })
   async create(
     @Body() createProductDto: CreateProductDto,
@@ -63,9 +112,9 @@ export class ProductController {
   @Get()
   @Public()
   @ApiOperation({
-    summary: 'Get all products',
+    summary: 'List products',
     description:
-      'Paginated list of products. Use query params for page, limit, categoryId, sort.',
+      'Paginated list of active products. Query: page, limit, categoryId, sellerId, conditionId, sizeId, region, city, minPrice, maxPrice, sortBy, sortOrder.',
   })
   @ApiCommonErrorResponses({
     unauthorized: false,
@@ -73,7 +122,12 @@ export class ProductController {
     notFound: false,
     conflict: false,
   })
-  @ApiResponse({ status: 200, description: 'List of products' })
+  @ApiPaginatedResponse(
+    ProductResponseDto,
+    'Paginated list of products (data + meta.pagination)',
+    200,
+    PRODUCT_LIST_EXAMPLE,
+  )
   async findAll(@Query() query: ProductQueryDto) {
     return this.productService.findAll(query);
   }
@@ -84,7 +138,7 @@ export class ProductController {
   @ApiOperation({
     summary: 'Search products (POST)',
     description:
-      'Search with filters: categories, price range, search text, pagination. Returns paginated results.',
+      'Search with filters in body: search, categoryIds, conditionIds, sizeIds, minPrice, maxPrice, page, limit.',
   })
   @ApiCommonErrorResponses({
     unauthorized: false,
@@ -92,7 +146,12 @@ export class ProductController {
     notFound: false,
     conflict: false,
   })
-  @ApiResponse({ status: 200, description: 'Search results' })
+  @ApiPaginatedResponse(
+    ProductResponseDto,
+    'Paginated search results (data + meta.pagination)',
+    200,
+    PRODUCT_LIST_EXAMPLE,
+  )
   async search(@Body() searchDto: ProductSearchDto) {
     return this.productService.searchProducts(searchDto);
   }
@@ -102,15 +161,25 @@ export class ProductController {
   @ApiOperation({
     summary: 'Get product by ID',
     description:
-      'Product detail (for bouquet/auction detail page). Response includes activeAuction (id, endTime, status, currentPrice, totalBids) when the product has an active auction. Use GET /bids/auction/:auctionId for the bids list.',
+      'Product detail. Includes category, condition, size, seller, images; activeAuction when product has an active auction. Use activeAuction.id for GET /bids/auction/:auctionId.',
   })
   @ApiParam({ name: 'id', description: 'Product UUID' })
+  @ApiQuery({
+    name: 'incrementViews',
+    required: false,
+    type: String,
+    description: '"true" to increment view count',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Product details with optional activeAuction',
+    description: 'Product with relations and activeAuction.',
     type: ProductResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Product not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Not found.',
+    type: ApiErrorResponseDto,
+  })
   async findOne(
     @Param('id') id: string,
     @Query('incrementViews') incrementViews?: string,
@@ -124,14 +193,20 @@ export class ProductController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update product',
-    description: 'Partial update. Only owner or admin.',
+    description:
+      'Partial update. Owner or admin only. Send only fields to change.',
   })
   @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
-    description: 'Product updated',
+    description: 'Updated product.',
     type: ProductResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden.',
+    type: ApiErrorResponseDto,
   })
   async update(
     @Param('id') id: string,
@@ -153,11 +228,16 @@ export class ProductController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Delete product',
-    description: 'Only owner or admin.',
+    description: 'Soft delete. Owner or admin only.',
   })
   @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiCommonErrorResponses({ conflict: false })
-  @ApiResponse({ status: 204, description: 'Product deleted' })
+  @ApiResponse({ status: 204, description: 'Deleted.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden.',
+    type: ApiErrorResponseDto,
+  })
   async remove(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,

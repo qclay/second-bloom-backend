@@ -22,16 +22,12 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { SanitizePipe } from '../../common/pipes/sanitize.pipe';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import {
   ApiSuccessResponse,
   ApiPaginatedResponse,
 } from '../../common/decorators/api-success-responses.decorator';
+import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -44,6 +40,7 @@ export class NotificationController {
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new notification (Admin only)' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiSuccessResponse(
     201,
     'Notification created successfully',
@@ -63,6 +60,7 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all notifications' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiPaginatedResponse(NotificationResponseDto, 'List of notifications')
   async findAll(
     @Query() query: NotificationQueryDto,
@@ -80,11 +78,8 @@ export class NotificationController {
     description:
       'Returns the count of unread notifications for the current user. Useful for displaying badge counts in the UI.',
   })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiSuccessResponse(200, 'Unread notification count retrieved successfully')
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-  })
   async getUnreadCount(@CurrentUser('id') userId: string) {
     const count = await this.notificationService.getUnreadCount(userId);
     return { count };
@@ -94,6 +89,7 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get notification by ID' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiSuccessResponse(200, 'Notification details', NotificationResponseDto)
   async findOne(
     @Param('id') id: string,
@@ -108,6 +104,7 @@ export class NotificationController {
   @UsePipes(new SanitizePipe())
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update notification' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiSuccessResponse(200, 'Notification updated', NotificationResponseDto)
   async update(
     @Param('id') id: string,
@@ -128,6 +125,7 @@ export class NotificationController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Mark notification as read' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiSuccessResponse(204, 'Notification marked as read')
   async markAsRead(
     @Param('id') id: string,
@@ -142,6 +140,7 @@ export class NotificationController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Mark all notifications as read' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiSuccessResponse(200, 'All notifications marked as read')
   async markAllAsRead(@CurrentUser('id') userId: string) {
     const count = await this.notificationService.markAllAsRead(userId);
@@ -153,6 +152,7 @@ export class NotificationController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete notification' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiSuccessResponse(204, 'Notification deleted')
   async remove(
     @Param('id') id: string,

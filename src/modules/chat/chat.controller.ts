@@ -29,6 +29,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 
 @ApiTags('Chat')
 @Controller('chat')
@@ -70,12 +72,17 @@ export class ChatController {
 
   @Get('conversations/:id')
   @ApiOperation({ summary: 'Get conversation by ID' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
     description: 'Conversation details',
     type: ConversationResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Conversation not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Conversation not found',
+    type: ApiErrorResponseDto,
+  })
   async getConversationById(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
@@ -106,10 +113,11 @@ export class ChatController {
 
   @Get('conversations/:conversationId/messages')
   @ApiOperation({ summary: 'Get messages in a conversation' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of messages',
-  })
+  @ApiCommonErrorResponses({ notFound: false, conflict: false })
+  @ApiPaginatedResponse(
+    MessageResponseDto,
+    'Paginated list of messages (data + meta.pagination)',
+  )
   async getMessages(
     @Param('conversationId') conversationId: string,
     @Query() query: MessageQueryDto,
@@ -120,6 +128,7 @@ export class ChatController {
 
   @Get('conversations/:conversationId/unread-count')
   @ApiOperation({ summary: 'Get unread message count for a conversation' })
+  @ApiCommonErrorResponses({ notFound: false, conflict: false })
   @ApiResponse({
     status: 200,
     description: 'Unread message count',
@@ -135,6 +144,7 @@ export class ChatController {
   @ApiOperation({
     summary: 'Get total unread message count across all conversations',
   })
+  @ApiCommonErrorResponses({ notFound: false, conflict: false })
   @ApiResponse({
     status: 200,
     description: 'Total unread message count',
@@ -147,6 +157,7 @@ export class ChatController {
 
   @Get('statistics')
   @ApiOperation({ summary: 'Get chat statistics for current user' })
+  @ApiCommonErrorResponses({ notFound: false, conflict: false })
   @ApiResponse({
     status: 200,
     description: 'Chat statistics',

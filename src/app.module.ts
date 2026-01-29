@@ -11,6 +11,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { FileModule } from './modules/file/file.module';
 import { CategoryModule } from './modules/category/category.module';
+import { ConditionModule } from './modules/condition/condition.module';
+import { SizeModule } from './modules/size/size.module';
 import { ProductModule } from './modules/product/product.module';
 import { AuctionModule } from './modules/auction/auction.module';
 import { BidModule } from './modules/bid/bid.module';
@@ -54,6 +56,8 @@ import { ThrottlerPerUserGuard } from './common/guards/throttler-per-user.guard'
     UserModule,
     FileModule,
     CategoryModule,
+    ConditionModule,
+    SizeModule,
     ProductModule,
     AuctionModule,
     BidModule,

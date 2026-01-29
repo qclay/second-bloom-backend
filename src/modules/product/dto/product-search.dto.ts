@@ -162,6 +162,44 @@ export class ProductSearchDto {
   district?: string;
 
   @ApiProperty({
+    description: 'Filter by condition ID (from GET /conditions)',
+    example: 'condition-uuid',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  conditionId?: string;
+
+  @ApiProperty({
+    description: 'Filter by multiple condition IDs',
+    example: ['condition-uuid-1', 'condition-uuid-2'],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  conditionIds?: string[];
+
+  @ApiProperty({
+    description: 'Filter by size ID (from GET /sizes)',
+    example: 'size-uuid',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  sizeId?: string;
+
+  @ApiProperty({
+    description: 'Filter by multiple size IDs',
+    example: ['size-uuid-1', 'size-uuid-2'],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  sizeIds?: string[];
+
+  @ApiProperty({
     description: 'Minimum price filter',
     example: 100000,
     minimum: 0,

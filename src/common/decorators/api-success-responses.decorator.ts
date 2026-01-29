@@ -19,30 +19,33 @@ export function ApiSuccessResponse(
     description || defaultDescriptions[status] || 'Request successful';
 
   if (isPaginated && dataType) {
-    return ApiResponse({
-      status,
-      description: responseDescription,
-      schema: {
-        allOf: [
-          { $ref: getSchemaPath(ApiSuccessResponseDto) },
-          {
-            properties: {
-              data: {
-                type: 'array',
-                items: { $ref: getSchemaPath(dataType) },
-              },
-              meta: {
-                type: 'object',
-                properties: {
-                  pagination: {
-                    $ref: getSchemaPath(PaginationMetaDto),
-                  },
+    const schema: object = {
+      allOf: [
+        { $ref: getSchemaPath(ApiSuccessResponseDto) },
+        {
+          properties: {
+            data: {
+              type: 'array',
+              items: { $ref: getSchemaPath(dataType) },
+              description: 'List of items for this page',
+            },
+            meta: {
+              type: 'object',
+              required: ['pagination'],
+              properties: {
+                pagination: {
+                  $ref: getSchemaPath(PaginationMetaDto),
                 },
               },
             },
           },
-        ],
-      },
+        },
+      ],
+    };
+    return ApiResponse({
+      status,
+      description: responseDescription,
+      schema,
     });
   }
 
@@ -79,6 +82,38 @@ export function ApiPaginatedResponse(
   dataType: Type<unknown>,
   description?: string,
   status: number = 200,
+  exampleItems?: unknown[],
 ) {
-  return ApiSuccessResponse(status, description, dataType, true);
+  const decorator = ApiSuccessResponse(status, description, dataType, true);
+  if (!exampleItems || exampleItems.length === 0) {
+    return decorator;
+  }
+  return ApiResponse({
+    status,
+    description: description || 'Request successful',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiSuccessResponseDto) },
+        {
+          properties: {
+            data: {
+              type: 'array',
+              items: { $ref: getSchemaPath(dataType) },
+              description: 'List of items for this page',
+              example: exampleItems,
+            },
+            meta: {
+              type: 'object',
+              required: ['pagination'],
+              properties: {
+                pagination: {
+                  $ref: getSchemaPath(PaginationMetaDto),
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  });
 }

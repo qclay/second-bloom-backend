@@ -82,12 +82,7 @@ async function bootstrap() {
   });
 
   const apiVersion = configService.get<string>('API_VERSION', 'v1');
-  app.setGlobalPrefix(`api/${apiVersion}`, {
-    exclude: [
-      { path: 'health', method: require('@nestjs/common').RequestMethod.GET },
-      { path: 'health/(.*)', method: require('@nestjs/common').RequestMethod.GET },
-    ],
-  });
+  app.setGlobalPrefix(`api/${apiVersion}`);
 
   setupSwagger(app);
 

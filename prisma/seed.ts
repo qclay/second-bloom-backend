@@ -10,7 +10,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Clear existing data (optional - comment out if you want to keep existing data)
   console.log('🧹 Cleaning existing data...');
   await prisma.bid.deleteMany();
   await prisma.auction.deleteMany();
@@ -19,12 +18,13 @@ async function main() {
   await prisma.favorite.deleteMany();
   await prisma.productImage.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.condition.deleteMany();
+  await prisma.size.deleteMany();
   await prisma.category.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.verificationCode.deleteMany();
   await prisma.user.deleteMany();
 
-  // Seed Users
   console.log('👥 Seeding users...');
   const admin = await prisma.user.create({
     data: {
@@ -171,7 +171,6 @@ async function main() {
   const allUsers = [admin, moderator, ...sellers, ...buyers];
   console.log(`✅ Created ${allUsers.length} users`);
 
-  // Seed Categories
   console.log('📁 Seeding categories...');
   const flowersCategory = await prisma.category.create({
     data: {
@@ -251,10 +250,22 @@ async function main() {
   ];
   console.log(`✅ Created ${categories.length} categories`);
 
-  // Seed Products
+  console.log('📋 Seeding conditions...');
+  const [conditionNew, conditionExcellent, conditionGood] = await Promise.all([
+    prisma.condition.create({
+      data: { name: 'New', slug: 'new' },
+    }),
+    prisma.condition.create({
+      data: { name: 'Excellent', slug: 'excellent' },
+    }),
+    prisma.condition.create({
+      data: { name: 'Good', slug: 'good' },
+    }),
+  ]);
+  console.log('✅ Created 3 conditions');
+
   console.log('🌹 Seeding products...');
   const products = await Promise.all([
-    // Seller 1 products
     prisma.product.create({
       data: {
         title: 'Red Roses Bouquet',
@@ -266,7 +277,7 @@ async function main() {
         categoryId: rosesCategory.id,
         tags: ['roses', 'bouquet', 'romantic', 'red'],
         type: 'FRESH',
-        condition: 'NEW',
+        conditionId: conditionNew.id,
         quantity: 10,
         status: 'ACTIVE',
         isFeatured: true,
@@ -288,7 +299,7 @@ async function main() {
         categoryId: tulipsCategory.id,
         tags: ['tulips', 'white', 'wedding', 'fresh'],
         type: 'FRESH',
-        condition: 'NEW',
+        conditionId: conditionNew.id,
         quantity: 15,
         status: 'ACTIVE',
         isFeatured: false,
@@ -310,7 +321,7 @@ async function main() {
         categoryId: bouquetsCategory.id,
         tags: ['bouquet', 'mixed', 'colorful', 'gift'],
         type: 'FRESH',
-        condition: 'NEW',
+        conditionId: conditionNew.id,
         quantity: 8,
         status: 'ACTIVE',
         isFeatured: true,
@@ -321,8 +332,6 @@ async function main() {
         sellerId: sellers[0].id,
       },
     }),
-
-    // Seller 2 products
     prisma.product.create({
       data: {
         title: 'Pink Orchids',
@@ -334,7 +343,7 @@ async function main() {
         categoryId: orchidsCategory.id,
         tags: ['orchids', 'pink', 'pot', 'decoration'],
         type: 'FRESH',
-        condition: 'EXCELLENT',
+        conditionId: conditionExcellent.id,
         quantity: 5,
         status: 'ACTIVE',
         isFeatured: false,
@@ -356,7 +365,7 @@ async function main() {
         categoryId: rosesCategory.id,
         tags: ['roses', 'yellow', 'friendship', 'joy'],
         type: 'FRESH',
-        condition: 'NEW',
+        conditionId: conditionNew.id,
         quantity: 12,
         status: 'ACTIVE',
         isFeatured: false,
@@ -367,8 +376,6 @@ async function main() {
         sellerId: sellers[1].id,
       },
     }),
-
-    // Seller 3 products
     prisma.product.create({
       data: {
         title: 'Wedding Flower Arrangement',
@@ -380,7 +387,7 @@ async function main() {
         categoryId: bouquetsCategory.id,
         tags: ['wedding', 'arrangement', 'white', 'elegant'],
         type: 'FRESH',
-        condition: 'NEW',
+        conditionId: conditionNew.id,
         quantity: 3,
         status: 'ACTIVE',
         isFeatured: true,
@@ -401,7 +408,7 @@ async function main() {
         categoryId: tulipsCategory.id,
         tags: ['tulips', 'purple', 'rare', 'elegant'],
         type: 'FRESH',
-        condition: 'NEW',
+        conditionId: conditionNew.id,
         quantity: 7,
         status: 'ACTIVE',
         isFeatured: false,
@@ -423,7 +430,7 @@ async function main() {
         categoryId: plantsCategory.id,
         tags: ['plants', 'indoor', 'collection', 'decorative'],
         type: 'RESALE',
-        condition: 'GOOD',
+        conditionId: conditionGood.id,
         quantity: 4,
         status: 'ACTIVE',
         isFeatured: false,
@@ -438,7 +445,6 @@ async function main() {
 
   console.log(`✅ Created ${products.length} products`);
 
-  // Seed Orders
   console.log('📦 Seeding orders...');
   const orders = await Promise.all([
     prisma.order.create({
@@ -451,7 +457,7 @@ async function main() {
         paymentStatus: 'COMPLETED',
         shippingAddress: 'Yakkasaroy district, Amir Temur street, 45',
         notes: 'Please deliver in the morning',
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.order.create({
@@ -463,8 +469,8 @@ async function main() {
         status: 'SHIPPED',
         paymentStatus: 'COMPLETED',
         shippingAddress: 'Olmazor district, Navoi street, 12',
-        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-        shippedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        shippedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.order.create({
@@ -476,14 +482,13 @@ async function main() {
         status: 'PENDING',
         paymentStatus: 'PENDING',
         shippingAddress: 'Yakkasaroy district, Bunyodkor avenue, 78',
-        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       },
     }),
   ]);
 
   console.log(`✅ Created ${orders.length} orders`);
 
-  // Seed Auctions
   console.log('🔨 Seeding auctions...');
   const auctions = await Promise.all([
     prisma.auction.create({
@@ -494,8 +499,8 @@ async function main() {
         currentPrice: 100000,
         bidIncrement: 5000,
         minBidAmount: 5000,
-        startTime: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        endTime: new Date(Date.now() + 22 * 60 * 60 * 1000), // 22 hours from now
+        startTime: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        endTime: new Date(Date.now() + 22 * 60 * 60 * 1000),
         durationHours: 24,
         status: 'ACTIVE',
         autoExtend: true,
@@ -512,15 +517,15 @@ async function main() {
         currentPrice: 135000,
         bidIncrement: 10000,
         minBidAmount: 10000,
-        startTime: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-        endTime: new Date(Date.now() + 19 * 60 * 60 * 1000), // 19 hours from now
+        startTime: new Date(Date.now() - 5 * 60 * 60 * 1000),
+        endTime: new Date(Date.now() + 19 * 60 * 60 * 1000),
         durationHours: 24,
         status: 'ACTIVE',
         autoExtend: true,
         extendMinutes: 5,
         views: 45,
         totalBids: 2,
-        lastBidAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        lastBidAt: new Date(Date.now() - 30 * 60 * 1000),
       },
     }),
     prisma.auction.create({
@@ -531,8 +536,8 @@ async function main() {
         currentPrice: 200000,
         bidIncrement: 15000,
         minBidAmount: 15000,
-        startTime: new Date(Date.now() - 48 * 60 * 60 * 1000), // 2 days ago
-        endTime: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago (ended)
+        startTime: new Date(Date.now() - 48 * 60 * 60 * 1000),
+        endTime: new Date(Date.now() - 24 * 60 * 60 * 1000),
         durationHours: 24,
         status: 'ENDED',
         autoExtend: false,
@@ -544,7 +549,6 @@ async function main() {
 
   console.log(`✅ Created ${auctions.length} auctions`);
 
-  // Seed Bids
   console.log('💰 Seeding bids...');
   const bids = await Promise.all([
     prisma.bid.create({
@@ -553,7 +557,7 @@ async function main() {
         bidderId: buyers[0].id,
         amount: 125000,
         isWinning: false,
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
       },
     }),
     prisma.bid.create({
@@ -562,12 +566,11 @@ async function main() {
         bidderId: buyers[1].id,
         amount: 135000,
         isWinning: true,
-        createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        createdAt: new Date(Date.now() - 30 * 60 * 1000),
       },
     }),
   ]);
 
-  // Update auction with winner
   await prisma.auction.update({
     where: { id: auctions[1].id },
     data: { winnerId: buyers[1].id },
@@ -575,7 +578,6 @@ async function main() {
 
   console.log(`✅ Created ${bids.length} bids`);
 
-  // Seed Reviews
   console.log('⭐ Seeding reviews...');
   const reviews = await Promise.all([
     prisma.review.create({
@@ -589,7 +591,7 @@ async function main() {
           'Excellent quality roses! Very fresh and beautiful. Highly recommended!',
         isVerified: true,
         helpfulCount: 3,
-        createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
+        createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.review.create({
@@ -602,14 +604,13 @@ async function main() {
         comment: 'Good quality orchids, arrived in perfect condition.',
         isVerified: true,
         helpfulCount: 1,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       },
     }),
   ]);
 
   console.log(`✅ Created ${reviews.length} reviews`);
 
-  // Seed Favorites
   console.log('❤️ Seeding favorites...');
   const favorites = await Promise.all([
     prisma.favorite.create({
@@ -640,7 +641,6 @@ async function main() {
 
   console.log(`✅ Created ${favorites.length} favorites`);
 
-  // Seed Notifications
   console.log('🔔 Seeding notifications...');
   const notifications = await Promise.all([
     prisma.notification.create({

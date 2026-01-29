@@ -12,8 +12,7 @@ export class UserResponseDto {
   phoneNumber!: string;
 
   @ApiProperty({
-    description:
-      'Country calling code (e.g. +998, +1, +44)',
+    description: 'Country calling code (e.g. +998, +1, +44)',
     example: '+998',
     required: false,
     nullable: true,
@@ -91,7 +90,7 @@ export class UserResponseDto {
       countryCode:
         user.phoneCountryCode ??
         (typeof user.phoneNumber === 'string'
-          ? user.phoneNumber.match(/^\+(\d{1,3})/)?.[0] ?? null
+          ? (user.phoneNumber.match(/^\+(\d{1,3})/)?.[0] ?? null)
           : null),
       username: user.username,
       firstName: user.firstName,

@@ -29,6 +29,8 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 
 @ApiTags('Files')
 @Controller('files')
@@ -49,6 +51,7 @@ export class FileController {
     FileValidationInterceptor,
   )
   @ApiOperation({ summary: 'Upload a file' })
+  @ApiCommonErrorResponses({ notFound: false, conflict: false })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -78,7 +81,10 @@ export class FileController {
   @Get()
   @ApiOperation({ summary: 'Get all files' })
   @ApiCommonErrorResponses({ notFound: false, conflict: false })
-  @ApiResponse({ status: 200, description: 'List of files' })
+  @ApiPaginatedResponse(
+    FileResponseDto,
+    'Paginated list of files (data + meta.pagination)',
+  )
   async findAll(
     @Query() query: FileQueryDto,
     @CurrentUser() user?: { id: string },
@@ -88,12 +94,17 @@ export class FileController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get file by ID' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
     description: 'File details',
     type: FileResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'File not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+    type: ApiErrorResponseDto,
+  })
   async findOne(
     @Param('id') id: string,
     @CurrentUser() user?: { id: string },
@@ -121,13 +132,16 @@ export class FileController {
       },
     },
   })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 403,
     description: 'Access denied to this file',
+    type: ApiErrorResponseDto,
   })
   @ApiResponse({
     status: 404,
     description: 'File not found',
+    type: ApiErrorResponseDto,
   })
   async getSignedUrl(
     @Param('id') id: string,

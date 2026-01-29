@@ -3,6 +3,7 @@ import { ModuleRef } from '@nestjs/core';
 import { Public } from '../common/decorators/public.decorator';
 import { HealthService } from './health.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiErrorResponseDto } from '../common/dto/api-error-response.dto';
 import { ChatGateway } from '../modules/chat/gateways/chat.gateway';
 import { AuctionGateway } from '../modules/auction/gateways/auction.gateway';
 import { WebSocketMetricsService } from '../common/services/websocket-metrics.service';
@@ -42,7 +43,11 @@ export class HealthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Readiness probe - can app serve requests?' })
   @ApiResponse({ status: 200, description: 'Service is ready' })
-  @ApiResponse({ status: 503, description: 'Service is not ready' })
+  @ApiResponse({
+    status: 503,
+    description: 'Service is not ready',
+    type: ApiErrorResponseDto,
+  })
   async readiness() {
     const health = await this.healthService.checkHealth();
     if (health.status === 'ok') {

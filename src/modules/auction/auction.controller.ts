@@ -32,6 +32,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 
 @ApiTags('Auctions')
 @Controller('auctions')
@@ -51,7 +53,10 @@ export class AuctionController {
     notFound: false,
     conflict: false,
   })
-  @ApiResponse({ status: 200, description: 'List of auctions' })
+  @ApiPaginatedResponse(
+    AuctionResponseDto,
+    'Paginated list of auctions (data + meta.pagination)',
+  )
   async findAll(@Query() query: AuctionQueryDto) {
     return await this.auctionService.findAll(query);
   }
@@ -69,7 +74,11 @@ export class AuctionController {
     description: 'List of participants with bid statistics',
     type: ParticipantsResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Auction not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Auction not found',
+    type: ApiErrorResponseDto,
+  })
   async getParticipants(
     @Param('id') id: string,
   ): Promise<ParticipantsResponseDto> {
@@ -89,7 +98,11 @@ export class AuctionController {
     description: 'Top 3 winners ranked by bid amount',
     type: WinnersResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Auction not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Auction not found',
+    type: ApiErrorResponseDto,
+  })
   async getWinners(@Param('id') id: string): Promise<WinnersResponseDto> {
     return await this.auctionService.getWinners(id);
   }
@@ -112,7 +125,11 @@ export class AuctionController {
     description: 'Leaderboard of all bidders ranked by bid amount',
     type: LeaderboardResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Auction not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Auction not found',
+    type: ApiErrorResponseDto,
+  })
   async getLeaderboard(
     @Param('id') id: string,
     @Query('limit') limit?: string,
@@ -140,7 +157,11 @@ export class AuctionController {
     description: 'Auction details',
     type: AuctionResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Auction not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Auction not found',
+    type: ApiErrorResponseDto,
+  })
   async findOne(
     @Param('id') id: string,
     @Query('incrementViews') incrementViews?: string,

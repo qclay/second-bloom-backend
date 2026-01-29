@@ -76,6 +76,31 @@ export class ProductService {
       throw new NotFoundException('Category not found or inactive');
     }
 
+    if (dto.conditionId) {
+      const condition = await this.prisma.condition.findFirst({
+        where: {
+          id: dto.conditionId,
+          deletedAt: null,
+          isActive: true,
+        },
+      });
+      if (!condition) {
+        throw new NotFoundException('Condition not found or inactive');
+      }
+    }
+    if (dto.sizeId) {
+      const size = await this.prisma.size.findFirst({
+        where: {
+          id: dto.sizeId,
+          deletedAt: null,
+          isActive: true,
+        },
+      });
+      if (!size) {
+        throw new NotFoundException('Size not found or inactive');
+      }
+    }
+
     const effectivePrice =
       dto.createAuction === true
         ? (dto.auction?.startPrice ?? dto.price ?? 0)
@@ -116,7 +141,10 @@ export class ProductService {
             },
             tags: dto.tags ?? [],
             type: dto.type ?? 'FRESH',
-            condition: dto.condition,
+            condition: dto.conditionId
+              ? { connect: { id: dto.conditionId } }
+              : undefined,
+            size: dto.sizeId ? { connect: { id: dto.sizeId } } : undefined,
             quantity: dto.quantity ?? 1,
             status: dto.status ?? ProductStatus.ACTIVE,
             isFeatured: dto.isFeatured ?? false,
@@ -232,6 +260,13 @@ export class ProductService {
       where.city = city;
     }
 
+    if (query.conditionId) {
+      where.conditionId = query.conditionId;
+    }
+    if (query.sizeId) {
+      where.sizeId = query.sizeId;
+    }
+
     if (minPrice !== undefined || maxPrice !== undefined) {
       if (
         minPrice !== undefined &&
@@ -262,7 +297,12 @@ export class ProductService {
       orderBy.createdAt = 'desc';
     }
 
-    const shouldCache = !search && page === 1 && maxLimit <= 50;
+    const shouldCache =
+      !search &&
+      page === 1 &&
+      maxLimit <= 50 &&
+      !query.conditionId &&
+      !query.sizeId;
     const cacheKey = shouldCache
       ? this.cacheService.generateListKey(this.CACHE_PREFIX, {
           page,
@@ -306,6 +346,20 @@ export class ProductService {
         orderBy,
         include: {
           category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          condition: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          size: {
             select: {
               id: true,
               name: true,
@@ -374,6 +428,10 @@ export class ProductService {
       city,
       cities,
       district,
+      conditionId,
+      conditionIds,
+      sizeId,
+      sizeIds,
       minPrice,
       maxPrice,
       tags,
@@ -440,6 +498,18 @@ export class ProductService {
       where.district = district;
     }
 
+    if (conditionId) {
+      where.conditionId = conditionId;
+    } else if (conditionIds && conditionIds.length > 0) {
+      where.conditionId = { in: conditionIds };
+    }
+
+    if (sizeId) {
+      where.sizeId = sizeId;
+    } else if (sizeIds && sizeIds.length > 0) {
+      where.sizeId = { in: sizeIds };
+    }
+
     if (tags && tags.length > 0) {
       where.tags = { hasSome: tags };
     }
@@ -490,6 +560,20 @@ export class ProductService {
               slug: true,
             },
           },
+          condition: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          size: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
           seller: {
             select: {
               id: true,
@@ -534,6 +618,20 @@ export class ProductService {
       where: { id },
       include: {
         category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        condition: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        size: {
           select: {
             id: true,
             name: true,
@@ -682,8 +780,39 @@ export class ProductService {
     if (dto.type !== undefined) {
       updateData.type = dto.type;
     }
-    if (dto.condition !== undefined) {
-      updateData.condition = dto.condition;
+    if (dto.conditionId !== undefined) {
+      if (dto.conditionId) {
+        const condition = await this.prisma.condition.findFirst({
+          where: {
+            id: dto.conditionId,
+            deletedAt: null,
+            isActive: true,
+          },
+        });
+        if (!condition) {
+          throw new NotFoundException('Condition not found or inactive');
+        }
+      }
+      updateData.condition = dto.conditionId
+        ? { connect: { id: dto.conditionId } }
+        : { disconnect: true };
+    }
+    if (dto.sizeId !== undefined) {
+      if (dto.sizeId) {
+        const size = await this.prisma.size.findFirst({
+          where: {
+            id: dto.sizeId,
+            deletedAt: null,
+            isActive: true,
+          },
+        });
+        if (!size) {
+          throw new NotFoundException('Size not found or inactive');
+        }
+      }
+      updateData.size = dto.sizeId
+        ? { connect: { id: dto.sizeId } }
+        : { disconnect: true };
     }
     if (dto.quantity !== undefined) {
       updateData.quantity = dto.quantity;

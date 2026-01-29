@@ -30,6 +30,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -40,12 +42,22 @@ export class CategoryController {
   @Public()
   @UsePipes(new SanitizePipe())
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new category' })
+  @ApiOperation({
+    summary: 'Create a category',
+    description:
+      'Creates a new product category (e.g. Flowers, Bouquets). No auth required. ' +
+      'Slug is auto-generated from name. Optional: parentId (for subcategories), imageId (from File API), description, order, isActive.',
+  })
   @ApiCommonErrorResponses({ conflict: true })
   @ApiResponse({
     status: 201,
-    description: 'Category created successfully',
+    description:
+      'Category created. Use returned id as categoryId when creating products.',
     type: CategoryResponseDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Category with this name already exists.',
   })
   async create(
     @Body() createCategoryDto: CreateCategoryDto,
@@ -66,7 +78,10 @@ export class CategoryController {
     notFound: false,
     conflict: false,
   })
-  @ApiResponse({ status: 200, description: 'List of categories' })
+  @ApiPaginatedResponse(
+    CategoryResponseDto,
+    'Paginated list of categories (data + meta.pagination)',
+  )
   async findAll(@Query() query: CategoryQueryDto) {
     return this.categoryService.findAll(query);
   }
@@ -78,12 +93,21 @@ export class CategoryController {
     description:
       'Category detail with activeProductCount. Use includeChildren=true for child categories.',
   })
+  @ApiCommonErrorResponses({
+    unauthorized: false,
+    forbidden: false,
+    conflict: false,
+  })
   @ApiResponse({
     status: 200,
     description: 'Category details',
     type: CategoryResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Category not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found',
+    type: ApiErrorResponseDto,
+  })
   async findOne(
     @Param('id') id: string,
     @Query('includeChildren') includeChildren?: string,
@@ -94,6 +118,12 @@ export class CategoryController {
   @Get(':id/children')
   @Public()
   @ApiOperation({ summary: 'Get child categories' })
+  @ApiCommonErrorResponses({
+    unauthorized: false,
+    forbidden: false,
+    notFound: false,
+    conflict: false,
+  })
   @ApiResponse({ status: 200, description: 'List of child categories' })
   async findChildren(@Param('id') id: string): Promise<CategoryResponseDto[]> {
     return this.categoryService.findChildren(id);
@@ -105,6 +135,7 @@ export class CategoryController {
   @UsePipes(new SanitizePipe())
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update category (Admin only)' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
     description: 'Category updated',
@@ -124,10 +155,12 @@ export class CategoryController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete category (Admin only)' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({ status: 204, description: 'Category deleted' })
   @ApiResponse({
     status: 400,
     description: 'Cannot delete category with children',
+    type: ApiErrorResponseDto,
   })
   async remove(
     @Param('id') id: string,

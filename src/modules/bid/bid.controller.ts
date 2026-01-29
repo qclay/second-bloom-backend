@@ -30,6 +30,8 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 
 @ApiTags('Bids')
 @Controller('bids')
@@ -68,7 +70,10 @@ export class BidController {
     description:
       'Returns all bids placed by the authenticated user, with optional filtering by auction status',
   })
-  @ApiResponse({ status: 200, description: 'List of user bids' })
+  @ApiPaginatedResponse(
+    BidResponseDto,
+    'Paginated list of user bids (data + meta.pagination)',
+  )
   async getMyBids(
     @Query() query: BidQueryDto,
     @CurrentUser('id') userId: string,
@@ -87,7 +92,10 @@ export class BidController {
     name: 'auctionId',
     description: 'Auction UUID (e.g. from product.activeAuction.id)',
   })
-  @ApiResponse({ status: 200, description: 'List of bids for auction' })
+  @ApiPaginatedResponse(
+    BidResponseDto,
+    'Paginated list of bids for auction (data + meta.pagination)',
+  )
   async getAuctionBids(@Param('auctionId') auctionId: string) {
     return await this.bidService.getAuctionBids(auctionId);
   }
@@ -101,7 +109,10 @@ export class BidController {
     notFound: false,
     conflict: false,
   })
-  @ApiResponse({ status: 200, description: 'List of bids' })
+  @ApiPaginatedResponse(
+    BidResponseDto,
+    'Paginated list of bids (data + meta.pagination)',
+  )
   async findAll(@Query() query: BidQueryDto) {
     return await this.bidService.findAll(query);
   }
@@ -115,7 +126,11 @@ export class BidController {
     description: 'Bid details',
     type: BidResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Bid not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Bid not found',
+    type: ApiErrorResponseDto,
+  })
   async findOne(@Param('id') id: string): Promise<BidResponseDto> {
     return await this.bidService.findById(id);
   }

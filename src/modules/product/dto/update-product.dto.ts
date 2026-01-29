@@ -11,7 +11,7 @@ import {
   Min,
   ArrayMaxSize,
 } from 'class-validator';
-import { ProductType, ProductCondition, ProductStatus } from '@prisma/client';
+import { ProductType, ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class UpdateProductDto extends PartialType(CreateProductDto) {
@@ -50,9 +50,13 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @IsOptional()
   type?: ProductType;
 
-  @IsEnum(ProductCondition)
+  @IsString()
   @IsOptional()
-  condition?: ProductCondition;
+  conditionId?: string;
+
+  @IsString()
+  @IsOptional()
+  sizeId?: string;
 
   @IsNumber()
   @Type(() => Number)

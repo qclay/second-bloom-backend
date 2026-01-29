@@ -19,6 +19,7 @@ import {
   ApiPublicErrorResponses,
   ApiAuthErrorResponses,
 } from '../../common/decorators/api-error-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -43,10 +44,12 @@ export class AuthController {
   @ApiResponse({
     status: 400,
     description: 'Invalid phone number format',
+    type: ApiErrorResponseDto,
   })
   @ApiResponse({
     status: 429,
     description: 'Too many requests. Please wait before requesting a new code.',
+    type: ApiErrorResponseDto,
   })
   async sendOtp(@Body() sendOtpDto: SendOtpDto): Promise<MessageResponseDto> {
     return this.authService.sendOtp(sendOtpDto);
@@ -70,14 +73,17 @@ export class AuthController {
   @ApiResponse({
     status: 400,
     description: 'Invalid OTP format',
+    type: ApiErrorResponseDto,
   })
   @ApiResponse({
     status: 401,
     description: 'Invalid or expired OTP code',
+    type: ApiErrorResponseDto,
   })
   @ApiResponse({
     status: 429,
     description: 'Maximum verification attempts exceeded',
+    type: ApiErrorResponseDto,
   })
   async verify(@Body() verifyOtpDto: VerifyOtpDto): Promise<AuthResponseDto> {
     return this.authService.verifyOtp(verifyOtpDto);
@@ -101,10 +107,12 @@ export class AuthController {
   @ApiResponse({
     status: 401,
     description: 'Invalid or expired refresh token',
+    type: ApiErrorResponseDto,
   })
   @ApiResponse({
     status: 403,
     description: 'Refresh token has been revoked',
+    type: ApiErrorResponseDto,
   })
   async refresh(
     @Body() refreshTokenDto: RefreshTokenDto,
@@ -129,6 +137,7 @@ export class AuthController {
   @ApiResponse({
     status: 401,
     description: 'Not authenticated or token expired',
+    type: ApiErrorResponseDto,
   })
   async logout(@CurrentUser() user: User): Promise<MessageResponseDto> {
     return this.authService.logout(user.id);

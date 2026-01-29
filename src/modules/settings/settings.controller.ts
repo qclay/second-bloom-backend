@@ -5,6 +5,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 import { SettingsService } from './settings.service';
 import { UpdatePublicationPriceDto } from './dto/update-publication-price.dto';
 
@@ -15,6 +16,12 @@ export class SettingsController {
 
   @Get('publication-price')
   @ApiOperation({ summary: 'Get current active publication price' })
+  @ApiCommonErrorResponses({
+    unauthorized: false,
+    forbidden: false,
+    notFound: false,
+    conflict: false,
+  })
   @ApiResponse({
     status: 200,
     description: 'Current publication price',
@@ -26,6 +33,7 @@ export class SettingsController {
   @Get('publication-price/history')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get publication price history (Admin only)' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({
     status: 200,
     description: 'Publication price history',
@@ -37,6 +45,7 @@ export class SettingsController {
   @Post('publication-price')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update publication price per post (Admin only)' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({
     status: 201,
     description: 'Publication price updated',
@@ -52,6 +61,7 @@ export class SettingsController {
   @Patch('publication-price/:id/activate')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Activate specific price (Admin only)' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
     description: 'Price activated',

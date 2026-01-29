@@ -12,14 +12,14 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { ProductType, ProductCondition, ProductStatus } from '@prisma/client';
+import { ProductType, ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProductAuctionOptionDto } from './product-auction-option.dto';
 
 export class CreateProductDto {
   @ApiProperty({
-    description: 'Product title',
+    description: 'Product title.',
     example: 'Fresh Red Roses Bouquet',
     maxLength: 255,
     required: true,
@@ -30,8 +30,8 @@ export class CreateProductDto {
   title!: string;
 
   @ApiProperty({
-    description: 'Product description',
-    example: 'Beautiful fresh red roses arranged in an elegant bouquet',
+    description: 'Product description.',
+    example: 'Beautiful fresh red roses',
     maxLength: 5000,
     required: false,
   })
@@ -42,7 +42,7 @@ export class CreateProductDto {
 
   @ApiProperty({
     description:
-      'Product price in UZS. Required for fixed price; optional for auction (use auctionStartPrice instead).',
+      'Price. Required for fixed price; optional when createAuction true.',
     example: 150000,
     minimum: 0,
     required: false,
@@ -54,7 +54,7 @@ export class CreateProductDto {
   price?: number;
 
   @ApiProperty({
-    description: 'Currency code',
+    description: 'Currency code. Default UZS.',
     example: 'UZS',
     maxLength: 3,
     default: 'UZS',
@@ -66,7 +66,7 @@ export class CreateProductDto {
   currency?: string = 'UZS';
 
   @ApiProperty({
-    description: 'Category ID',
+    description: 'Category ID (from GET /categories).',
     example: 'clx1234567890abcdef',
     required: true,
   })
@@ -95,12 +95,20 @@ export class CreateProductDto {
   type?: ProductType = ProductType.FRESH;
 
   @ApiPropertyOptional({
-    description: 'Product condition',
-    enum: ProductCondition,
+    description: 'Condition ID (from GET /conditions).',
+    example: 'clx1234567890abcdef',
   })
-  @IsEnum(ProductCondition)
+  @IsString()
   @IsOptional()
-  condition?: ProductCondition;
+  conditionId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Size ID (from GET /sizes).',
+    example: 'clx1234567890abcdef',
+  })
+  @IsString()
+  @IsOptional()
+  sizeId?: string;
 
   @ApiPropertyOptional({
     description: 'Quantity',

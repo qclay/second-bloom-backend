@@ -2,19 +2,22 @@ import { Product, ProductImage } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ProductImageResponseDto {
-  @ApiProperty()
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001' })
   id!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440002' })
   fileId!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 0 })
   order!: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-01-04T17:15:29.000Z' })
   createdAt!: Date;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    example: 'https://cdn.example.com/images/rose.jpg',
+  })
   url?: string;
 
   static fromEntity(
@@ -31,77 +34,122 @@ export class ProductImageResponseDto {
 }
 
 export class ProductResponseDto {
-  @ApiProperty()
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Red Roses Bouquet' })
   title!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'red-roses-bouquet' })
   slug!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({
+    nullable: true,
+    example: 'Beautiful fresh red roses bouquet. 12 stems.',
+  })
   description!: string | null;
 
-  @ApiProperty()
+  @ApiProperty({ example: 150000 })
   price!: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'UZS' })
   currency!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440010' })
   categoryId!: string;
 
-  @ApiProperty({ type: [String] })
+  @ApiProperty({ type: [String], example: ['roses', 'bouquet', 'romantic'] })
   tags!: string[];
 
-  @ApiProperty()
+  @ApiProperty({ example: 'FRESH' })
   type!: string;
 
-  @ApiProperty({ nullable: true })
-  condition!: string | null;
+  @ApiProperty({
+    required: false,
+    description: 'Condition (id, name, slug).',
+    example: { id: '550e8400-e29b-41d4-a716-446655440020', name: 'New', slug: 'new' },
+  })
+  condition?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
 
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+    description: 'Size (id, name, slug).',
+    example: { id: '550e8400-e29b-41d4-a716-446655440021', name: 'Large', slug: 'large' },
+  })
+  size?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  @ApiProperty({ description: 'Quantity available.', example: 10 })
   quantity!: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Product status: ACTIVE, INACTIVE, PENDING, SOLD.',
+    example: 'ACTIVE',
+  })
   status!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Whether the product is featured on homepage.',
+    example: true,
+  })
   isFeatured!: boolean;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'View count.', example: 45 })
   views!: number;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({
+    nullable: true,
+    description: 'Region (e.g. Tashkent).',
+    example: 'Tashkent',
+  })
   region!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ nullable: true, example: 'Tashkent' })
   city!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ nullable: true, example: 'Mirobod' })
   district!: string | null;
 
-  @ApiProperty()
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440030' })
   sellerId!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-01-04T17:15:29.000Z' })
   createdAt!: Date;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-01-04T17:15:29.000Z' })
   updatedAt!: Date;
 
   @ApiProperty({ nullable: true })
   deletedAt!: Date | null;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Category (id, name, slug).',
+    example: { id: '550e8400-e29b-41d4-a716-446655440010', name: 'Roses', slug: 'roses' },
+  })
   category?: {
     id: string;
     name: string;
     slug: string;
   };
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Seller.',
+    example: {
+      id: '550e8400-e29b-41d4-a716-446655440030',
+      firstName: 'Ali',
+      lastName: 'Karimov',
+      phoneNumber: '+998901234569',
+    },
+  })
   seller?: {
     id: string;
     firstName: string | null;
@@ -109,13 +157,24 @@ export class ProductResponseDto {
     phoneNumber: string;
   };
 
-  @ApiProperty({ type: () => [ProductImageResponseDto], required: false })
+  @ApiProperty({
+    type: () => [ProductImageResponseDto],
+    required: false,
+    description: 'Images (id, fileId, order, url).',
+  })
   images?: ProductImageResponseDto[];
 
   @ApiProperty({
     required: false,
     description:
-      'Active auction for this product (when includeActiveAuction=true). Use id for GET /bids/auction/:auctionId and endTime for timer.',
+      'Active auction (id, endTime, status, currentPrice, totalBids). Use id for GET /bids/auction/:auctionId.',
+    example: {
+      id: '550e8400-e29b-41d4-a716-446655440040',
+      endTime: '2026-01-05T17:15:29.000Z',
+      status: 'ACTIVE',
+      currentPrice: 100000,
+      totalBids: 3,
+    },
   })
   activeAuction?: {
     id: string;
@@ -128,6 +187,8 @@ export class ProductResponseDto {
   static fromEntity(
     product: Product & {
       category?: { id: string; name: string; slug: string };
+      condition?: { id: string; name: string; slug: string } | null;
+      size?: { id: string; name: string; slug: string } | null;
       seller?: {
         id: string;
         firstName: string | null;
@@ -154,7 +215,20 @@ export class ProductResponseDto {
       categoryId: product.categoryId,
       tags: product.tags,
       type: product.type,
-      condition: product.condition,
+      condition: product.condition
+        ? {
+            id: product.condition.id,
+            name: product.condition.name,
+            slug: product.condition.slug,
+          }
+        : undefined,
+      size: product.size
+        ? {
+            id: product.size.id,
+            name: product.size.name,
+            slug: product.size.slug,
+          }
+        : undefined,
       quantity: product.quantity,
       status: product.status,
       isFeatured: product.isFeatured,

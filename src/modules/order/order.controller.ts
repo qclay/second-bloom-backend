@@ -28,6 +28,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -53,6 +55,7 @@ export class OrderController {
   @ApiResponse({
     status: 409,
     description: 'Order already exists for this product/auction',
+    type: ApiErrorResponseDto,
   })
   async create(
     @Body() createOrderDto: CreateOrderDto,
@@ -70,10 +73,10 @@ export class OrderController {
       'Retrieves a paginated list of orders. Users see their own orders, admins see all orders.',
   })
   @ApiCommonErrorResponses({ conflict: false })
-  @ApiResponse({
-    status: 200,
-    description: 'List of orders retrieved successfully',
-  })
+  @ApiPaginatedResponse(
+    OrderResponseDto,
+    'Paginated list of orders (data + meta.pagination)',
+  )
   async findAll(
     @Query() query: OrderQueryDto,
     @CurrentUser('id') userId: string,

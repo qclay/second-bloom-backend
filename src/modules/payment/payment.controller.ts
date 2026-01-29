@@ -17,6 +17,8 @@ import {
   ApiBearerAuth,
   ApiHeader,
 } from '@nestjs/swagger';
+import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { PaymentService } from './payment.service';
@@ -34,9 +36,11 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create payment invoice for publication posts' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 201,
     description: 'Payment invoice created successfully',
+    type: PaymentResponseDto,
   })
   async createInvoice(
     @Req() req: AuthenticatedRequest,
@@ -54,6 +58,12 @@ export class PaymentController {
     description: 'HMAC SHA256 signature',
     required: true,
   })
+  @ApiCommonErrorResponses({
+    unauthorized: false,
+    forbidden: false,
+    notFound: false,
+    conflict: false,
+  })
   @ApiResponse({
     status: 200,
     description: 'Webhook processed successfully',
@@ -61,6 +71,7 @@ export class PaymentController {
   @ApiResponse({
     status: 400,
     description: 'Invalid signature',
+    type: ApiErrorResponseDto,
   })
   async handleWebhook(
     @Headers('x-signature') signature: string,
@@ -73,6 +84,7 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user payment history' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({
     status: 200,
     description: 'Payment history retrieved',
@@ -86,6 +98,7 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get payment by ID' })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
     description: 'Payment details',

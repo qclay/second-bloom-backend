@@ -29,6 +29,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
+import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 
 @ApiTags('Reviews')
 @Controller('reviews')
@@ -67,7 +69,10 @@ export class ReviewController {
     notFound: false,
     conflict: false,
   })
-  @ApiResponse({ status: 200, description: 'List of reviews' })
+  @ApiPaginatedResponse(
+    ReviewResponseDto,
+    'Paginated list of reviews (data + meta.pagination)',
+  )
   async findAll(@Query() query: ReviewQueryDto) {
     return this.reviewService.findAll(query);
   }
@@ -75,12 +80,21 @@ export class ReviewController {
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get review by ID' })
+  @ApiCommonErrorResponses({
+    unauthorized: false,
+    forbidden: false,
+    conflict: false,
+  })
   @ApiResponse({
     status: 200,
     description: 'Review details',
     type: ReviewResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Review not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Review not found',
+    type: ApiErrorResponseDto,
+  })
   async findOne(@Param('id') id: string): Promise<ReviewResponseDto> {
     return this.reviewService.findById(id);
   }
@@ -128,6 +142,7 @@ export class ReviewController {
     description:
       'Marks a review as helpful. Users can mark reviews to help others identify useful feedback.',
   })
+  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 200,
     description: 'Review marked as helpful successfully',
@@ -136,6 +151,7 @@ export class ReviewController {
   @ApiResponse({
     status: 404,
     description: 'Review not found',
+    type: ApiErrorResponseDto,
   })
   async markHelpful(
     @Param('id') id: string,
