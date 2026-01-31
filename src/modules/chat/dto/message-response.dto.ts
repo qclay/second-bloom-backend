@@ -34,7 +34,7 @@ export class MessageFileDto {
   size!: number;
 }
 
-export class MessageResponseDto {
+export class ChatMessageResponseDto {
   @ApiProperty({ example: 'clx1234567890abcdef' })
   id!: string;
 

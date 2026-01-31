@@ -6,6 +6,7 @@ import {
   IsInt,
   Min,
   IsNumber,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ProductType, ProductStatus } from '@prisma/client';
@@ -48,6 +49,16 @@ export class ProductQueryDto {
   @IsOptional()
   @IsEnum(ProductType)
   type?: ProductType;
+
+  @ApiPropertyOptional({
+    description:
+      'List filter for seller dashboard: all, in_auction, sold, in_delivery. Use with sellerId to get "All bouquets", "On auction", "Sold", "In delivery".',
+    enum: ['all', 'in_auction', 'sold', 'in_delivery'],
+    example: 'all',
+  })
+  @IsOptional()
+  @IsIn(['all', 'in_auction', 'sold', 'in_delivery'])
+  listFilter?: 'all' | 'in_auction' | 'sold' | 'in_delivery';
 
   @ApiPropertyOptional({
     description: 'Filter by status; omit for active only.',

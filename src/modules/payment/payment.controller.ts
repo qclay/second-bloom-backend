@@ -16,6 +16,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiHeader,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
@@ -27,7 +28,7 @@ import { WebhookPayloadDto } from './dto/webhook-payload.dto';
 import { PaymentResponseDto } from './dto/payment-response.dto';
 import { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
 
-@ApiTags('Payments')
+@ApiTags('Paying for Publications posts')
 @Controller('payments')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
@@ -35,7 +36,20 @@ export class PaymentController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create payment invoice for publication posts' })
+  @ApiOperation({
+    summary: 'Create payment invoice for publication posts',
+    description:
+      'Creates a payment record and returns paymentId, invoiceUrl, amount. Use the returned data to call the external create-invoice endpoint (see docs) to get the payment redirect URL.',
+  })
+  @ApiBody({
+    type: CreatePaymentDto,
+    examples: {
+      publication: {
+        summary: 'Paying for publications (posts)',
+        value: { quantity: 1, gateway: 'CLICK' },
+      },
+    },
+  })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
     status: 201,

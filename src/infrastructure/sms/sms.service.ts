@@ -4,7 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ISmsService } from './sms-service.interface';
 import { retry, CircuitBreaker } from '../../common/utils/retry.util';
-const FormData = require('form-data');
+import FormData from 'form-data';
 
 interface EskizTokenResponse {
   data: {

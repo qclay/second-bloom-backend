@@ -16,7 +16,7 @@ import { MessageQueryDto } from './dto/message-query.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { MarkMessagesReadDto } from './dto/mark-messages-read.dto';
 import { ConversationResponseDto } from './dto/conversation-response.dto';
-import { MessageResponseDto } from './dto/message-response.dto';
+import { ChatMessageResponseDto } from './dto/message-response.dto';
 import { Prisma, MessageType, DeliveryStatus } from '@prisma/client';
 
 type ConversationWithRelations = Prisma.ConversationGetPayload<{
@@ -387,7 +387,7 @@ export class ChatService {
   async sendMessage(
     dto: SendMessageDto,
     userId: string,
-  ): Promise<MessageResponseDto> {
+  ): Promise<ChatMessageResponseDto> {
     return this.prisma.$transaction(async (tx) => {
       return this.sendMessageInternal(dto, userId, tx);
     });
@@ -397,7 +397,7 @@ export class ChatService {
     dto: SendMessageDto,
     userId: string,
     tx: Prisma.TransactionClient,
-  ): Promise<MessageResponseDto> {
+  ): Promise<ChatMessageResponseDto> {
     const conversation = await tx.conversation.findUnique({
       where: { id: dto.conversationId },
       include: {
@@ -535,7 +535,7 @@ export class ChatService {
     query: MessageQueryDto,
     userId: string,
   ): Promise<{
-    data: MessageResponseDto[];
+    data: ChatMessageResponseDto[];
     hasMore: boolean;
     nextCursor?: string;
   }> {
@@ -767,7 +767,7 @@ export class ChatService {
   async deleteMessage(
     messageId: string,
     userId: string,
-  ): Promise<MessageResponseDto> {
+  ): Promise<ChatMessageResponseDto> {
     const message = await this.messageRepository.findById(messageId);
 
     if (!message) {
@@ -831,7 +831,7 @@ export class ChatService {
     messageId: string,
     content: string,
     userId: string,
-  ): Promise<MessageResponseDto> {
+  ): Promise<ChatMessageResponseDto> {
     if (content.length > 5000) {
       throw new BadRequestException('Message content too long');
     }
@@ -1037,7 +1037,9 @@ export class ChatService {
     };
   }
 
-  private mapMessageToDto(message: MessageWithRelations): MessageResponseDto {
+  private mapMessageToDto(
+    message: MessageWithRelations,
+  ): ChatMessageResponseDto {
     return {
       id: message.id,
       conversationId: message.conversationId,

@@ -13,7 +13,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
-import { Prisma, ProductStatus, UserRole } from '@prisma/client';
+import { OrderStatus, Prisma, ProductStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRepository } from '../category/repositories/category.repository';
 import { CacheService } from '../../common/services/cache.service';
@@ -201,6 +201,7 @@ export class ProductService {
       isFeatured,
       type,
       status,
+      listFilter,
       region,
       city,
       minPrice,
@@ -214,7 +215,7 @@ export class ProductService {
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
       isActive: true,
-      ...(status ? {} : { status: ProductStatus.ACTIVE }),
+      ...(status ? {} : listFilter ? {} : { status: ProductStatus.ACTIVE }),
     };
 
     if (search) {
@@ -244,6 +245,28 @@ export class ProductService {
 
     if (status) {
       where.status = status;
+    }
+
+    if (listFilter) {
+      if (listFilter === 'in_auction') {
+        where.auctions = {
+          some: {
+            status: 'ACTIVE',
+            endTime: { gte: new Date() },
+            deletedAt: null,
+          },
+        };
+      } else if (listFilter === 'sold') {
+        where.status = ProductStatus.SOLD;
+      } else if (listFilter === 'in_delivery') {
+        where.orders = {
+          some: {
+            status: { in: [OrderStatus.PROCESSING, OrderStatus.SHIPPED] },
+            deletedAt: null,
+          },
+        };
+      }
+      // listFilter === 'all': no extra filter
     }
 
     if (region) {
@@ -296,7 +319,8 @@ export class ProductService {
       page === 1 &&
       maxLimit <= 50 &&
       !query.conditionId &&
-      !query.sizeId;
+      !query.sizeId &&
+      !listFilter;
     const cacheKey = shouldCache
       ? this.cacheService.generateListKey(this.CACHE_PREFIX, {
           page,
@@ -332,6 +356,7 @@ export class ProductService {
       }
     }
 
+    const now = new Date();
     const [products, total] = await Promise.all([
       this.productRepository.findMany({
         where,
@@ -378,13 +403,45 @@ export class ProductService {
             },
             orderBy: { displayOrder: 'asc' },
           },
+          auctions: {
+            where: {
+              status: 'ACTIVE',
+              isActive: true,
+              deletedAt: null,
+              endTime: { gte: now },
+            },
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              endTime: true,
+              status: true,
+              currentPrice: true,
+              totalBids: true,
+            },
+          },
         },
       }),
       this.productRepository.count({ where }),
     ]);
 
+    type ProductWithActiveAuction = (typeof products)[number] & {
+      auctions?: Array<{
+        id: string;
+        endTime: Date;
+        status: string;
+        currentPrice: unknown;
+        totalBids: number;
+      }>;
+    };
     const result = {
-      data: products.map((product) => ProductResponseDto.fromEntity(product)),
+      data: products.map((product) => {
+        const p = product as ProductWithActiveAuction;
+        return ProductResponseDto.fromEntity({
+          ...p,
+          activeAuction: p.auctions?.[0],
+        } as Parameters<typeof ProductResponseDto.fromEntity>[0]);
+      }),
       meta: {
         total,
         page,

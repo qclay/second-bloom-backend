@@ -13,7 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ChatService } from '../chat.service';
 import { SendMessageDto } from '../dto/send-message.dto';
-import { MessageResponseDto } from '../dto/message-response.dto';
+import { ChatMessageResponseDto } from '../dto/message-response.dto';
 import { JoinConversationDto } from '../dto/join-conversation.dto';
 import { CHAT_EVENTS } from '../constants/chat-events.constants';
 
@@ -227,7 +227,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: SendMessageDto,
   ): Promise<{
     success: boolean;
-    message?: MessageResponseDto;
+    message?: ChatMessageResponseDto;
     error?: string;
   }> {
     if (!client.userId) {
@@ -372,7 +372,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { messageId: string },
   ): Promise<{
     success: boolean;
-    message?: MessageResponseDto;
+    message?: ChatMessageResponseDto;
     error?: string;
   }> {
     if (!client.userId) {
@@ -433,7 +433,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { messageId: string; content: string },
   ): Promise<{
     success: boolean;
-    message?: MessageResponseDto;
+    message?: ChatMessageResponseDto;
     error?: string;
   }> {
     if (!client.userId) {
@@ -489,7 +489,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   notifyNewMessage(
     conversationId: string,
-    message: MessageResponseDto,
+    message: ChatMessageResponseDto,
     recipientId: string,
   ): void {
     this.sendToUser(recipientId, CHAT_EVENTS.NEW_MESSAGE, message);

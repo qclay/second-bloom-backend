@@ -18,7 +18,7 @@ import { ConversationQueryDto } from './dto/conversation-query.dto';
 import { MessageQueryDto } from './dto/message-query.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { ConversationResponseDto } from './dto/conversation-response.dto';
-import { MessageResponseDto } from './dto/message-response.dto';
+import { ChatMessageResponseDto } from './dto/message-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SanitizePipe } from '../../common/pipes/sanitize.pipe';
@@ -115,7 +115,7 @@ export class ChatController {
   @ApiOperation({ summary: 'Get messages in a conversation' })
   @ApiCommonErrorResponses({ notFound: false, conflict: false })
   @ApiPaginatedResponse(
-    MessageResponseDto,
+    ChatMessageResponseDto,
     'Paginated list of messages (data + meta.pagination)',
   )
   async getMessages(
@@ -178,12 +178,12 @@ export class ChatController {
   @ApiResponse({
     status: 200,
     description: 'Message deleted',
-    type: MessageResponseDto,
+    type: ChatMessageResponseDto,
   })
   async deleteMessage(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
-  ): Promise<MessageResponseDto> {
+  ): Promise<ChatMessageResponseDto> {
     return this.chatService.deleteMessage(id, userId);
   }
 }
