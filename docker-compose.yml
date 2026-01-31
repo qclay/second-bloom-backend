@@ -1,3 +1,6 @@
+# Data (DB, Redis) is stored in named volumes and persists across `docker-compose up/down`.
+# Postgres user/password are set ONLY when the volume is first created. Do NOT use
+# `docker-compose down -v` unless you intend to wipe the database (next `up` will re-init).
 version: '3.8'
 
 services:
@@ -47,12 +50,14 @@ services:
       target: production
     container_name: second-bloom-app
     restart: always
+    env_file: .env
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-second_bloom}?schema=public&connection_limit=20&pool_timeout=20&connect_timeout=10
+      # Use DATABASE_URL from .env when set (avoids password reset; safe for special chars). Else fallback.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/second_bloom?schema=public&connection_limit=20&pool_timeout=20&connect_timeout=10}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: 
@@ -118,7 +123,9 @@ services:
 
 volumes:
   postgres_data:
+    name: second-bloom-postgres-data
   redis_data:
+    name: second-bloom-redis-data
 
 networks:
   second-bloom-network:

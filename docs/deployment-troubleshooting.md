@@ -1,5 +1,36 @@
 # Deployment troubleshooting
 
+## Database / password “resets” on every `docker-compose up`
+
+If the database password or data seems to reset each time you run `docker-compose up`, check the following.
+
+### 1. Do not use `docker-compose down -v`
+
+The `-v` flag **removes named volumes**. That deletes all Postgres and Redis data. The next `up` creates new empty volumes; Postgres will run first-time init again and set the user/password from your current `.env` — so it looks like the password “reset”.
+
+- Use **`docker-compose down`** (no `-v`) when you only want to stop containers. Data in `second-bloom-postgres-data` and `second-bloom-redis-data` is kept.
+- Use **`docker-compose down -v`** only when you intentionally want to wipe the database and start fresh.
+
+### 2. Run from the same directory that has `.env`
+
+Always run `docker-compose` from the project root (e.g. `~/second-bloom-backend`) where your `.env` file lives. Otherwise variable substitution may use wrong or empty values and the app can get a different (or default) `DATABASE_URL`.
+
+### 3. Set `DATABASE_URL` in `.env` for the app
+
+The app uses `DATABASE_URL` from `.env` when set (so the password is not overwritten by compose). For Docker, set in `.env`:
+
+```env
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@postgres:5432/second_bloom?schema=public&connection_limit=20&pool_timeout=20&connect_timeout=10
+```
+
+Use the **same password** as `POSTGRES_PASSWORD` (and the one Postgres was initialized with). Then the app will keep using that password across restarts.
+
+### 4. Named volumes
+
+The compose file uses fixed volume names (`second-bloom-postgres-data`, `second-bloom-redis-data`) so the same data is reused regardless of the directory you run `docker-compose` from.
+
+---
+
 ## P1000: Authentication failed (database credentials not valid)
 
 If the app container logs show:
