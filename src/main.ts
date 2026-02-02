@@ -1,3 +1,9 @@
+import 'dotenv/config';
+
+if (process.env.DATABASE_URL?.includes('sslmode=require')) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
