@@ -103,57 +103,27 @@ Full API reference is in Swagger; use it for request/response shapes and to try 
 
 ## Docker
 
+Postgres is **not** included. Install and run PostgreSQL separately (system install or managed DB). Docker Compose runs Redis and the app only.
+
 ```bash
 docker-compose up -d
 ```
 
-Use for running PostgreSQL and Redis locally; see `docker-compose.yml` for details.
+**Before running:**
 
-The app container always connects to the **postgres** service by name (not `localhost`). Its `DATABASE_URL` is built from `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` in `.env`, so you can keep `DATABASE_URL` in `.env` set to `localhost` for local development (e.g. `npm run start:dev`) and docker-compose will still connect correctly.
+1. Install and start Postgres (e.g. `second_bloom` database, user/password of your choice).
+2. In `.env`, set `DATABASE_URL` to your Postgres:
+   - **App runs in Docker** and Postgres is on the **same host**: use `host.docker.internal` as host so the container can reach the host, e.g.  
+     `postgresql://postgres:YOUR_PASSWORD@host.docker.internal:5432/second_bloom?schema=public`
+   - **App runs on the host** (e.g. `npm run start:dev`): use `localhost`, e.g.  
+     `postgresql://postgres:YOUR_PASSWORD@localhost:5432/second_bloom?schema=public`
+   - **Postgres is on another server**: use that host (or IP) and port in the URL.
 
-### Running Postgres separately
+Then `docker-compose up -d` starts Redis and the app; the app connects to Postgres using `DATABASE_URL` from `.env`.
 
-If you run Postgres on your own (separate Docker, local install, or managed DB) instead of this project’s docker-compose:
+### When you change the database password
 
-1. In `.env`, set `DATABASE_URL` to that instance, e.g.:
-   - Local / same machine: `postgresql://postgres:YOUR_PASSWORD@localhost:5432/second_bloom?schema=public`
-   - Postgres in another Docker (same host): use the container name or `host.docker.internal` as host, and the correct port/password.
-
-2. Run the app with Node (e.g. `npm run start:dev` or `npm run start:prod`). You do **not** need to start the `postgres` or `app` services from this repo’s docker-compose.
-
-### When you see "Authentication failed... credentials for postgres are not valid"
-
-Postgres applies `POSTGRES_PASSWORD` **only when the data volume is first created**. If the volume already existed (e.g. from an earlier run), the DB still has the **old** password; the app uses the **new** one from `.env` → mismatch.
-
-**Fix (keep data):** Set the password inside Postgres to match `POSTGRES_PASSWORD` in your `.env`, then restart the app.
-
-1. From the project root, connect using the password that **currently** works (often `postgres` if you never changed it before the first run). Replace `CURRENT_PASSWORD` with that, and `NEW_PASSWORD` with the value of `POSTGRES_PASSWORD` from `.env` (same as you want the app to use):
-
-   ```bash
-   PGPASSWORD='CURRENT_PASSWORD' docker-compose exec -T postgres psql -U postgres -c "ALTER USER postgres PASSWORD 'NEW_PASSWORD';"
-   ```
-
-   If the password contains special characters, run the same from inside the container and type the password when prompted:
-
-   ```bash
-   docker-compose exec postgres psql -U postgres -c "ALTER USER postgres PASSWORD 'YOUR_POSTGRES_PASSWORD_FROM_ENV';"
-   ```
-   (Enter the current password when psql asks for it.)
-
-2. Restart the app so it reconnects with the same credentials:
-
-   ```bash
-   docker-compose up -d --force-recreate app
-   ```
-
-**Fix (reset DB, data loss):** If you don’t know the current Postgres password, wipe the volume and re-init:
-
-   ```bash
-   docker-compose down -v
-   docker-compose up -d
-   ```
-
-- **Postgres run separately (not this docker-compose):** Update `DATABASE_URL` in `.env` with the correct password for that DB, then restart your app.
+Update `DATABASE_URL` in `.env` with the new password, then restart the app (`docker-compose up -d --force-recreate app` or restart your Node process).
 
 ---
 

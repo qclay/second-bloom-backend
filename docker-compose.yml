@@ -1,30 +1,7 @@
-# Data (DB, Redis) is stored in named volumes and persists across `docker-compose up/down`.
-# Postgres user/password are set ONLY when the volume is first created. Do NOT use
-# `docker-compose down -v` unless you intend to wipe the database (next `up` will re-init).
+# Postgres is not included; install and run it separately. Redis and app only.
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: second-bloom-postgres
-    restart: always
-    env_file: .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-second_bloom}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - second-bloom-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     container_name: second-bloom-redis
@@ -56,7 +33,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
-      DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-second_bloom}?schema=public&connection_limit=20&pool_timeout=20&connect_timeout=10}
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: 
@@ -99,9 +76,10 @@ services:
       - ./prisma.config.ts:/app/prisma.config.ts:ro
     networks:
       - second-bloom-network
+    # On Linux, use host.docker.internal in DATABASE_URL to reach Postgres on the host; this makes it resolve.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     command: >
@@ -121,8 +99,6 @@ services:
           memory: 512M
 
 volumes:
-  postgres_data:
-    name: second-bloom-postgres-data
   redis_data:
     name: second-bloom-redis-data
 
