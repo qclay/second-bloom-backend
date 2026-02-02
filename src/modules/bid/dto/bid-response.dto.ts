@@ -7,6 +7,9 @@ export class BidResponseDto {
   amount!: number;
   isWinning!: boolean;
   isRetracted!: boolean;
+  readByOwnerAt!: Date | null;
+  rejectedAt!: Date | null;
+  rejectedBy!: string | null;
   ipAddress!: string | null;
   userAgent!: string | null;
   createdAt!: Date;
@@ -59,6 +62,9 @@ export class BidResponseDto {
       amount: Number(bid.amount),
       isWinning: bid.isWinning,
       isRetracted: bid.isRetracted,
+      readByOwnerAt: bid.readByOwnerAt ?? null,
+      rejectedAt: bid.rejectedAt ?? null,
+      rejectedBy: bid.rejectedBy ?? null,
       ipAddress: bid.ipAddress,
       userAgent: bid.userAgent,
       createdAt: bid.createdAt,

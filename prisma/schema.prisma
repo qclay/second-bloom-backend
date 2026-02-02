@@ -41,6 +41,7 @@ model Auction {
 
   @@index([productId, status])
   @@index([status, endTime])
+  @@index([status, endTime, deletedAt])
   @@index([isActive, deletedAt])
   @@index([status, isActive])
   @@index([status, createdAt])
@@ -53,27 +54,32 @@ model Auction {
 }
 
 model Bid {
-  id          String    @id @default(uuid())
-  auctionId   String
-  bidderId    String
-  amount      Decimal   @db.Decimal(10, 2)
-  isWinning   Boolean   @default(false)
-  isRetracted Boolean   @default(false)
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-  deletedBy   String?
-  isActive    Boolean   @default(true)
-  auction     Auction   @relation(fields: [auctionId], references: [id])
-  bidder      User      @relation(fields: [bidderId], references: [id])
+  id             String    @id @default(uuid())
+  auctionId      String
+  bidderId       String
+  amount         Decimal   @db.Decimal(10, 2)
+  isWinning      Boolean   @default(false)
+  isRetracted    Boolean   @default(false)
+  readByOwnerAt  DateTime?
+  rejectedAt     DateTime?
+  rejectedBy     String?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  deletedBy      String?
+  isActive       Boolean   @default(true)
+  auction        Auction   @relation(fields: [auctionId], references: [id])
+  bidder         User      @relation(fields: [bidderId], references: [id])
 
   @@index([auctionId, createdAt])
   @@index([bidderId])
   @@index([auctionId, bidderId])
   @@index([auctionId, isWinning])
   @@index([auctionId, isRetracted])
+  @@index([auctionId, readByOwnerAt])
+  @@index([auctionId, rejectedAt])
   @@index([isActive, deletedAt])
   @@index([createdAt])
   @@index([ipAddress])
@@ -276,6 +282,8 @@ model Order {
 
   @@index([buyerId])
   @@index([buyerId, status, createdAt])
+  @@index([productId])
+  @@index([productId, createdAt])
   @@index([orderNumber])
   @@index([status])
   @@index([isActive, deletedAt])

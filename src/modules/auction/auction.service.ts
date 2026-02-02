@@ -474,7 +474,9 @@ export class AuctionService {
           endTime: { lte: now },
           deletedAt: null,
         },
-        include: {
+        select: {
+          id: true,
+          productId: true,
           bids: {
             where: {
               isWinning: true,
@@ -482,20 +484,53 @@ export class AuctionService {
             },
             orderBy: { createdAt: 'desc' },
             take: 1,
+            select: { id: true, bidderId: true },
           },
         },
         take: 100,
       });
+
+      const auctionIds = expiredAuctions.map((a) => a.id);
+      const productIds = [...new Set(expiredAuctions.map((a) => a.productId))];
+
+      const [products, allParticipants] = await Promise.all([
+        productIds.length > 0
+          ? this.prisma.product.findMany({
+              where: { id: { in: productIds } },
+              select: { id: true, title: true },
+            })
+          : [],
+        auctionIds.length > 0
+          ? this.prisma.bid.findMany({
+              where: {
+                auctionId: { in: auctionIds },
+                isRetracted: false,
+              },
+              select: { auctionId: true, bidderId: true },
+              distinct: ['auctionId', 'bidderId'],
+            })
+          : [],
+      ]);
+
+      const productTitleByProductId = new Map(
+        products.map((p) => [p.id, p.title]),
+      );
+      const participantsByAuctionId = new Map<string, { bidderId: string }[]>();
+      for (const p of allParticipants) {
+        const list = participantsByAuctionId.get(p.auctionId) ?? [];
+        list.push({ bidderId: p.bidderId });
+        participantsByAuctionId.set(p.auctionId, list);
+      }
 
       let endedCount = 0;
       const errors: Array<{ auctionId: string; error: string }> = [];
 
       for (const auction of expiredAuctions) {
         try {
+          const winningBid = auction.bids[0];
+
           await this.prisma.$transaction(
             async (tx: Prisma.TransactionClient) => {
-              const winningBid = auction.bids[0];
-
               await tx.auction.update({
                 where: { id: auction.id },
                 data: {
@@ -521,27 +556,14 @@ export class AuctionService {
 
           endedCount++;
           this.logger.log(
-            `Auction ${auction.id} ended. Winner: ${auction.bids[0]?.bidderId ?? 'none'}`,
+            `Auction ${auction.id} ended. Winner: ${winningBid?.bidderId ?? 'none'}`,
           );
 
           try {
-            const product = await this.prisma.product.findUnique({
-              where: { id: auction.productId },
-              select: { title: true },
-            });
-
-            const participants = await this.prisma.bid.findMany({
-              where: {
-                auctionId: auction.id,
-                isRetracted: false,
-              },
-              select: {
-                bidderId: true,
-              },
-              distinct: ['bidderId'],
-            });
-
-            const winnerId = auction.bids[0]?.bidderId ?? null;
+            const productTitle =
+              productTitleByProductId.get(auction.productId) ?? null;
+            const participants = participantsByAuctionId.get(auction.id) ?? [];
+            const winnerId = winningBid?.bidderId ?? null;
 
             await Promise.all(
               participants.map((p) =>
@@ -549,7 +571,7 @@ export class AuctionService {
                   userId: p.bidderId,
                   auctionId: auction.id,
                   productId: auction.productId,
-                  productTitle: product?.title,
+                  productTitle: productTitle ?? undefined,
                   isWinner: winnerId !== null && p.bidderId === winnerId,
                 }),
               ),
@@ -603,6 +625,7 @@ export class AuctionService {
   }> {
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
+      select: { id: true, deletedAt: true },
     });
 
     if (!auction || auction.deletedAt) {
@@ -680,6 +703,7 @@ export class AuctionService {
   }> {
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
+      select: { id: true, deletedAt: true },
     });
 
     if (!auction || auction.deletedAt) {
@@ -753,6 +777,7 @@ export class AuctionService {
   }> {
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
+      select: { id: true, deletedAt: true },
     });
 
     if (!auction || auction.deletedAt) {

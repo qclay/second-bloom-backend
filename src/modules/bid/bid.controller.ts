@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Query,
+  Patch,
   Delete,
   HttpCode,
   HttpStatus,
@@ -86,7 +87,7 @@ export class BidController {
   @ApiOperation({
     summary: 'Get bids for an auction',
     description:
-      'List of bids for an auction. Use auction id from product.activeAuction.id on product detail page.',
+      'List of bids for an auction. view: all (last on top), new (unread by owner), top (highest first), rejected (owner-rejected). Owner can use view=new and PATCH :id/read to mark as read.',
   })
   @ApiParam({
     name: 'auctionId',
@@ -94,10 +95,31 @@ export class BidController {
   })
   @ApiPaginatedResponse(
     BidResponseDto,
-    'Paginated list of bids for auction (data + meta.pagination)',
+    'Paginated list of bids for auction (data + meta.pagination + meta.counts)',
   )
-  async getAuctionBids(@Param('auctionId') auctionId: string) {
-    return await this.bidService.getAuctionBids(auctionId);
+  async getAuctionBids(
+    @Param('auctionId') auctionId: string,
+    @Query() query: BidQueryDto,
+  ) {
+    return await this.bidService.getAuctionBids(auctionId, query);
+  }
+
+  @Patch(':id/read')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Mark bid as read (auction owner)',
+    description:
+      'Auction owner marks a bid as read so it no longer appears under "new".',
+  })
+  @ApiParam({ name: 'id', description: 'Bid UUID' })
+  @ApiResponse({ status: 204, description: 'Bid marked as read' })
+  async markBidAsRead(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<void> {
+    return await this.bidService.markBidAsRead(id, userId);
   }
 
   @Get()

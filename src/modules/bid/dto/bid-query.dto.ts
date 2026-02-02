@@ -1,5 +1,15 @@
-import { IsOptional, IsString, IsBoolean, IsInt, Min } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsInt,
+  Min,
+  IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+
+export const BID_VIEW_VALUES = ['all', 'new', 'top', 'rejected'] as const;
+export type BidView = (typeof BID_VIEW_VALUES)[number];
 
 export class BidQueryDto {
   @IsOptional()
@@ -9,6 +19,10 @@ export class BidQueryDto {
   @IsOptional()
   @IsString()
   bidderId?: string;
+
+  @IsOptional()
+  @IsIn(BID_VIEW_VALUES)
+  view?: BidView;
 
   @IsOptional()
   @Type(() => Boolean)

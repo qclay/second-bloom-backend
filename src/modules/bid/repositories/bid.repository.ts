@@ -39,6 +39,7 @@ export class BidRepository implements IBidRepository {
       where: {
         auctionId,
         isRetracted: false,
+        rejectedAt: null,
       },
       orderBy: {
         amount: 'desc',
@@ -52,6 +53,7 @@ export class BidRepository implements IBidRepository {
         auctionId,
         isWinning: true,
         isRetracted: false,
+        rejectedAt: null,
       },
       orderBy: {
         createdAt: 'desc',

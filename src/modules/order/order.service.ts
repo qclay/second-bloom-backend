@@ -111,6 +111,7 @@ export class OrderService {
               },
               deletedAt: null,
             },
+            select: { id: true },
           });
 
           if (existingOrder) {
@@ -126,6 +127,7 @@ export class OrderService {
               status: 'PENDING',
               deletedAt: null,
             },
+            select: { id: true },
           });
 
           if (existingPendingOrder) {

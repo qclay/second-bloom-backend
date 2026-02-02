@@ -305,6 +305,7 @@ export class UserService {
   private async validateAvatarExists(avatarId: string): Promise<boolean> {
     const file = await this.prisma.file.findUnique({
       where: { id: avatarId },
+      select: { id: true, deletedAt: true },
     });
     return file !== null && file.deletedAt === null;
   }

@@ -230,7 +230,6 @@ export class BidService {
           'Auto-extended due to last-minute bid',
         );
       }
-
     }
 
     return bidResponse;
@@ -389,12 +388,11 @@ export class BidService {
       throw new BadRequestException('Cannot retract bid on inactive auction');
     }
 
-    if (bid.bidderId !== userId && userRole !== UserRole.ADMIN) {
-      if (auction.creatorId !== userId) {
-        throw new ForbiddenException(
-          'Only the bidder or auction creator can retract this bid',
-        );
-      }
+    const isOwner = auction.creatorId === userId;
+    if (bid.bidderId !== userId && userRole !== UserRole.ADMIN && !isOwner) {
+      throw new ForbiddenException(
+        'Only the bidder, auction owner, or admin can retract/remove this bid',
+      );
     }
 
     await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -403,6 +401,10 @@ export class BidService {
         data: {
           isRetracted: true,
           isWinning: false,
+          ...(isOwner && {
+            rejectedAt: new Date(),
+            rejectedBy: userId,
+          }),
         },
       });
 
@@ -412,10 +414,12 @@ export class BidService {
             auctionId: bid.auctionId,
             id: { not: id },
             isRetracted: false,
+            rejectedAt: null,
           },
           orderBy: {
             amount: 'desc',
           },
+          select: { id: true, amount: true },
         });
 
         if (newWinningBid) {
@@ -444,38 +448,87 @@ export class BidService {
     });
 
     this.logger.log(
-      `Bid ${id} retracted by ${userId === bid.bidderId ? 'bidder' : 'seller'}`,
+      `Bid ${id} ${isOwner ? 'removed by owner' : userId === bid.bidderId ? 'retracted by bidder' : 'retracted by admin'}`,
     );
   }
 
-  async getAuctionBids(auctionId: string) {
+  async getAuctionBids(
+    auctionId: string,
+    query: BidQueryDto & { view?: 'all' | 'new' | 'top' | 'rejected' },
+  ) {
     const auction = await this.auctionRepository.findById(auctionId);
 
     if (!auction || auction.deletedAt) {
       throw new NotFoundException('Auction not found');
     }
 
-    const bids = await this.bidRepository.findMany({
-      where: {
-        auctionId,
-        isRetracted: false,
-      },
-      orderBy: {
-        amount: 'desc',
-      },
-      include: {
-        bidder: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            phoneNumber: true,
+    const view = query.view ?? 'all';
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 20, 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.BidWhereInput =
+      view === 'new'
+        ? { auctionId, readByOwnerAt: null, rejectedAt: null }
+        : view === 'rejected'
+          ? { auctionId, rejectedAt: { not: null } }
+          : view === 'top'
+            ? { auctionId, rejectedAt: null }
+            : { auctionId };
+
+    const orderBy: Prisma.BidOrderByWithRelationInput =
+      view === 'top' ? { amount: 'desc' } : { createdAt: 'desc' };
+
+    const [bids, total] = await Promise.all([
+      this.bidRepository.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          bidder: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              phoneNumber: true,
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.bid.count({ where }),
+    ]);
 
-    return bids.map((bid) => BidResponseDto.fromEntity(bid));
+    return {
+      data: bids.map((bid) => BidResponseDto.fromEntity(bid)),
+      meta: {
+        view,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async markBidAsRead(bidId: string, userId: string): Promise<void> {
+    const bid = await this.bidRepository.findById(bidId);
+    if (!bid) {
+      throw new NotFoundException(`Bid with ID ${bidId} not found`);
+    }
+    const auction = await this.auctionRepository.findById(bid.auctionId);
+    if (!auction || auction.deletedAt) {
+      throw new NotFoundException('Auction not found');
+    }
+    if (auction.creatorId !== userId) {
+      throw new ForbiddenException(
+        'Only the auction owner can mark bids as read',
+      );
+    }
+    await this.prisma.bid.update({
+      where: { id: bidId },
+      data: { readByOwnerAt: new Date() },
+    });
   }
 
   async getUserBids(userId: string, query: BidQueryDto) {

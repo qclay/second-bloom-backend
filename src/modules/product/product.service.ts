@@ -82,6 +82,7 @@ export class ProductService {
         deletedAt: null,
         isActive: true,
       },
+      select: { id: true },
     });
     if (!condition) {
       throw new NotFoundException('Condition not found or inactive');
@@ -92,6 +93,7 @@ export class ProductService {
         deletedAt: null,
         isActive: true,
       },
+      select: { id: true },
     });
     if (!size) {
       throw new NotFoundException('Size not found or inactive');
@@ -838,6 +840,7 @@ export class ProductService {
             deletedAt: null,
             isActive: true,
           },
+          select: { id: true },
         });
         if (!condition) {
           throw new NotFoundException('Condition not found or inactive');
@@ -855,6 +858,7 @@ export class ProductService {
             deletedAt: null,
             isActive: true,
           },
+          select: { id: true },
         });
         if (!size) {
           throw new NotFoundException('Size not found or inactive');
