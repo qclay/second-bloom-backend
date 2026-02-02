@@ -1,4 +1,3 @@
-# Postgres is not included; install and run it separately. Redis and app only.
 version: '3.8'
 
 services:
@@ -76,7 +75,6 @@ services:
       - ./prisma.config.ts:/app/prisma.config.ts:ro
     networks:
       - second-bloom-network
-    # On Linux, use host.docker.internal in DATABASE_URL to reach Postgres on the host; this makes it resolve.
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

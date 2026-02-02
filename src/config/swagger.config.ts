@@ -59,8 +59,6 @@ export const setupSwagger = (app: INestApplication): void => {
     },
   );
 
-  // Health routes are excluded from global prefix (mounted at /health).
-  // Ensure OpenAPI paths use /health so "Try it out" works.
   if (document.paths) {
     const prefixedHealth = `/${globalPrefix}/health`;
     const paths = document.paths as Record<

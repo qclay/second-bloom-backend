@@ -45,11 +45,15 @@ npm run prisma:generate
 npm run prisma:migrate
 ```
 
-Optional seed:
+Optional seed (run **after** migrations so all tables exist):
 
 ```bash
+npm run prisma:migrate        # dev: creates/updates tables
+# or: npm run prisma:migrate:deploy   # production
 npm run prisma:seed
 ```
+
+If you see **"The table \`public.messages\` does not exist"**, run `npx prisma migrate deploy` (or `npm run prisma:migrate`) first to create all tables, then run the seed again.
 
 **4. Run**
 
@@ -112,14 +116,40 @@ docker-compose up -d
 **Before running:**
 
 1. Install and start Postgres (e.g. `second_bloom` database, user/password of your choice).
-2. In `.env`, set `DATABASE_URL` to your Postgres:
-   - **App runs in Docker** and Postgres is on the **same host**: use `host.docker.internal` as host so the container can reach the host, e.g.  
-     `postgresql://postgres:YOUR_PASSWORD@host.docker.internal:5432/second_bloom?schema=public`
-   - **App runs on the host** (e.g. `npm run start:dev`): use `localhost`, e.g.  
-     `postgresql://postgres:YOUR_PASSWORD@localhost:5432/second_bloom?schema=public`
-   - **Postgres is on another server**: use that host (or IP) and port in the URL.
+2. In `.env`, set `DATABASE_URL` to your Postgres (see below for **Postgres in another Docker container**).
+3. Run `docker-compose up -d`.
 
-Then `docker-compose up -d` starts Redis and the app; the app connects to Postgres using `DATABASE_URL` from `.env`.
+**Postgres in another Docker container (app can’t connect):**
+
+The app container must reach Postgres via the **host** or via a **shared network**.
+
+- **Option A – Postgres publishes port 5432 to the host**  
+  Ensure your Postgres container has `-p 5432:5432` (or `ports: ["5432:5432"]` in its compose). Then in `.env` set:
+  ```env
+  DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@host.docker.internal:5432/second_bloom?schema=public
+  ```
+  `host.docker.internal` is the host machine from inside the app container; the app will connect to the host’s 5432, which forwards to your Postgres container. Restart the app: `docker-compose up -d --force-recreate app`.
+
+- **Option B – Use the Postgres container name**  
+  Put the app on the **same Docker network** as the Postgres container. Create a network (e.g. `docker network create shared`), run your Postgres with `--network shared`, and add to this project’s `docker-compose.yml` under `app` → `networks`: `- second-bloom-network` and `- shared`, and under top-level `networks`: `shared: external: true`. Then in `.env` set `DATABASE_URL` with the **Postgres container name** as host (e.g. `postgresql://postgres:pass@postgres:5432/second_bloom?schema=public`).
+
+**Other cases:**
+
+- **App in Docker, Postgres on the same host** (not in Docker): use `host.docker.internal` as host in `DATABASE_URL`.
+- **App on the host** (e.g. `npm run start:dev`): use `localhost` as host in `DATABASE_URL`.
+- **Postgres on another server**: use that host (or IP) and port in `DATABASE_URL`.
+
+**Postgres resetting when you run `docker-compose up --build`:**
+
+This project’s compose has **only app + redis**; it does **not** include Postgres. So when you run `docker-compose up --build` here, only the app (and redis) are rebuilt — Postgres is never recreated or reset.
+
+- **If Postgres was in the same compose** and data was resetting: run Postgres in a **separate** compose/stack (or standalone container) with its own **named volume**. Start Postgres once with that compose; for this project run only `docker-compose up --build` (app + redis). Connect the app to Postgres via `host.docker.internal:5432` in `DATABASE_URL` (Postgres must publish 5432 to the host). Then `up --build` in this repo never touches Postgres.
+- **Do not** run `docker-compose down -v` in the project that has Postgres — that removes volumes and wipes the DB. In this repo, `down -v` only removes the redis volume.
+
+**If you see P1000 and "at postgres:5432" in the log:** Your `DATABASE_URL` still has host `postgres` (the old Docker service). Postgres is no longer in Docker. On the **machine where you run docker-compose** (e.g. the server), edit `.env` and set `DATABASE_URL` to your real Postgres:
+- **Postgres on the same host as Docker:** use `host.docker.internal` as host, e.g.  
+  `DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@host.docker.internal:5432/second_bloom?schema=public`
+- Use the same user and password that your Postgres was set up with. Then run `docker-compose up -d --force-recreate app`.
 
 ### When you change the database password
 

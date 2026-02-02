@@ -196,7 +196,6 @@ export class NotificationService {
       };
     }
 
-    // Fallback for other types: generic system notification
     if (lang === 'ru') {
       return {
         title: 'Уведомление',

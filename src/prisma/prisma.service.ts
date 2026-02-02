@@ -37,8 +37,12 @@ export class PrismaService
       min?: number;
       idleTimeoutMillis?: number;
       connectionTimeoutMillis?: number;
+      ssl?: { rejectUnauthorized: boolean };
     } = {
       connectionString,
+      ...(connectionString.includes('sslmode=require') && {
+        ssl: { rejectUnauthorized: false },
+      }),
     };
 
     if (process.env.NODE_ENV === 'production') {

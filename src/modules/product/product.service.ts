@@ -266,7 +266,6 @@ export class ProductService {
           },
         };
       }
-      // salePhase === 'all': no extra filter
     }
 
     if (region) {

@@ -177,7 +177,6 @@ export class BidService {
 
     this.auctionGateway.notifyNewBid(dto.auctionId, bidResponse);
 
-    // Notify seller about new bid
     try {
       await this.notificationService.notifyNewBidForSeller({
         sellerId: auction.creatorId,
@@ -232,7 +231,6 @@ export class BidService {
         );
       }
 
-      // no-op: gateway notifications above already propagate updated auction state
     }
 
     return bidResponse;

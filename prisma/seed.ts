@@ -7,16 +7,40 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is not set in environment variables');
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const connectionString = process.env.DATABASE_URL;
+if (connectionString.includes('sslmode=require')) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
+const pool = new Pool({
+  connectionString,
+  ...(connectionString.includes('sslmode=require') && {
+    ssl: { rejectUnauthorized: false },
+  }),
+});
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Delete in dependency order (children before parents) to avoid FK violations
   console.log('🧹 Cleaning existing data...');
-  await prisma.message.deleteMany();
+  try {
+    await prisma.message.deleteMany();
+  } catch (e: unknown) {
+    if (
+      e &&
+      typeof e === 'object' &&
+      'code' in e &&
+      (e as { code: string }).code === 'P2021'
+    ) {
+      console.error(
+        '\n❌ The database is missing tables (e.g. messages). Run migrations first:\n   npx prisma migrate deploy\n   Then run: npx prisma db seed\n',
+      );
+      throw e;
+    }
+    throw e;
+  }
   await prisma.conversation.deleteMany();
   await prisma.bid.deleteMany();
   await prisma.auction.deleteMany();
@@ -259,7 +283,6 @@ async function main() {
   ];
   console.log(`✅ Created ${categories.length} categories`);
 
-  // Conditions (RU → EN): Самый свежий, Хорошее состояние, Теряет свежесть, Немного подвял, Заметно вянет, Вялый
   console.log('📋 Seeding conditions...');
   const conditions = await Promise.all([
     prisma.condition.create({
@@ -283,7 +306,6 @@ async function main() {
   ]);
   console.log('✅ Created 6 conditions');
 
-  // Sizes (RU → EN): Маленький, Средний, Объемный, Большой, Огромный
   console.log('📐 Seeding sizes...');
   const sizes = await Promise.all([
     prisma.size.create({ data: { name: 'Small', slug: 'small' } }),
