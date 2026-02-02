@@ -201,7 +201,7 @@ export class ProductService {
       isFeatured,
       type,
       status,
-      listFilter,
+      salePhase,
       region,
       city,
       minPrice,
@@ -215,7 +215,7 @@ export class ProductService {
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
       isActive: true,
-      ...(status ? {} : listFilter ? {} : { status: ProductStatus.ACTIVE }),
+      ...(status ? {} : salePhase ? {} : { status: ProductStatus.ACTIVE }),
     };
 
     if (search) {
@@ -247,8 +247,8 @@ export class ProductService {
       where.status = status;
     }
 
-    if (listFilter) {
-      if (listFilter === 'in_auction') {
+    if (salePhase) {
+      if (salePhase === 'in_auction') {
         where.auctions = {
           some: {
             status: 'ACTIVE',
@@ -256,9 +256,9 @@ export class ProductService {
             deletedAt: null,
           },
         };
-      } else if (listFilter === 'sold') {
+      } else if (salePhase === 'sold') {
         where.status = ProductStatus.SOLD;
-      } else if (listFilter === 'in_delivery') {
+      } else if (salePhase === 'in_delivery') {
         where.orders = {
           some: {
             status: { in: [OrderStatus.PROCESSING, OrderStatus.SHIPPED] },
@@ -266,7 +266,7 @@ export class ProductService {
           },
         };
       }
-      // listFilter === 'all': no extra filter
+      // salePhase === 'all': no extra filter
     }
 
     if (region) {
@@ -320,7 +320,7 @@ export class ProductService {
       maxLimit <= 50 &&
       !query.conditionId &&
       !query.sizeId &&
-      !listFilter;
+      !salePhase;
     const cacheKey = shouldCache
       ? this.cacheService.generateListKey(this.CACHE_PREFIX, {
           page,

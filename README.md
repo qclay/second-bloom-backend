@@ -121,13 +121,39 @@ If you run Postgres on your own (separate Docker, local install, or managed DB) 
 
 2. Run the app with Node (e.g. `npm run start:dev` or `npm run start:prod`). You do **not** need to start the `postgres` or `app` services from this repo’s docker-compose.
 
-### When you change the database password
+### When you see "Authentication failed... credentials for postgres are not valid"
 
-If you see **"Authentication failed... the provided database credentials for postgres are not valid"**:
+Postgres applies `POSTGRES_PASSWORD` **only when the data volume is first created**. If the volume already existed (e.g. from an earlier run), the DB still has the **old** password; the app uses the **new** one from `.env` → mismatch.
 
-- **Postgres run separately:** Update `DATABASE_URL` in `.env` with the new password, then **restart the app** (e.g. restart `npm run start:dev` or your process manager) so it loads the new URL.
+**Fix (keep data):** Set the password inside Postgres to match `POSTGRES_PASSWORD` in your `.env`, then restart the app.
 
-- **Using this repo’s docker-compose:** Update both `POSTGRES_PASSWORD` and `DATABASE_URL` in `.env` (same password in the URL; host is `postgres`). Then run `docker-compose up -d --force-recreate app`. Note: Postgres only reads `POSTGRES_PASSWORD` when the data volume is first created; if the DB already exists, change the password inside Postgres or wipe the volume and re-init.
+1. From the project root, connect using the password that **currently** works (often `postgres` if you never changed it before the first run). Replace `CURRENT_PASSWORD` with that, and `NEW_PASSWORD` with the value of `POSTGRES_PASSWORD` from `.env` (same as you want the app to use):
+
+   ```bash
+   PGPASSWORD='CURRENT_PASSWORD' docker-compose exec -T postgres psql -U postgres -c "ALTER USER postgres PASSWORD 'NEW_PASSWORD';"
+   ```
+
+   If the password contains special characters, run the same from inside the container and type the password when prompted:
+
+   ```bash
+   docker-compose exec postgres psql -U postgres -c "ALTER USER postgres PASSWORD 'YOUR_POSTGRES_PASSWORD_FROM_ENV';"
+   ```
+   (Enter the current password when psql asks for it.)
+
+2. Restart the app so it reconnects with the same credentials:
+
+   ```bash
+   docker-compose up -d --force-recreate app
+   ```
+
+**Fix (reset DB, data loss):** If you don’t know the current Postgres password, wipe the volume and re-init:
+
+   ```bash
+   docker-compose down -v
+   docker-compose up -d
+   ```
+
+- **Postgres run separately (not this docker-compose):** Update `DATABASE_URL` in `.env` with the correct password for that DB, then restart your app.
 
 ---
 
