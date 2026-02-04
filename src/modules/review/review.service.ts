@@ -211,8 +211,6 @@ export class ReviewService {
     const orderBy: Prisma.ReviewOrderByWithRelationInput = {};
     if (sortBy === 'rating') {
       orderBy.rating = sortOrder;
-    } else if (sortBy === 'helpfulCount') {
-      orderBy.helpfulCount = sortOrder;
     } else {
       orderBy.createdAt = sortOrder;
     }
@@ -434,20 +432,6 @@ export class ReviewService {
     });
 
     this.logger.log(`Review ${id} deleted by user ${userId}`);
-  }
-
-  async markHelpful(id: string, userId: string): Promise<ReviewResponseDto> {
-    const review = await this.reviewRepository.findById(id);
-
-    if (!review) {
-      throw new NotFoundException(`Review with ID ${id} not found`);
-    }
-
-    await this.reviewRepository.incrementHelpfulCount(id);
-
-    this.logger.log(`Review ${id} marked as helpful by user ${userId}`);
-
-    return this.findById(id);
   }
 
   private async updateUserRating(userId: string): Promise<void> {

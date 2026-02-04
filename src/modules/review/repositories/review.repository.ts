@@ -46,15 +46,4 @@ export class ReviewRepository implements IReviewRepository {
       orderBy: { createdAt: 'asc' },
     });
   }
-
-  async incrementHelpfulCount(id: string): Promise<Review> {
-    return this.prisma.review.update({
-      where: { id },
-      data: {
-        helpfulCount: {
-          increment: 1,
-        },
-      },
-    });
-  }
 }

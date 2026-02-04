@@ -8,5 +8,4 @@ export interface IReviewRepository {
   findMany(args: Prisma.ReviewFindManyArgs): Promise<Review[]>;
   count(args: Prisma.ReviewCountArgs): Promise<number>;
   findReplies(parentId: string): Promise<Review[]>;
-  incrementHelpfulCount(id: string): Promise<Review>;
 }

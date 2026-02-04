@@ -1,14 +1,32 @@
 import { Notification, NotificationType } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class NotificationResponseDto {
+  @ApiProperty()
   id!: string;
+
+  @ApiProperty()
   userId!: string;
+
+  @ApiProperty({ enum: NotificationType })
   type!: NotificationType;
+
+  @ApiProperty()
   title!: string;
+
+  @ApiProperty()
   message!: string;
+
+  @ApiProperty({ type: 'object', additionalProperties: true, nullable: true })
   data!: object | null;
+
+  @ApiProperty()
   isRead!: boolean;
+
+  @ApiProperty({ nullable: true })
   readAt!: Date | null;
+
+  @ApiProperty()
   createdAt!: Date;
 
   static fromEntity(notification: Notification): NotificationResponseDto {

@@ -63,7 +63,7 @@ export class ReviewQueryDto {
 
   @IsString()
   @IsOptional()
-  sortBy?: 'createdAt' | 'rating' | 'helpfulCount' = 'createdAt';
+  sortBy?: 'createdAt' | 'rating' = 'createdAt';
 
   @IsString()
   @IsOptional()

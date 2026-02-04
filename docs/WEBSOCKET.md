@@ -4,6 +4,46 @@ The app exposes two **Socket.IO** namespaces: **Auction** (live bids, outbid, en
 
 ---
 
+## Device connection: one base URL, same auth for both
+
+**One base URL, two paths:** Use your API base (e.g. `http://localhost:3000` or `https://your-api.com`). The device opens **two** connections if it needs both auction and chat:
+
+- Auction: `{BASE_URL}/auction`
+- Chat: `{BASE_URL}/chat`
+
+**User and device (and other) info:** Send everything in the **handshake** when connecting. The server does **not** use a separate “device info” URL or query; it only uses:
+
+| What        | Where to send | Required |
+|------------|----------------|----------|
+| **User**   | JWT only — server reads `userId` from token (`payload.sub` or `payload.id`) | Yes |
+| **Token**  | `Authorization: Bearer <token>`, or `auth.token`, or `query.token` | Yes |
+| **Device** | Optional: `auth.deviceId` or `query.deviceId` (Auction gateway stores it) | No |
+| **Others** | User-Agent, IP, platform are read from request headers automatically | — |
+
+So the device uses **one base URL** and the **same token (and optional deviceId)** for both connections. No need to send user id or profile separately — the server gets the user from the JWT.
+
+**Example (one device, both features):**
+
+```js
+const base = 'http://localhost:3000';
+const token = 'YOUR_JWT';
+const deviceId = 'optional-device-uuid';
+
+const auctionSocket = io(`${base}/auction`, {
+  auth: { token, deviceId },
+  transports: ['websocket'],
+});
+
+const chatSocket = io(`${base}/chat`, {
+  auth: { token },
+  transports: ['websocket'],
+});
+```
+
+If you need **only one connection** (e.g. app only does chat or only auctions), connect to the path you need; user is always identified by the JWT.
+
+---
+
 ## 1. Auction WebSocket (`/auction`)
 
 **Purpose:** Real-time updates for a specific auction (new bid, outbid, auction updated/ended/extended).
@@ -191,7 +231,62 @@ From a page that has your JWT (e.g. after login):
 
 Replace namespace and events for chat (`/chat`, `join_conversation`, `send_message`, etc.).
 
-### 3.5 Quick checklist
+### 3.5 Test with Postman (step-by-step)
+
+**Important:** The server does **not** have a `/ws` namespace. Use **`/auction`** or **`/chat`** only. Connecting to `http://localhost:3000/ws` causes **"Invalid namespace"** because no gateway listens on `/ws`.
+
+#### Step 1: Get a JWT
+
+- In Postman (or curl): **POST** `http://localhost:3000/api/v1/auth/verify`
+- Body (JSON): `{"countryCode":"+998","phoneNumber":"901234569","code":123456}` (use a real code after sending OTP, or run `npm run scripts:seed-otp` then use `123456`)
+- From the response, copy `accessToken`
+
+#### Step 2: New Socket.IO request
+
+- In Postman: **New** → **Socket.IO** (or **WebSocket**; choose Socket.IO if available)
+- Do **not** use `/ws`. The backend only has `/auction` and `/chat`
+
+#### Step 3: Set the URL
+
+- **For auction:** `http://localhost:3000/auction`
+- **For chat:** `http://localhost:3000/chat`
+- Use your real host/port if different (e.g. `https://your-api.com/auction`)
+
+#### Step 4: Add token (Params or Headers)
+
+- Open the **Params** tab
+- Add a query parameter:
+  - **Key:** `token`
+  - **Value:** paste your `accessToken`
+- Or in **Headers**: `Authorization` = `Bearer YOUR_ACCESS_TOKEN`
+
+#### Step 5: Connect
+
+- Click **Connect**
+- You should see the connection open and a **`connected`** event in the response (with `userId`, `socketId`)
+- If you see **"Invalid namespace"**, the URL path is wrong — use `/auction` or `/chat`, not `/ws`
+
+#### Step 6: Add listeners (optional)
+
+- In the **Events** / **Listeners** panel, add event names to listen for:
+  - **Auction:** `connected`, `new_bid`, `outbid`, `auction_ended`, `ping`
+  - **Chat:** `connected`, `new_message`, `user_typing`, `ping`
+- Incoming events will appear in the message list
+
+#### Step 7: Send events (Message tab)
+
+- Open the **Message** tab to emit events
+- **Auction:** event name `join_auction`, payload `{"auctionId":"<your-auction-uuid>"}`
+- **Chat:** event `join_conversation`, payload `{"conversationId":"<uuid>"}`; or `send_message` with `{"conversationId":"<uuid>","content":"Hello"}`
+- When you receive a **`ping`** event, send **`pong`** (payload optional) to keep the connection alive
+
+#### Step 8: Quick check
+
+- URL: `http://localhost:3000/auction`
+- Params: `token` = your JWT
+- Connect → add listener `connected` → you should see `connected` with `userId`. Then WebSocket + auth are working.
+
+### 3.6 Quick checklist
 
 | Check | Action |
 |-------|--------|

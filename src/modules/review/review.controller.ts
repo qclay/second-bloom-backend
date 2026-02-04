@@ -133,30 +133,4 @@ export class ReviewController {
   ): Promise<void> {
     return this.reviewService.deleteReview(id, userId, role);
   }
-
-  @Post(':id/helpful')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Mark review as helpful',
-    description:
-      'Marks a review as helpful. Users can mark reviews to help others identify useful feedback.',
-  })
-  @ApiCommonErrorResponses({ conflict: false })
-  @ApiResponse({
-    status: 200,
-    description: 'Review marked as helpful successfully',
-    type: ReviewResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Review not found',
-    type: ApiErrorResponseDto,
-  })
-  async markHelpful(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ): Promise<ReviewResponseDto> {
-    return this.reviewService.markHelpful(id, userId);
-  }
 }
