@@ -15,32 +15,69 @@ import { ConversationQueryDto } from './dto/conversation-query.dto';
 import { MessageQueryDto } from './dto/message-query.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { MarkMessagesReadDto } from './dto/mark-messages-read.dto';
-import { ConversationResponseDto } from './dto/conversation-response.dto';
+import {
+  ConversationResponseDto,
+  ConversationSellerBuyerDto,
+} from './dto/conversation-response.dto';
 import { ChatMessageResponseDto } from './dto/message-response.dto';
+import { ChatUsersQueryDto } from './dto/chat-users-query.dto';
+import { ChatUserItemDto } from './dto/chat-user-item.dto';
 import { Prisma, MessageType, DeliveryStatus } from '@prisma/client';
+import { resolveTranslation } from '../../common/i18n/translation.util';
+
+const CONVERSATION_INCLUDE = {
+  participants: {
+    include: {
+      user: {
+        select: {
+          id: true,
+          phoneNumber: true,
+          phoneCountryCode: true,
+          firstName: true,
+          lastName: true,
+          avatar: { select: { url: true } },
+        },
+      },
+    },
+  },
+  lastMessage: true,
+  product: {
+    include: {
+      seller: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phoneNumber: true,
+          phoneCountryCode: true,
+          avatar: { select: { url: true } },
+        },
+      },
+      images: {
+        take: 1,
+        orderBy: { displayOrder: 'asc' as const },
+        select: { file: { select: { url: true } } },
+      },
+    },
+  },
+  order: {
+    include: {
+      buyer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phoneNumber: true,
+          phoneCountryCode: true,
+          avatar: { select: { url: true } },
+        },
+      },
+    },
+  },
+} as const;
 
 type ConversationWithRelations = Prisma.ConversationGetPayload<{
-  include: {
-    seller: {
-      select: {
-        id: true;
-        phoneNumber: true;
-        firstName: true;
-        lastName: true;
-        avatar: { select: { url: true } };
-      };
-    };
-    buyer: {
-      select: {
-        id: true;
-        phoneNumber: true;
-        firstName: true;
-        lastName: true;
-        avatar: { select: { url: true } };
-      };
-    };
-    lastMessage: true;
-  };
+  include: typeof CONVERSATION_INCLUDE;
 }>;
 
 type MessageWithRelations = Prisma.MessageGetPayload<{
@@ -81,104 +118,90 @@ export class ChatService {
     dto: CreateConversationDto,
     userId: string,
   ): Promise<ConversationResponseDto> {
-    if (!dto.productId && !dto.orderId) {
+    if (!dto.otherUserId) {
+      throw new BadRequestException('otherUserId is required');
+    }
+    if (dto.otherUserId === userId) {
       throw new BadRequestException(
-        'Either productId or orderId must be provided',
+        'You cannot start a conversation with yourself',
       );
     }
 
     return this.prisma.$transaction(async (tx) => {
-      let sellerId: string;
-      const buyerId = userId;
-      let productId = dto.productId;
-      let orderId = dto.orderId;
+      let productId: string | undefined;
+      let orderId: string | undefined;
 
-      if (dto.orderId) {
-        const order = await tx.order.findUnique({
-          where: { id: dto.orderId },
-          include: { product: true },
+      if (dto.productId) {
+        const product = await tx.product.findFirst({
+          where: { id: dto.productId, deletedAt: null, isActive: true },
+          select: { id: true, sellerId: true },
         });
-
-        if (!order) {
-          throw new NotFoundException('Order not found');
-        }
-
-        if (order.buyerId !== userId) {
-          throw new ForbiddenException(
-            'You can only create conversations for your own orders',
-          );
-        }
-
-        sellerId = order.product.sellerId;
-        productId = order.productId;
-        orderId = order.id;
-      } else if (dto.productId) {
-        const product = await tx.product.findUnique({
-          where: { id: dto.productId },
-        });
-
         if (!product) {
           throw new NotFoundException('Product not found');
         }
-
-        if (product.sellerId === userId) {
+        const sellerId = product.sellerId;
+        const isSeller = userId === sellerId || dto.otherUserId === sellerId;
+        if (!isSeller) {
           throw new BadRequestException(
-            'You cannot start a conversation with yourself',
+            'One participant must be the product seller to pin this product',
           );
         }
-
-        sellerId = product.sellerId;
-      } else {
-        throw new BadRequestException('Invalid conversation context');
+        productId = product.id;
       }
 
-      const existingConversation = await tx.conversation.findFirst({
+      if (dto.orderId) {
+        const order = await tx.order.findFirst({
+          where: { id: dto.orderId, deletedAt: null, isActive: true },
+          include: { product: { select: { sellerId: true } } },
+        });
+        if (!order) {
+          throw new NotFoundException('Order not found');
+        }
+        const buyerId = order.buyerId;
+        const sellerId = order.product.sellerId;
+        const allowed =
+          (userId === buyerId && dto.otherUserId === sellerId) ||
+          (userId === sellerId && dto.otherUserId === buyerId);
+        if (!allowed) {
+          throw new BadRequestException(
+            'Conversation participants must be the order buyer and seller to pin this order',
+          );
+        }
+        if (productId && order.productId !== productId) {
+          throw new BadRequestException(
+            'Pinned order must be for the pinned product',
+          );
+        }
+        orderId = order.id;
+      }
+
+      const sameProductFilter =
+        productId !== undefined
+          ? productId
+            ? { productId }
+            : { productId: null }
+          : { productId: null };
+      const sameOrderFilter =
+        orderId !== undefined
+          ? orderId
+            ? { orderId }
+            : { orderId: null }
+          : { orderId: null };
+
+      let conversation = await tx.conversation.findFirst({
         where: {
-          sellerId,
-          buyerId,
-          ...(orderId ? { orderId } : { productId }),
-          deletedAt: null,
+          AND: [
+            { participants: { some: { userId } } },
+            { participants: { some: { userId: dto.otherUserId } } },
+            { deletedAt: null },
+            sameProductFilter,
+            sameOrderFilter,
+          ],
         },
+        include: CONVERSATION_INCLUDE,
       });
 
-      if (existingConversation) {
-        const conversation = await tx.conversation.findUnique({
-          where: { id: existingConversation.id },
-          include: {
-            seller: {
-              select: {
-                id: true,
-                phoneNumber: true,
-                firstName: true,
-                lastName: true,
-                avatar: {
-                  select: {
-                    url: true,
-                  },
-                },
-              },
-            },
-            buyer: {
-              select: {
-                id: true,
-                phoneNumber: true,
-                firstName: true,
-                lastName: true,
-                avatar: {
-                  select: {
-                    url: true,
-                  },
-                },
-              },
-            },
-            lastMessage: true,
-          },
-        });
-
-        if (!conversation) {
-          throw new NotFoundException('Conversation not found');
-        }
-
+      if (conversation) {
         if (dto.initialMessage) {
           await this.sendMessageInternal(
             {
@@ -189,74 +212,132 @@ export class ChatService {
             userId,
             tx,
           );
+          conversation = (await tx.conversation.findUnique({
+            where: { id: conversation.id },
+            include: CONVERSATION_INCLUDE,
+          })) as ConversationWithRelations;
         }
-
+        if (productId !== undefined || orderId !== undefined) {
+          await tx.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              ...(productId !== undefined && {
+                product: productId
+                  ? { connect: { id: productId } }
+                  : { disconnect: true },
+              }),
+              ...(orderId !== undefined && {
+                order: orderId
+                  ? { connect: { id: orderId } }
+                  : { disconnect: true },
+              }),
+            },
+          });
+          conversation = (await tx.conversation.findUnique({
+            where: { id: conversation.id },
+            include: CONVERSATION_INCLUDE,
+          })) as ConversationWithRelations;
+        }
         return this.mapConversationToDto(
           conversation as ConversationWithRelations,
           userId,
         );
       }
 
-      const conversation = await tx.conversation.create({
+      const created = await tx.conversation.create({
         data: {
-          seller: { connect: { id: sellerId } },
-          buyer: { connect: { id: buyerId } },
-          ...(orderId ? { order: { connect: { id: orderId } } } : {}),
-          ...(productId ? { product: { connect: { id: productId } } } : {}),
+          participants: {
+            create: [{ userId }, { userId: dto.otherUserId }],
+          },
+          ...(productId && { product: { connect: { id: productId } } }),
+          ...(orderId && { order: { connect: { id: orderId } } }),
         },
+        include: CONVERSATION_INCLUDE,
       });
 
       if (dto.initialMessage) {
         await this.sendMessageInternal(
           {
-            conversationId: conversation.id,
+            conversationId: created.id,
             content: dto.initialMessage,
             messageType: MessageType.TEXT,
           },
           userId,
           tx,
         );
+
+        const refreshed = await tx.conversation.findUnique({
+          where: { id: created.id },
+          include: CONVERSATION_INCLUDE,
+        });
+
+        if (!refreshed) {
+          throw new NotFoundException('Conversation not found');
+        }
+
+        return this.mapConversationToDto(refreshed, userId);
       }
 
-      const fullConversation = await tx.conversation.findUnique({
-        where: { id: conversation.id },
-        include: {
-          seller: {
-            select: {
-              id: true,
-              phoneNumber: true,
-              firstName: true,
-              lastName: true,
-              avatar: {
-                select: {
-                  url: true,
-                },
-              },
-            },
-          },
-          buyer: {
-            select: {
-              id: true,
-              phoneNumber: true,
-              firstName: true,
-              lastName: true,
-              avatar: {
-                select: {
-                  url: true,
-                },
-              },
-            },
-          },
-          lastMessage: true,
-        },
-      });
-
-      if (!fullConversation) {
-        throw new NotFoundException('Conversation not found');
-      }
-
-      return this.mapConversationToDto(fullConversation, userId);
+      return this.mapConversationToDto(created, userId);
     });
+  }
+
+  async getUsersForChat(
+    userId: string,
+    query: ChatUsersQueryDto,
+  ): Promise<{
+    data: ChatUserItemDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 20, 100);
+    const skip = (page - 1) * limit;
+    const search = query.search?.trim();
+
+    const where: Prisma.UserWhereInput = {
+      id: { not: userId },
+      deletedAt: null,
+      isActive: true,
+      ...(search &&
+        search.length > 0 && {
+          OR: [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+            { phoneNumber: { contains: search, mode: 'insensitive' } },
+          ],
+        }),
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          phoneNumber: true,
+          phoneCountryCode: true,
+          firstName: true,
+          lastName: true,
+        },
+        orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    const data: ChatUserItemDto[] = users.map((u) => ({
+      id: u.id,
+      phoneNumber: u.phoneCountryCode
+        ? `${u.phoneCountryCode}${u.phoneNumber}`
+        : u.phoneNumber,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      productCount: 0,
+    }));
+
+    return { data, total, page, limit };
   }
 
   async getConversations(
@@ -273,50 +354,19 @@ export class ChatService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.ConversationWhereInput = {
-      OR: [{ sellerId: userId }, { buyerId: userId }],
+      participants: {
+        some: {
+          userId,
+          ...(query.archived !== undefined && { isArchived: query.archived }),
+        },
+      },
       deletedAt: null,
-      ...(query.archived !== undefined && {
-        OR: [
-          { sellerId: userId, isArchivedBySeller: query.archived },
-          { buyerId: userId, isArchivedByBuyer: query.archived },
-        ],
-      }),
-      ...(query.orderId && { orderId: query.orderId }),
-      ...(query.productId && { productId: query.productId }),
     };
 
     const [conversations, total] = await Promise.all([
       this.conversationRepository.findMany(
         where,
-        {
-          seller: {
-            select: {
-              id: true,
-              phoneNumber: true,
-              firstName: true,
-              lastName: true,
-              avatar: {
-                select: {
-                  url: true,
-                },
-              },
-            },
-          },
-          buyer: {
-            select: {
-              id: true,
-              phoneNumber: true,
-              firstName: true,
-              lastName: true,
-              avatar: {
-                select: {
-                  url: true,
-                },
-              },
-            },
-          },
-          lastMessage: true,
-        },
+        CONVERSATION_INCLUDE,
         { lastMessageAt: 'desc' },
         limit,
         skip,
@@ -338,50 +388,24 @@ export class ChatService {
     id: string,
     userId: string,
   ): Promise<ConversationResponseDto> {
-    const conversation = await this.conversationRepository.findById(id, {
-      seller: {
-        select: {
-          id: true,
-          phoneNumber: true,
-          firstName: true,
-          lastName: true,
-          avatar: {
-            select: {
-              url: true,
-            },
-          },
-        },
-      },
-      buyer: {
-        select: {
-          id: true,
-          phoneNumber: true,
-          firstName: true,
-          lastName: true,
-          avatar: {
-            select: {
-              url: true,
-            },
-          },
-        },
-      },
-      lastMessage: true,
-    });
+    const conversation = await this.conversationRepository.findById(
+      id,
+      CONVERSATION_INCLUDE,
+    );
 
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
     }
 
-    if (conversation.sellerId !== userId && conversation.buyerId !== userId) {
+    const conv = conversation as unknown as ConversationWithRelations;
+    const isParticipant = conv.participants.some((p) => p.userId === userId);
+    if (!isParticipant) {
       throw new ForbiddenException(
         'You do not have access to this conversation',
       );
     }
 
-    return this.mapConversationToDto(
-      conversation as ConversationWithRelations,
-      userId,
-    );
+    return this.mapConversationToDto(conv, userId);
   }
 
   async sendMessage(
@@ -401,8 +425,9 @@ export class ChatService {
     const conversation = await tx.conversation.findUnique({
       where: { id: dto.conversationId },
       include: {
-        seller: true,
-        buyer: true,
+        participants: {
+          include: { user: true },
+        },
       },
     });
 
@@ -410,7 +435,10 @@ export class ChatService {
       throw new NotFoundException('Conversation not found');
     }
 
-    if (conversation.sellerId !== userId && conversation.buyerId !== userId) {
+    const myParticipant = conversation.participants.find(
+      (p) => p.userId === userId,
+    );
+    if (!myParticipant) {
       throw new ForbiddenException(
         'You do not have access to this conversation',
       );
@@ -420,12 +448,10 @@ export class ChatService {
       throw new BadRequestException('Conversation has been deleted');
     }
 
-    const isSeller = conversation.sellerId === userId;
-    const isBlocked = isSeller
-      ? conversation.isBlockedByBuyer
-      : conversation.isBlockedBySeller;
-
-    if (isBlocked) {
+    const otherParticipant = conversation.participants.find(
+      (p) => p.userId !== userId,
+    );
+    if (otherParticipant?.isBlocked) {
       throw new ForbiddenException('You are blocked in this conversation');
     }
 
@@ -478,11 +504,7 @@ export class ChatService {
             phoneNumber: true,
             firstName: true,
             lastName: true,
-            avatar: {
-              select: {
-                url: true,
-              },
-            },
+            avatar: { select: { url: true } },
           },
         },
         file: {
@@ -502,29 +524,33 @@ export class ChatService {
       data: {
         lastMessageId: message.id,
         lastMessageAt: message.createdAt,
-        ...(isSeller
-          ? { unreadCountByBuyer: { increment: 1 } }
-          : { unreadCountBySeller: { increment: 1 } }),
       },
     });
 
-    const recipientId = isSeller ? conversation.buyerId : conversation.sellerId;
-    const sender = isSeller ? conversation.seller : conversation.buyer;
-
-    try {
-      await this.notificationService.notifyNewMessage({
-        recipientId,
-        conversationId: dto.conversationId,
-        productId: conversation.productId ?? undefined,
-        orderId: conversation.orderId ?? undefined,
-        senderName:
-          sender.firstName || sender.lastName || sender.phoneNumber || null,
+    if (otherParticipant) {
+      await tx.conversationParticipant.update({
+        where: { id: otherParticipant.id },
+        data: { unreadCount: { increment: 1 } },
       });
-    } catch (error) {
-      this.logger.error(
-        `Failed to send NEW_MESSAGE notification for conversation ${dto.conversationId}`,
-        error instanceof Error ? error.stack : error,
-      );
+    }
+
+    const sender = myParticipant.user;
+    const senderName =
+      sender.firstName || sender.lastName || sender.phoneNumber || null;
+
+    if (otherParticipant) {
+      try {
+        await this.notificationService.notifyNewMessage({
+          recipientId: otherParticipant.userId,
+          conversationId: dto.conversationId,
+          senderName,
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to send NEW_MESSAGE notification for conversation ${dto.conversationId}`,
+          error instanceof Error ? error.stack : error,
+        );
+      }
     }
 
     return this.mapMessageToDto(message);
@@ -541,42 +567,17 @@ export class ChatService {
   }> {
     const conversation = await this.conversationRepository.findById(
       conversationId,
-      {
-        seller: {
-          select: {
-            id: true,
-            phoneNumber: true,
-            firstName: true,
-            lastName: true,
-            avatar: {
-              select: {
-                url: true,
-              },
-            },
-          },
-        },
-        buyer: {
-          select: {
-            id: true,
-            phoneNumber: true,
-            firstName: true,
-            lastName: true,
-            avatar: {
-              select: {
-                url: true,
-              },
-            },
-          },
-        },
-        lastMessage: true,
-      },
+      { participants: true },
     );
 
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
     }
 
-    if (conversation.sellerId !== userId && conversation.buyerId !== userId) {
+    const conv = conversation as unknown as {
+      participants: { userId: string }[];
+    };
+    if (!conv.participants.some((p) => p.userId === userId)) {
       throw new ForbiddenException(
         'You do not have access to this conversation',
       );
@@ -595,9 +596,7 @@ export class ChatService {
       conversationId,
       isDeleted: false,
       ...(cursorCreatedAt && {
-        createdAt: {
-          lt: cursorCreatedAt,
-        },
+        createdAt: { lt: cursorCreatedAt },
       }),
     };
 
@@ -610,11 +609,7 @@ export class ChatService {
             phoneNumber: true,
             firstName: true,
             lastName: true,
-            avatar: {
-              select: {
-                url: true,
-              },
-            },
+            avatar: { select: { url: true } },
           },
         },
         file: {
@@ -647,15 +642,16 @@ export class ChatService {
     dto: MarkMessagesReadDto,
     userId: string,
   ): Promise<{ count: number }> {
-    const conversation = await this.conversationRepository.findById(
-      dto.conversationId,
-    );
+    const participant = await this.prisma.conversationParticipant.findUnique({
+      where: {
+        conversationId_userId: {
+          conversationId: dto.conversationId,
+          userId,
+        },
+      },
+    });
 
-    if (!conversation) {
-      throw new NotFoundException('Conversation not found');
-    }
-
-    if (conversation.sellerId !== userId && conversation.buyerId !== userId) {
+    if (!participant) {
       throw new ForbiddenException(
         'You do not have access to this conversation',
       );
@@ -667,27 +663,20 @@ export class ChatService {
       dto.messageIds,
     );
 
-    const isSeller = conversation.sellerId === userId;
-    const unreadCount = isSeller
-      ? conversation.unreadCountBySeller
-      : conversation.unreadCountByBuyer;
-
-    if (unreadCount > 0) {
-      await this.conversationRepository.update(
-        { id: dto.conversationId },
-        {
-          ...(isSeller
-            ? { unreadCountBySeller: Math.max(0, unreadCount - result.count) }
-            : { unreadCountByBuyer: Math.max(0, unreadCount - result.count) }),
+    if (participant.unreadCount > 0) {
+      await this.prisma.conversationParticipant.update({
+        where: { id: participant.id },
+        data: {
+          unreadCount: Math.max(0, participant.unreadCount - result.count),
+          lastSeenAt: new Date(),
         },
-      );
+      });
+    } else {
+      await this.prisma.conversationParticipant.update({
+        where: { id: participant.id },
+        data: { lastSeenAt: new Date() },
+      });
     }
-
-    await this.conversationRepository.updateLastSeen(
-      dto.conversationId,
-      isSeller,
-      new Date(),
-    );
 
     return result;
   }
@@ -697,69 +686,109 @@ export class ChatService {
     dto: UpdateConversationDto,
     userId: string,
   ): Promise<ConversationResponseDto> {
-    const conversation = await this.conversationRepository.findById(id);
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id },
+      include: { participants: { select: { userId: true } } },
+    });
 
-    if (!conversation) {
+    if (!conversation || conversation.deletedAt) {
       throw new NotFoundException('Conversation not found');
     }
 
-    if (conversation.sellerId !== userId && conversation.buyerId !== userId) {
+    const isParticipant = conversation.participants.some(
+      (p) => p.userId === userId,
+    );
+    if (!isParticipant) {
       throw new ForbiddenException(
         'You do not have access to this conversation',
       );
     }
 
-    const isSeller = conversation.sellerId === userId;
-    const updateData: Prisma.ConversationUpdateInput = {};
-
-    if (dto.isArchived !== undefined) {
-      updateData[isSeller ? 'isArchivedBySeller' : 'isArchivedByBuyer'] =
-        dto.isArchived;
-    }
-
-    if (dto.isBlocked !== undefined) {
-      updateData[isSeller ? 'isBlockedBySeller' : 'isBlockedByBuyer'] =
-        dto.isBlocked;
-    }
-
-    await this.conversationRepository.update({ id }, updateData);
-
-    const updated = await this.conversationRepository.findById(id, {
-      seller: {
-        select: {
-          id: true,
-          phoneNumber: true,
-          firstName: true,
-          lastName: true,
-          avatar: {
-            select: {
-              url: true,
-            },
-          },
-        },
+    const participant = await this.prisma.conversationParticipant.findUnique({
+      where: {
+        conversationId_userId: { conversationId: id, userId },
       },
-      buyer: {
-        select: {
-          id: true,
-          phoneNumber: true,
-          firstName: true,
-          lastName: true,
-          avatar: {
-            select: {
-              url: true,
-            },
-          },
-        },
-      },
-      lastMessage: true,
     });
+
+    if (!participant) {
+      throw new ForbiddenException(
+        'You do not have access to this conversation',
+      );
+    }
+
+    const participantUpdateData: Prisma.ConversationParticipantUpdateInput = {};
+    if (dto.isArchived !== undefined) {
+      participantUpdateData.isArchived = dto.isArchived;
+    }
+    if (dto.isBlocked !== undefined) {
+      participantUpdateData.isBlocked = dto.isBlocked;
+    }
+    if (Object.keys(participantUpdateData).length > 0) {
+      await this.prisma.conversationParticipant.update({
+        where: { id: participant.id },
+        data: participantUpdateData,
+      });
+    }
+
+    const conversationUpdateData: Prisma.ConversationUpdateInput = {};
+    const participantIds = conversation.participants.map((p) => p.userId);
+
+    if (dto.productId !== undefined) {
+      if (dto.productId) {
+        const product = await this.prisma.product.findFirst({
+          where: { id: dto.productId, deletedAt: null, isActive: true },
+          select: { sellerId: true },
+        });
+        if (!product) {
+          throw new NotFoundException('Product not found');
+        }
+        if (!participantIds.includes(product.sellerId)) {
+          throw new BadRequestException(
+            'Product seller must be a conversation participant',
+          );
+        }
+        conversationUpdateData.product = { connect: { id: dto.productId } };
+      } else {
+        conversationUpdateData.product = { disconnect: true };
+      }
+    }
+    if (dto.orderId !== undefined) {
+      if (dto.orderId) {
+        const order = await this.prisma.order.findFirst({
+          where: { id: dto.orderId, deletedAt: null, isActive: true },
+          include: { product: { select: { sellerId: true } } },
+        });
+        if (!order) {
+          throw new NotFoundException('Order not found');
+        }
+        const allowed =
+          participantIds.includes(order.buyerId) &&
+          participantIds.includes(order.product.sellerId);
+        if (!allowed) {
+          throw new BadRequestException(
+            'Order buyer and seller must be conversation participants',
+          );
+        }
+        conversationUpdateData.order = { connect: { id: dto.orderId } };
+      } else {
+        conversationUpdateData.order = { disconnect: true };
+      }
+    }
+    if (Object.keys(conversationUpdateData).length > 0) {
+      await this.conversationRepository.update({ id }, conversationUpdateData);
+    }
+
+    const updated = await this.conversationRepository.findById(
+      id,
+      CONVERSATION_INCLUDE,
+    );
 
     if (!updated) {
       throw new NotFoundException('Conversation not found');
     }
 
     return this.mapConversationToDto(
-      updated as ConversationWithRelations,
+      updated as unknown as ConversationWithRelations,
       userId,
     );
   }
@@ -801,11 +830,7 @@ export class ChatService {
             phoneNumber: true,
             firstName: true,
             lastName: true,
-            avatar: {
-              select: {
-                url: true,
-              },
-            },
+            avatar: { select: { url: true } },
           },
         },
         file: {
@@ -868,11 +893,7 @@ export class ChatService {
             phoneNumber: true,
             firstName: true,
             lastName: true,
-            avatar: {
-              select: {
-                url: true,
-              },
-            },
+            avatar: { select: { url: true } },
           },
         },
         file: {
@@ -898,49 +919,31 @@ export class ChatService {
     conversationId: string,
     userId: string,
   ): Promise<{ count: number }> {
-    const conversation =
-      await this.conversationRepository.findById(conversationId);
+    const participant = await this.prisma.conversationParticipant.findUnique({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+    });
 
-    if (!conversation) {
-      throw new NotFoundException('Conversation not found');
-    }
-
-    if (conversation.sellerId !== userId && conversation.buyerId !== userId) {
+    if (!participant) {
       throw new ForbiddenException(
         'You do not have access to this conversation',
       );
     }
 
-    const isSeller = conversation.sellerId === userId;
-    const count = isSeller
-      ? conversation.unreadCountBySeller
-      : conversation.unreadCountByBuyer;
-
-    return { count };
+    return { count: participant.unreadCount };
   }
 
   async getTotalUnreadCount(userId: string): Promise<{ count: number }> {
-    const conversations = await this.prisma.conversation.findMany({
+    const result = await this.prisma.conversationParticipant.aggregate({
       where: {
-        OR: [{ sellerId: userId }, { buyerId: userId }],
-        deletedAt: null,
+        userId,
+        conversation: { deletedAt: null },
       },
-      select: {
-        sellerId: true,
-        buyerId: true,
-        unreadCountBySeller: true,
-        unreadCountByBuyer: true,
-      },
+      _sum: { unreadCount: true },
     });
 
-    const total = conversations.reduce((sum, conv) => {
-      const isSeller = conv.sellerId === userId;
-      return (
-        sum + (isSeller ? conv.unreadCountBySeller : conv.unreadCountByBuyer)
-      );
-    }, 0);
-
-    return { count: total };
+    return { count: result._sum.unreadCount ?? 0 };
   }
 
   async getStatistics(userId: string): Promise<{
@@ -949,26 +952,22 @@ export class ChatService {
     archivedConversations: number;
     totalMessages: number;
   }> {
-    const [conversations, unreadCount, messagesCount] = await Promise.all([
-      this.prisma.conversation.findMany({
+    const [participants, unreadCount, messagesCount] = await Promise.all([
+      this.prisma.conversationParticipant.findMany({
         where: {
-          OR: [{ sellerId: userId }, { buyerId: userId }],
-          deletedAt: null,
+          userId,
+          conversation: { deletedAt: null },
         },
         select: {
-          sellerId: true,
-          buyerId: true,
-          isArchivedBySeller: true,
-          isArchivedByBuyer: true,
-          unreadCountBySeller: true,
-          unreadCountByBuyer: true,
+          unreadCount: true,
+          isArchived: true,
         },
       }),
       this.getTotalUnreadCount(userId),
       this.prisma.message.count({
         where: {
           conversation: {
-            OR: [{ sellerId: userId }, { buyerId: userId }],
+            participants: { some: { userId } },
             deletedAt: null,
           },
           deletedAt: null,
@@ -976,16 +975,70 @@ export class ChatService {
       }),
     ]);
 
-    const archived = conversations.filter((conv) => {
-      const isSeller = conv.sellerId === userId;
-      return isSeller ? conv.isArchivedBySeller : conv.isArchivedByBuyer;
-    }).length;
+    const archived = participants.filter((p) => p.isArchived).length;
 
     return {
-      totalConversations: conversations.length,
+      totalConversations: participants.length,
       unreadMessages: unreadCount.count,
       archivedConversations: archived,
       totalMessages: messagesCount,
+    };
+  }
+
+  async getConversationIds(userId: string): Promise<string[]> {
+    const participants = await this.prisma.conversationParticipant.findMany({
+      where: { userId, conversation: { deletedAt: null } },
+      select: { conversationId: true },
+    });
+    return participants.map((p) => p.conversationId);
+  }
+
+  async getOtherParticipantId(
+    conversationId: string,
+    userId: string,
+  ): Promise<string | null> {
+    const other = await this.prisma.conversationParticipant.findFirst({
+      where: { conversationId, userId: { not: userId } },
+      select: { userId: true },
+    });
+    return other?.userId ?? null;
+  }
+
+  isUserOnline(userId: string): boolean {
+    return this._onlineUsers.has(userId);
+  }
+
+  private _onlineUsers = new Set<string>();
+
+  setUserOnline(userId: string): void {
+    this._onlineUsers.add(userId);
+  }
+
+  setUserOffline(userId: string): void {
+    this._onlineUsers.delete(userId);
+  }
+
+  getOnlineUserIds(): Set<string> {
+    return this._onlineUsers;
+  }
+
+  private mapUserToSellerBuyer(u: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    phoneNumber: string;
+    phoneCountryCode: string | null;
+    avatar: { url: string } | null;
+  }): ConversationSellerBuyerDto {
+    const phoneNumber = u.phoneCountryCode
+      ? `${u.phoneCountryCode}${u.phoneNumber}`
+      : u.phoneNumber;
+    return {
+      id: u.id,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      phoneNumber,
+      avatarUrl: u.avatar?.url ?? null,
     };
   }
 
@@ -993,35 +1046,138 @@ export class ChatService {
     conversation: ConversationWithRelations,
     userId: string,
   ): ConversationResponseDto {
-    const isSeller = conversation.sellerId === userId;
+    const myParticipant = conversation.participants.find(
+      (p) => p.userId === userId,
+    );
+
+    const participants = conversation.participants.map((p) => {
+      const u = p.user;
+      const phoneNumber = u.phoneCountryCode
+        ? `${u.phoneCountryCode}${u.phoneNumber}`
+        : u.phoneNumber;
+      return {
+        id: u.id,
+        phoneNumber,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        avatarUrl: u.avatar?.url || null,
+      };
+    });
+
+    let seller: ConversationResponseDto['seller'] = null;
+    let buyer: ConversationResponseDto['buyer'] = null;
+    let pinnedProduct: ConversationResponseDto['pinnedProduct'] = null;
+    let pinnedOrder: ConversationResponseDto['pinnedOrder'] = null;
+
+    const conv = conversation as ConversationWithRelations & {
+      product?: {
+        id: string;
+        slug: string;
+        title: unknown;
+        price: { toNumber?: () => number };
+        currency: string;
+        seller?: {
+          id: string;
+          firstName: string | null;
+          lastName: string | null;
+          phoneNumber: string;
+          phoneCountryCode: string | null;
+          avatar: { url: string } | null;
+        };
+        images?: { file: { url: string } }[];
+      };
+      order?: {
+        id: string;
+        orderNumber: string;
+        amount: { toNumber?: () => number };
+        status: string;
+        shippedAt: Date | null;
+        deliveredAt: Date | null;
+        buyer?: {
+          id: string;
+          firstName: string | null;
+          lastName: string | null;
+          phoneNumber: string;
+          phoneCountryCode: string | null;
+          avatar: { url: string } | null;
+        };
+      };
+    };
+
+    if (conv.product) {
+      const p = conv.product;
+      const price =
+        typeof p.price === 'object' && p.price && 'toNumber' in p.price
+          ? (p.price as { toNumber: () => number }).toNumber()
+          : Number(p.price);
+      seller = p.seller
+        ? this.mapUserToSellerBuyer({
+            ...p.seller,
+            avatar: p.seller.avatar ? { url: p.seller.avatar.url } : null,
+          })
+        : null;
+      pinnedProduct = {
+        id: p.id,
+        slug: p.slug,
+        title:
+          resolveTranslation(p.title as Record<string, string>, null) ?? '',
+        price,
+        currency: p.currency,
+        imageUrl: p.images?.[0]?.file?.url ?? null,
+      };
+    }
+
+    if (conv.order) {
+      const o = conv.order;
+      const amount =
+        typeof o.amount === 'object' && o.amount && 'toNumber' in o.amount
+          ? (o.amount as { toNumber: () => number }).toNumber()
+          : Number(o.amount);
+      if (o.buyer) {
+        buyer = this.mapUserToSellerBuyer({
+          ...o.buyer,
+          avatar: o.buyer.avatar ? { url: o.buyer.avatar.url } : null,
+        });
+      }
+      pinnedOrder = {
+        id: o.id,
+        orderNumber: o.orderNumber,
+        amount,
+        status: o.status,
+        progress: {
+          status: o.status,
+          shippedAt: o.shippedAt ?? undefined,
+          deliveredAt: o.deliveredAt ?? undefined,
+        },
+      };
+    }
+
+    if (
+      !buyer &&
+      conv.product?.seller &&
+      conversation.participants.length === 2
+    ) {
+      const other = conversation.participants.find(
+        (p) => p.userId !== conv.product.seller!.id,
+      );
+      if (other?.user) {
+        buyer = this.mapUserToSellerBuyer({
+          id: other.user.id,
+          firstName: other.user.firstName,
+          lastName: other.user.lastName,
+          phoneNumber: other.user.phoneNumber,
+          phoneCountryCode: other.user.phoneCountryCode,
+          avatar: other.user.avatar,
+        });
+      }
+    }
 
     return {
       id: conversation.id,
-      seller: {
-        id: conversation.seller.id,
-        phoneNumber: conversation.seller.phoneNumber,
-        firstName: conversation.seller.firstName,
-        lastName: conversation.seller.lastName,
-        avatarUrl: conversation.seller.avatar?.url || null,
-      },
-      buyer: {
-        id: conversation.buyer.id,
-        phoneNumber: conversation.buyer.phoneNumber,
-        firstName: conversation.buyer.firstName,
-        lastName: conversation.buyer.lastName,
-        avatarUrl: conversation.buyer.avatar?.url || null,
-      },
-      orderId: conversation.orderId,
-      productId: conversation.productId,
-      unreadCount: isSeller
-        ? conversation.unreadCountBySeller
-        : conversation.unreadCountByBuyer,
-      isArchived: isSeller
-        ? conversation.isArchivedBySeller
-        : conversation.isArchivedByBuyer,
-      isBlocked: isSeller
-        ? conversation.isBlockedByBuyer
-        : conversation.isBlockedBySeller,
+      participants,
+      unreadCount: myParticipant?.unreadCount ?? 0,
+      isArchived: myParticipant?.isArchived ?? false,
+      isBlocked: myParticipant?.isBlocked ?? false,
       lastMessageAt: conversation.lastMessageAt,
       lastMessage: conversation.lastMessage
         ? {
@@ -1034,6 +1190,10 @@ export class ChatService {
         : null,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
+      seller: seller ?? undefined,
+      buyer: buyer ?? undefined,
+      pinnedProduct: pinnedProduct ?? undefined,
+      pinnedOrder: pinnedOrder ?? undefined,
     };
   }
 

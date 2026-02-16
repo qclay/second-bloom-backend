@@ -78,41 +78,4 @@ export class ConversationRepository implements IConversationRepository {
       },
     });
   }
-
-  async updateUnreadCount(
-    conversationId: string,
-    isSeller: boolean,
-    increment: boolean,
-  ): Promise<Conversation> {
-    const field = isSeller ? 'unreadCountBySeller' : 'unreadCountByBuyer';
-    const current = await this.findById(conversationId);
-    if (!current) {
-      throw new Error('Conversation not found');
-    }
-
-    const newCount = increment
-      ? current[field] + 1
-      : Math.max(0, current[field] - 1);
-
-    return this.prisma.conversation.update({
-      where: { id: conversationId },
-      data: {
-        [field]: newCount,
-      },
-    });
-  }
-
-  async updateLastSeen(
-    conversationId: string,
-    isSeller: boolean,
-    lastSeenAt: Date,
-  ): Promise<Conversation> {
-    const field = isSeller ? 'sellerLastSeenAt' : 'buyerLastSeenAt';
-    return await this.prisma.conversation.update({
-      where: { id: conversationId },
-      data: {
-        [field]: lastSeenAt,
-      },
-    });
-  }
 }

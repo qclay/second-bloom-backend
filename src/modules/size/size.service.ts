@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
@@ -10,10 +11,17 @@ import { CreateSizeDto } from './dto/create-size.dto';
 import { UpdateSizeDto } from './dto/update-size.dto';
 import { SizeQueryDto } from './dto/size-query.dto';
 import { SizeResponseDto } from './dto/size-response.dto';
+import { atLeastOneTranslation } from '../../common/dto/translation.dto';
+import { getTranslationForSlug } from '../../common/i18n/translation.util';
+import { Prisma } from '@prisma/client';
+import { TranslationService } from '../translation/translation.service';
 
 @Injectable()
 export class SizeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly translationService: TranslationService,
+  ) {}
 
   private slugify(name: string): string {
     return name
@@ -44,7 +52,18 @@ export class SizeService {
   }
 
   async create(dto: CreateSizeDto, userId: string): Promise<SizeResponseDto> {
-    const baseSlug = this.slugify(dto.name);
+    if (!atLeastOneTranslation(dto.name)) {
+      throw new BadRequestException(
+        'Size name must have at least one translation (en, ru, or uz)',
+      );
+    }
+
+    dto.name = await this.translationService.autoCompleteTranslations(dto.name);
+
+    const nameForSlug = getTranslationForSlug(
+      dto.name as Record<string, string>,
+    );
+    const baseSlug = this.slugify(nameForSlug);
     const slug = await this.ensureUniqueSlug(baseSlug);
 
     const existing = await this.prisma.size.findFirst({
@@ -56,7 +75,7 @@ export class SizeService {
 
     const size = await this.prisma.size.create({
       data: {
-        name: dto.name,
+        name: dto.name as unknown as Prisma.InputJsonValue,
         slug,
         createdById: userId,
       },
@@ -83,7 +102,7 @@ export class SizeService {
     const [items, total] = await Promise.all([
       this.prisma.size.findMany({
         where,
-        orderBy: { name: 'asc' },
+        orderBy: { slug: 'asc' },
         skip,
         take: limit,
         include: { createdBy: { select: { id: true, role: true } } },
@@ -131,15 +150,24 @@ export class SizeService {
     }
 
     let slug: string | undefined;
-    if (dto.name !== undefined) {
-      const baseSlug = this.slugify(dto.name);
+    if (dto.name !== undefined && atLeastOneTranslation(dto.name)) {
+      dto.name = await this.translationService.autoCompleteTranslations(
+        dto.name,
+      );
+      const nameForSlug = getTranslationForSlug(
+        dto.name as Record<string, string>,
+      );
+      const baseSlug = this.slugify(nameForSlug);
       slug = await this.ensureUniqueSlug(baseSlug, id);
     }
 
     const updated = await this.prisma.size.update({
       where: { id },
       data: {
-        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.name !== undefined &&
+          atLeastOneTranslation(dto.name) && {
+            name: dto.name as unknown as Prisma.InputJsonValue,
+          }),
         ...(slug !== undefined && { slug }),
       },
     });

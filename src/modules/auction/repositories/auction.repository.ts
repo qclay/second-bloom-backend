@@ -33,6 +33,7 @@ export class AuctionRepository implements IAuctionRepository {
         deletedAt: new Date(),
         deletedBy,
         status: 'CANCELLED' as const,
+        isActive: false,
       },
     });
   }

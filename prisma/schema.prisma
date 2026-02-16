@@ -1,5 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
   previewFeatures = []
   binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
 }
@@ -106,9 +107,9 @@ model Favorite {
 
 model Category {
   id          String     @id @default(uuid())
-  name        String     @unique
+  name        Json       @db.JsonB
   slug        String     @unique
-  description String?
+  description Json?     @db.JsonB
   imageId     String?
   parentId    String?
   order       Int        @default(0)
@@ -131,7 +132,7 @@ model Category {
 
 model Condition {
   id         String    @id @default(uuid())
-  name       String    @db.VarChar(100)
+  name       Json      @db.JsonB
   slug       String    @unique
   createdById String?
   createdAt  DateTime  @default(now())
@@ -149,7 +150,7 @@ model Condition {
 
 model Size {
   id         String    @id @default(uuid())
-  name       String    @db.VarChar(100)
+  name       Json      @db.JsonB
   slug       String    @unique
   createdById String?
   createdAt  DateTime  @default(now())
@@ -275,10 +276,10 @@ model Order {
   updatedAt          DateTime       @updatedAt
   completedAt        DateTime?
   isActive           Boolean        @default(true)
-  conversations      Conversation[]
   auction            Auction?       @relation(fields: [auctionId], references: [id])
   buyer              User           @relation(fields: [buyerId], references: [id])
   product            Product        @relation(fields: [productId], references: [id])
+  conversations      Conversation[]
 
   @@index([buyerId])
   @@index([buyerId, status, createdAt])
@@ -334,9 +335,9 @@ model Payment {
 
 model Product {
   id                   String            @id @default(uuid())
-  title                String            @db.VarChar(255)
+  title                Json              @db.JsonB
   slug                 String            @unique
-  description          String?
+  description          Json?             @db.JsonB
   price                Decimal           @db.Decimal(10, 2)
   currency             String            @default("UZS")
   categoryId           String
@@ -359,7 +360,6 @@ model Product {
   publicationPaymentId String?
   isActive             Boolean           @default(true)
   auctions             Auction[]
-  conversations        Conversation[]
   favorites            Favorite[]
   orders               Order[]
   images               ProductImage[]
@@ -369,6 +369,7 @@ model Product {
   publicationPayment   Payment?          @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id])
   seller               User              @relation(fields: [sellerId], references: [id])
   reviews              Review[]
+  conversations        Conversation[]
 
   @@index([publicationPaymentId])
   @@index([sellerId])
@@ -482,8 +483,7 @@ model User {
   bids                   Bid[]
   conditionsCreated      Condition[]             @relation("ConditionCreator")
   sizesCreated           Size[]                  @relation("SizeCreator")
-  conversationsAsBuyer   Conversation[]          @relation("ConversationBuyer")
-  conversationsAsSeller  Conversation[]          @relation("ConversationSeller")
+  conversationParticipants ConversationParticipant[]
   favorites              Favorite[]
   uploadedFiles          File[]                  @relation("FileUploader")
   sentMessages           Message[]               @relation("MessageSender")
@@ -538,47 +538,49 @@ model VerificationCode {
 }
 
 model Conversation {
-  id                  String    @id @default(uuid())
-  sellerId            String
-  buyerId             String
-  orderId             String?
-  productId           String?
-  lastMessageAt       DateTime?
-  lastMessageId       String?
-  unreadCountBySeller Int       @default(0)
-  unreadCountByBuyer  Int       @default(0)
-  isArchivedBySeller  Boolean   @default(false)
-  isArchivedByBuyer   Boolean   @default(false)
-  isBlockedBySeller   Boolean   @default(false)
-  isBlockedByBuyer    Boolean   @default(false)
-  sellerLastSeenAt    DateTime?
-  buyerLastSeenAt     DateTime?
-  metadata            Json?
-  deletedAt           DateTime?
-  deletedBy           String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  isActive            Boolean   @default(true)
-  buyer               User      @relation("ConversationBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
-  lastMessage         Message?  @relation("ConversationLastMessage", fields: [lastMessageId], references: [id])
-  order               Order?    @relation(fields: [orderId], references: [id])
-  product             Product?  @relation(fields: [productId], references: [id])
-  seller              User      @relation("ConversationSeller", fields: [sellerId], references: [id], onDelete: Cascade)
-  messages            Message[]
+  id            String                    @id @default(uuid())
+  lastMessageAt DateTime?
+  lastMessageId String?
+  productId     String?
+  orderId       String?
+  metadata      Json?
+  deletedAt     DateTime?
+  deletedBy     String?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  isActive      Boolean                   @default(true)
+  participants  ConversationParticipant[]
+  lastMessage   Message?                  @relation("ConversationLastMessage", fields: [lastMessageId], references: [id])
+  messages      Message[]
+  product       Product?                  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  order         Order?                    @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
-  @@unique([sellerId, buyerId, orderId])
-  @@unique([sellerId, buyerId, productId])
-  @@index([sellerId, isArchivedBySeller, lastMessageAt])
-  @@index([buyerId, isArchivedByBuyer, lastMessageAt])
-  @@index([sellerId, deletedAt])
-  @@index([buyerId, deletedAt])
-  @@index([orderId])
-  @@index([productId])
   @@index([lastMessageAt])
   @@index([isActive, deletedAt])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([productId])
+  @@index([orderId])
   @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid())
+  conversationId String
+  userId         String
+  unreadCount    Int       @default(0)
+  isArchived     Boolean   @default(false)
+  isBlocked      Boolean   @default(false)
+  lastSeenAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId, isArchived])
+  @@index([userId])
+  @@map("conversation_participants")
 }
 
 model Message {
@@ -661,6 +663,7 @@ enum NotificationType {
   AUCTION_ENDING_SOON
   AUCTION_ENDED
   AUCTION_STARTED
+  BID_REJECTED
   NEW_BID
   ORDER_CONFIRMED
   ORDER_DELIVERED
@@ -706,8 +709,6 @@ enum PaymentStatus {
 enum ProductStatus {
   ACTIVE
   INACTIVE
-  PENDING
-  SOLD
 }
 
 enum ProductType {

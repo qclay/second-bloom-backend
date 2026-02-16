@@ -10,6 +10,10 @@ import { Request, Response as ExpressResponse } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ApiSuccessResponseDto } from '../dto/api-success-response.dto';
 import { PaginationMetaDto } from '../dto/pagination-meta.dto';
+import {
+  parseAcceptLanguage,
+  resolveTranslationsInObject,
+} from '../i18n/translation.util';
 
 function hasPaginationMeta(data: unknown): data is {
   data: unknown[];
@@ -92,6 +96,11 @@ export class ResponseInterceptor<T> implements NestInterceptor<
             hasNextPage: serviceMeta.page < serviceMeta.totalPages,
             hasPreviousPage: serviceMeta.page > 1,
           };
+        }
+
+        const locale = parseAcceptLanguage(request.headers['accept-language']);
+        if (responseData != null) {
+          responseData = resolveTranslationsInObject(responseData, locale) as T;
         }
 
         const statusCode = response.statusCode || 200;

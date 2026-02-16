@@ -27,14 +27,4 @@ export interface IConversationRepository {
     messageId: string,
     lastMessageAt: Date,
   ): Promise<Conversation>;
-  updateUnreadCount(
-    conversationId: string,
-    isSeller: boolean,
-    increment: boolean,
-  ): Promise<Conversation>;
-  updateLastSeen(
-    conversationId: string,
-    isSeller: boolean,
-    lastSeenAt: Date,
-  ): Promise<Conversation>;
 }

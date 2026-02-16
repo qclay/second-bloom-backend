@@ -307,6 +307,7 @@ export class BidService {
               firstName: true,
               lastName: true,
               phoneNumber: true,
+              avatar: { select: { url: true } },
             },
           },
         },
@@ -351,6 +352,7 @@ export class BidService {
             firstName: true,
             lastName: true,
             phoneNumber: true,
+            avatar: { select: { url: true } },
           },
         },
       },
@@ -450,6 +452,31 @@ export class BidService {
     this.logger.log(
       `Bid ${id} ${isOwner ? 'removed by owner' : userId === bid.bidderId ? 'retracted by bidder' : 'retracted by admin'}`,
     );
+
+    if (isOwner && bid.bidderId !== userId) {
+      const rejectedBid = await this.findById(id);
+
+      this.auctionGateway.notifyBidRejected(
+        bid.bidderId,
+        auction.id,
+        rejectedBid,
+      );
+
+      try {
+        await this.notificationService.notifyBidRejected({
+          userId: bid.bidderId,
+          auctionId: auction.id,
+          productId: auction.productId,
+          amount: Number(bid.amount),
+          currency: 'UZS',
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to send BID_REJECTED notification for bid ${id}`,
+          error instanceof Error ? error.stack : error,
+        );
+      }
+    }
   }
 
   async getAuctionBids(
@@ -492,6 +519,7 @@ export class BidService {
               firstName: true,
               lastName: true,
               phoneNumber: true,
+              avatar: { select: { url: true } },
             },
           },
         },
@@ -600,6 +628,7 @@ export class BidService {
               firstName: true,
               lastName: true,
               phoneNumber: true,
+              avatar: { select: { url: true } },
             },
           },
         },

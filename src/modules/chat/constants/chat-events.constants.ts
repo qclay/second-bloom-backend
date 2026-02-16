@@ -8,7 +8,6 @@ export const CHAT_EVENTS = {
   DELETE_MESSAGE: 'delete_message',
   EDIT_MESSAGE: 'edit_message',
   PONG: 'pong',
-
   CONNECTED: 'connected',
   NEW_MESSAGE: 'new_message',
   MESSAGE_DELETED: 'message_deleted',

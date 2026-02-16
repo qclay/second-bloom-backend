@@ -6,6 +6,7 @@ export const AUCTION_EVENTS = {
 
   CONNECTED: 'connected',
   NEW_BID: 'new_bid',
+  BID_REJECTED: 'bid_rejected',
   AUCTION_UPDATED: 'auction_updated',
   AUCTION_ENDED: 'auction_ended',
   AUCTION_EXTENDED: 'auction_extended',

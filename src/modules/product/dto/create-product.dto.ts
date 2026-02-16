@@ -17,29 +17,37 @@ import { ProductType, ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProductAuctionOptionDto } from './product-auction-option.dto';
+import {
+  TranslationDto,
+  TranslationDescriptionDto,
+} from '../../../common/dto/translation.dto';
 
 export class CreateProductDto {
   @ApiProperty({
-    description: 'Product title.',
-    example: 'Fresh Red Roses Bouquet',
-    maxLength: 255,
+    description: 'Product title in one or more languages (en, ru, uz).',
+    example: {
+      en: 'Fresh Red Roses Bouquet',
+      ru: 'Букет свежих красных роз',
+      uz: 'Yangi qizil atirgul buketi',
+    },
     required: true,
   })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  title!: string;
+  @ValidateNested()
+  @Type(() => TranslationDto)
+  title!: TranslationDto;
 
   @ApiProperty({
-    description: 'Product description.',
-    example: 'Beautiful fresh red roses',
-    maxLength: 5000,
+    description: 'Product description in one or more languages.',
+    example: {
+      en: 'Beautiful fresh red roses',
+      ru: 'Красивые свежие красные розы',
+    },
     required: false,
   })
-  @IsString()
   @IsOptional()
-  @MaxLength(5000)
-  description?: string;
+  @ValidateNested()
+  @Type(() => TranslationDescriptionDto)
+  description?: TranslationDescriptionDto;
 
   @ApiProperty({
     description:

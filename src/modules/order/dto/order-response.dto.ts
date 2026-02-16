@@ -99,7 +99,7 @@ export class OrderResponseDto {
       };
       product?: {
         id: string;
-        title: string;
+        title: unknown;
         slug: string;
         price: unknown;
         sellerId: string;
@@ -150,7 +150,7 @@ export class OrderResponseDto {
       product: order.product
         ? {
             id: order.product.id,
-            title: order.product.title,
+            title: (order.product.title as string) ?? '',
             slug: order.product.slug,
             price:
               typeof order.product.price === 'number'

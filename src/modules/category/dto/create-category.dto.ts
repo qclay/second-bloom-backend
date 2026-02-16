@@ -1,21 +1,24 @@
 import {
-  IsString,
-  IsNotEmpty,
   IsOptional,
-  MaxLength,
   IsBoolean,
+  ValidateNested,
+  IsString,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  TranslationDto,
+  TranslationDescriptionDto,
+} from '../../../common/dto/translation.dto';
 
 export class CreateCategoryDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name!: string;
+  @ValidateNested()
+  @Type(() => TranslationDto)
+  name!: TranslationDto;
 
-  @IsString()
   @IsOptional()
-  @MaxLength(500)
-  description?: string;
+  @ValidateNested()
+  @Type(() => TranslationDescriptionDto)
+  description?: TranslationDescriptionDto;
 
   @IsString()
   @IsOptional()

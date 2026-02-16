@@ -44,6 +44,7 @@ export class FileRepository implements IFileRepository {
       data: {
         deletedAt: new Date(),
         deletedBy,
+        isActive: false,
       },
     });
   }

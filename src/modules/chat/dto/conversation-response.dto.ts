@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ConversationParticipantDto {
   @ApiProperty({ example: 'clx1234567890abcdef' })
@@ -7,21 +7,109 @@ export class ConversationParticipantDto {
   @ApiProperty({ example: '+998901234567' })
   phoneNumber!: string;
 
-  @ApiProperty({ example: 'John', required: false })
+  @ApiPropertyOptional({ example: 'John' })
   firstName?: string | null;
 
-  @ApiProperty({ example: 'Doe', required: false })
+  @ApiPropertyOptional({ example: 'Doe' })
   lastName?: string | null;
 
-  @ApiProperty({ example: 'https://example.com/avatar.jpg', required: false })
+  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
   avatarUrl?: string | null;
+}
+
+export class ConversationSellerBuyerDto {
+  @ApiProperty({ example: 'clx1234567890abcdef' })
+  id!: string;
+
+  @ApiPropertyOptional({ example: 'John' })
+  firstName?: string | null;
+
+  @ApiPropertyOptional({ example: 'Doe' })
+  lastName?: string | null;
+
+  @ApiProperty({ example: '+998901234567' })
+  phoneNumber!: string;
+
+  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
+  avatarUrl?: string | null;
+}
+
+export class PinnedProductDto {
+  @ApiProperty({ example: 'clx1234567890abcdef' })
+  id!: string;
+
+  @ApiProperty({ example: 'fresh-roses-bouquet' })
+  slug!: string;
+
+  @ApiProperty({
+    description: 'Resolved title per Accept-Language',
+    example: 'Fresh Roses Bouquet',
+  })
+  title!: string;
+
+  @ApiProperty({ example: 150000 })
+  price!: number;
+
+  @ApiPropertyOptional({ example: 'UZS' })
+  currency?: string;
+
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/rose.jpg' })
+  imageUrl?: string | null;
+}
+
+export class PinnedOrderProgressDto {
+  @ApiProperty({
+    example: 'PENDING',
+    enum: [
+      'PENDING',
+      'CONFIRMED',
+      'PROCESSING',
+      'SHIPPED',
+      'DELIVERED',
+      'CANCELLED',
+    ],
+  })
+  status!: string;
+
+  @ApiPropertyOptional({ example: '2024-01-15T10:00:00Z' })
+  shippedAt?: Date | null;
+
+  @ApiPropertyOptional({ example: '2024-01-20T14:00:00Z' })
+  deliveredAt?: Date | null;
+}
+
+export class PinnedOrderDto {
+  @ApiProperty({ example: 'clx1234567890abcdef' })
+  id!: string;
+
+  @ApiProperty({ example: 'ORD-ABC123' })
+  orderNumber!: string;
+
+  @ApiProperty({ example: 150000 })
+  amount!: number;
+
+  @ApiProperty({
+    example: 'PENDING',
+    enum: [
+      'PENDING',
+      'CONFIRMED',
+      'PROCESSING',
+      'SHIPPED',
+      'DELIVERED',
+      'CANCELLED',
+    ],
+  })
+  status!: string;
+
+  @ApiPropertyOptional({ type: PinnedOrderProgressDto })
+  progress?: PinnedOrderProgressDto;
 }
 
 export class ConversationLastMessageDto {
   @ApiProperty({ example: 'clx1234567890abcdef' })
   id!: string;
 
-  @ApiProperty({ example: 'Hello, is this available?' })
+  @ApiProperty({ example: 'Hello!' })
   content!: string;
 
   @ApiProperty({ example: 'TEXT' })
@@ -38,17 +126,11 @@ export class ConversationResponseDto {
   @ApiProperty({ example: 'clx1234567890abcdef' })
   id!: string;
 
-  @ApiProperty({ type: ConversationParticipantDto })
-  seller!: ConversationParticipantDto;
-
-  @ApiProperty({ type: ConversationParticipantDto })
-  buyer!: ConversationParticipantDto;
-
-  @ApiProperty({ example: 'clx1234567890abcdef', required: false })
-  orderId?: string | null;
-
-  @ApiProperty({ example: 'clx1234567890abcdef', required: false })
-  productId?: string | null;
+  @ApiProperty({
+    type: [ConversationParticipantDto],
+    description: 'All participants in the conversation',
+  })
+  participants!: ConversationParticipantDto[];
 
   @ApiProperty({ example: 5 })
   unreadCount!: number;
@@ -70,4 +152,30 @@ export class ConversationResponseDto {
 
   @ApiProperty({ example: '2024-01-01T00:00:00Z' })
   updatedAt!: Date;
+
+  @ApiPropertyOptional({
+    description:
+      'Seller (product owner) when conversation has a pinned product',
+    type: ConversationSellerBuyerDto,
+  })
+  seller?: ConversationSellerBuyerDto | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Buyer when conversation has a pinned order or the other participant',
+    type: ConversationSellerBuyerDto,
+  })
+  buyer?: ConversationSellerBuyerDto | null;
+
+  @ApiPropertyOptional({
+    description: 'Pinned product for this conversation',
+    type: PinnedProductDto,
+  })
+  pinnedProduct?: PinnedProductDto | null;
+
+  @ApiPropertyOptional({
+    description: 'Pinned order with progress (status, shippedAt, deliveredAt)',
+    type: PinnedOrderDto,
+  })
+  pinnedOrder?: PinnedOrderDto | null;
 }

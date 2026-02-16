@@ -58,7 +58,7 @@ export class ReviewResponseDto {
       };
       product?: {
         id: string;
-        title: string;
+        title: unknown;
         slug: string;
       } | null;
       parent?: {
@@ -115,7 +115,7 @@ export class ReviewResponseDto {
       product: review.product
         ? {
             id: review.product.id,
-            title: review.product.title,
+            title: (review.product.title as string) ?? '',
             slug: review.product.slug,
           }
         : null,

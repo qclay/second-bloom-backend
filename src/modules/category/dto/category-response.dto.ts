@@ -58,9 +58,9 @@ export class CategoryResponseDto {
   ): CategoryResponseDto {
     return {
       id: category.id,
-      name: category.name,
+      name: category.name as unknown as string,
       slug: category.slug,
-      description: category.description,
+      description: category.description as unknown as string | null,
       image: category.image
         ? { id: category.image.id, url: category.image.url }
         : null,

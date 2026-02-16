@@ -85,9 +85,20 @@ By default the API is at `http://localhost:3000`. Root and health are at `/` and
 With the app running:
 
 - **Swagger UI:** `http://localhost:3000/api/docs`  
-  (If `SWAGGER_ENABLED=true` and optional `SWAGGER_USERNAME` / `SWAGGER_PASSWORD` in `.env`.)
+  Interactive API docs: try endpoints, see request/response schemas, and use **Authorize** with a JWT from `POST /api/v1/auth/verify`.  
+  (Requires `SWAGGER_ENABLED=true` in `.env`. Optional: `SWAGGER_USERNAME` and `SWAGGER_PASSWORD` for HTTP basic auth on the docs page.)
 
-Full API reference is in Swagger; use it for request/response shapes and to try endpoints.
+- **OpenAPI JSON:** `http://localhost:3000/api/docs/openapi.json`  
+  Download or use for codegen.
+
+**Conventions:**
+
+- Base path: `/api/v1/` (health and root are excluded).
+- Auth: Bearer JWT in `Authorization` header for protected routes.
+- Success: `{ success: true, data }`; paginated: `data` array + `meta.pagination` (page, limit, total, totalPages).
+- Errors: `{ success: false, error: { code, message }, statusCode }`.
+
+Product images: use file UUIDs from file upload; on product update, send `imageIds` (array) to set or keep images—see Swagger for details.
 
 ---
 

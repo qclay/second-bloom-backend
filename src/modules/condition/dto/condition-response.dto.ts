@@ -26,7 +26,7 @@ export class ConditionResponseDto {
   static fromEntity(condition: Condition): ConditionResponseDto {
     return {
       id: condition.id,
-      name: condition.name,
+      name: condition.name as unknown as string,
       slug: condition.slug,
       createdById: condition.createdById,
       createdAt: condition.createdAt,

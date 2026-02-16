@@ -31,6 +31,7 @@ export class BidResponseDto {
     firstName: string | null;
     lastName: string | null;
     phoneNumber: string;
+    avatarUrl: string | null;
   };
 
   static fromEntity(
@@ -43,7 +44,7 @@ export class BidResponseDto {
         endTime: Date;
         product?: {
           id: string;
-          title: string;
+          title: unknown;
           slug: string;
         };
       };
@@ -52,6 +53,7 @@ export class BidResponseDto {
         firstName: string | null;
         lastName: string | null;
         phoneNumber: string;
+        avatar?: { url: string } | null;
       };
     },
   ): BidResponseDto {
@@ -79,7 +81,13 @@ export class BidResponseDto {
                 : Number(bid.auction.currentPrice) || 0,
             status: bid.auction.status,
             endTime: bid.auction.endTime,
-            product: bid.auction.product,
+            product: bid.auction.product
+              ? {
+                  id: bid.auction.product.id,
+                  title: (bid.auction.product.title as string) ?? '',
+                  slug: bid.auction.product.slug,
+                }
+              : undefined,
           }
         : undefined,
       bidder: bid.bidder
@@ -88,6 +96,7 @@ export class BidResponseDto {
             firstName: bid.bidder.firstName,
             lastName: bid.bidder.lastName,
             phoneNumber: bid.bidder.phoneNumber,
+            avatarUrl: bid.bidder.avatar?.url ?? null,
           }
         : undefined,
     };

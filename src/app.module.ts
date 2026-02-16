@@ -23,6 +23,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { SellerModule } from './modules/seller/seller.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { TranslationModule } from './modules/translation/translation.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { ThrottlerPerUserGuard } from './common/guards/throttler-per-user.guard';
@@ -69,6 +70,7 @@ import { AppController } from './app.controller';
     SellerModule,
     PaymentModule,
     SettingsModule,
+    TranslationModule,
     JobsModule,
     MetricsModule,
   ],

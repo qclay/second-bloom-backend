@@ -4,9 +4,10 @@ import { ProductController } from './product.controller';
 import { ProductRepository } from './repositories/product.repository';
 import { CategoryModule } from '../category/category.module';
 import { AuctionModule } from '../auction/auction.module';
+import { TranslationModule } from '../translation/translation.module';
 
 @Module({
-  imports: [CategoryModule, forwardRef(() => AuctionModule)],
+  imports: [CategoryModule, forwardRef(() => AuctionModule), TranslationModule],
   controllers: [ProductController],
   providers: [ProductService, ProductRepository],
   exports: [ProductService, ProductRepository],

@@ -13,12 +13,15 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
-import { OrderStatus, Prisma, ProductStatus, UserRole } from '@prisma/client';
+import { Prisma, ProductStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRepository } from '../category/repositories/category.repository';
 import { CacheService } from '../../common/services/cache.service';
 import { AuctionService } from '../auction/auction.service';
 import { CreateAuctionDto } from '../auction/dto/create-auction.dto';
+import { atLeastOneTranslation } from '../../common/dto/translation.dto';
+import { getTranslationForSlug } from '../../common/i18n/translation.util';
+import { TranslationService } from '../translation/translation.service';
 
 @Injectable()
 export class ProductService {
@@ -33,6 +36,7 @@ export class ProductService {
     private readonly cacheService: CacheService,
     @Inject(forwardRef(() => AuctionService))
     private readonly auctionService: AuctionService,
+    private readonly translationService: TranslationService,
   ) {}
 
   async createProduct(
@@ -99,12 +103,30 @@ export class ProductService {
       throw new NotFoundException('Size not found or inactive');
     }
 
+    if (!atLeastOneTranslation(dto.title)) {
+      throw new BadRequestException(
+        'Product title must have at least one translation (en, ru, or uz)',
+      );
+    }
+
+    dto.title = await this.translationService.autoCompleteTranslations(
+      dto.title,
+    );
+    if (dto.description) {
+      dto.description = await this.translationService.autoCompleteTranslations(
+        dto.description,
+      );
+    }
+
     const effectivePrice =
       dto.createAuction === true
         ? (dto.auction?.startPrice ?? dto.price ?? 0)
         : (dto.price ?? 0);
 
-    const slug = await this.ensureUniqueSlug(this.generateSlug(dto.title));
+    const titleForSlug = getTranslationForSlug(
+      dto.title as Record<string, string>,
+    );
+    const slug = await this.ensureUniqueSlug(this.generateSlug(titleForSlug));
 
     const validatedImageIds = dto.imageIds
       ? this.validateAndDeduplicateImages(dto.imageIds)
@@ -129,9 +151,11 @@ export class ProductService {
 
         const createdProduct = await tx.product.create({
           data: {
-            title: dto.title,
+            title: dto.title as unknown as Prisma.InputJsonValue,
             slug,
-            description: dto.description,
+            description: dto.description
+              ? (dto.description as unknown as Prisma.InputJsonValue)
+              : undefined,
             price: effectivePrice,
             currency: dto.currency ?? 'UZS',
             category: {
@@ -222,9 +246,7 @@ export class ProductService {
 
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
         { slug: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
         { tags: { has: search } },
       ];
     }
@@ -259,14 +281,7 @@ export class ProductService {
           },
         };
       } else if (salePhase === 'sold') {
-        where.status = ProductStatus.SOLD;
-      } else if (salePhase === 'in_delivery') {
-        where.orders = {
-          some: {
-            status: { in: [OrderStatus.PROCESSING, OrderStatus.SHIPPED] },
-            deletedAt: null,
-          },
-        };
+        where.status = ProductStatus.INACTIVE;
       }
     }
 
@@ -311,6 +326,8 @@ export class ProductService {
       orderBy.views = sortOrder;
     } else if (sortBy === 'createdAt') {
       orderBy.createdAt = sortOrder;
+    } else if (sortBy === 'rating') {
+      orderBy.seller = { rating: sortOrder };
     } else {
       orderBy.createdAt = 'desc';
     }
@@ -395,6 +412,7 @@ export class ProductService {
             },
           },
           images: {
+            where: { deletedAt: null, isActive: true },
             include: {
               file: {
                 select: {
@@ -499,9 +517,7 @@ export class ProductService {
 
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
         { slug: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
         { tags: { has: search } },
       ];
     }
@@ -635,6 +651,7 @@ export class ProductService {
             },
           },
           images: {
+            where: { deletedAt: null, isActive: true },
             include: {
               file: {
                 select: {
@@ -699,6 +716,7 @@ export class ProductService {
           },
         },
         images: {
+          where: { deletedAt: null, isActive: true },
           include: {
             file: {
               select: {
@@ -776,13 +794,19 @@ export class ProductService {
 
     const updateData: Prisma.ProductUpdateInput = {};
 
-    if (dto.title && dto.title !== product.title) {
+    if (dto.title && atLeastOneTranslation(dto.title)) {
+      dto.title = await this.translationService.autoCompleteTranslations(
+        dto.title,
+      );
+      const titleForSlug = getTranslationForSlug(
+        dto.title as Record<string, string>,
+      );
       const slug = await this.ensureUniqueSlug(
-        this.generateSlug(dto.title),
+        this.generateSlug(titleForSlug),
         id,
       );
       updateData.slug = slug;
-      updateData.title = dto.title;
+      updateData.title = dto.title as unknown as Prisma.InputJsonValue;
     }
 
     if (dto.categoryId && dto.categoryId !== product.categoryId) {
@@ -792,30 +816,24 @@ export class ProductService {
       }
     }
 
-    const validatedImageIds =
-      dto.imageIds !== undefined
-        ? this.validateAndDeduplicateImages(dto.imageIds)
-        : undefined;
+    const validatedImageIds = Array.isArray(dto.imageIds)
+      ? this.validateAndDeduplicateImages(dto.imageIds)
+      : undefined;
 
     if (validatedImageIds && validatedImageIds.length > 0) {
-      const existingProductImages = await this.prisma.productImage.findMany({
-        where: { productId: id },
-        select: { fileId: true },
-      });
-      const existingFileIds = new Set(
-        existingProductImages.map((img) => img.fileId),
-      );
-      const newImageIds = validatedImageIds.filter(
-        (id) => !existingFileIds.has(id),
-      );
-
-      if (newImageIds.length > 0) {
-        await this.validateImagesExist(newImageIds);
-      }
+      await this.validateImagesExist(validatedImageIds);
     }
 
     if (dto.description !== undefined) {
-      updateData.description = dto.description;
+      if (dto.description) {
+        dto.description =
+          await this.translationService.autoCompleteTranslations(
+            dto.description,
+          );
+      }
+      updateData.description = dto.description
+        ? (dto.description as unknown as Prisma.InputJsonValue)
+        : undefined;
     }
     if (dto.price !== undefined) {
       updateData.price = dto.price;
@@ -912,6 +930,35 @@ export class ProductService {
           }
         }
       });
+    }
+
+    if (dto.createAuction === true) {
+      const activeAuction = await this.prisma.auction.findFirst({
+        where: { productId: id, status: 'ACTIVE' },
+        select: { id: true },
+      });
+      if (activeAuction) {
+        throw new BadRequestException(
+          'This product already has an active auction. You cannot create another until it ends.',
+        );
+      }
+      const productForAuction = await this.productRepository.findById(id);
+      const rawPrice =
+        dto.auction?.startPrice ?? dto.price ?? productForAuction?.price ?? 0;
+      const effectivePrice =
+        typeof rawPrice === 'number' ? rawPrice : Number(rawPrice);
+      const auctionDto: CreateAuctionDto = {
+        productId: id,
+        startPrice: effectivePrice,
+        endTime: dto.auction?.endTime,
+        durationHours: dto.auction?.durationHours ?? 2,
+        autoExtend: dto.auction?.autoExtend ?? true,
+        extendMinutes: dto.auction?.extendMinutes ?? 5,
+      };
+      await this.auctionService.createAuction(auctionDto, userId, userRole);
+      this.logger.log(
+        `Auction created for product ${id} via update (caller: ${userId})`,
+      );
     }
 
     return this.findById(id);

@@ -15,6 +15,7 @@ import {
 import { ChatService } from './chat.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ConversationQueryDto } from './dto/conversation-query.dto';
+import { ChatUsersQueryDto } from './dto/chat-users-query.dto';
 import { MessageQueryDto } from './dto/message-query.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { ConversationResponseDto } from './dto/conversation-response.dto';
@@ -54,6 +55,24 @@ export class ChatController {
     @CurrentUser('id') userId: string,
   ): Promise<ConversationResponseDto> {
     return this.chatService.createConversation(createConversationDto, userId);
+  }
+
+  @Get('users')
+  @ApiOperation({
+    summary: 'Get users you can start a chat with',
+    description:
+      'Returns users you can chat with. Use otherUserId when creating a conversation to start a chat.',
+  })
+  @ApiCommonErrorResponses({ notFound: false, conflict: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of users (data + total, page, limit)',
+  })
+  async getUsersForChat(
+    @Query() query: ChatUsersQueryDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.chatService.getUsersForChat(userId, query);
   }
 
   @Get('conversations')

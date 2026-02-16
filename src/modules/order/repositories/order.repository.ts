@@ -39,6 +39,7 @@ export class OrderRepository implements IOrderRepository {
         deletedAt: new Date(),
         deletedBy,
         status: 'CANCELLED' as const,
+        isActive: false,
       },
     });
   }

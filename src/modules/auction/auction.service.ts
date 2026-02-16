@@ -15,6 +15,10 @@ import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { NotificationService } from '../notification/notification.service';
+import {
+  isTranslationRecord,
+  resolveTranslation,
+} from '../../common/i18n/translation.util';
 
 @Injectable()
 export class AuctionService {
@@ -30,6 +34,7 @@ export class AuctionService {
   async createAuction(
     dto: CreateAuctionDto,
     creatorId: string,
+    userRole?: UserRole,
   ): Promise<AuctionResponseDto> {
     this.logger.log(`Creating auction for product ${dto.productId}`);
     const product = await this.productRepository.findById(dto.productId);
@@ -48,7 +53,8 @@ export class AuctionService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.sellerId !== creatorId) {
+    const isAdmin = userRole === UserRole.ADMIN;
+    if (product.sellerId !== creatorId && !isAdmin) {
       throw new ForbiddenException(
         'You can only create auctions for your own products',
       );
@@ -560,8 +566,14 @@ export class AuctionService {
           );
 
           try {
-            const productTitle =
+            const productTitleRaw =
               productTitleByProductId.get(auction.productId) ?? null;
+            const productTitle =
+              typeof productTitleRaw === 'string'
+                ? productTitleRaw
+                : isTranslationRecord(productTitleRaw)
+                  ? (resolveTranslation(productTitleRaw, 'en') ?? undefined)
+                  : undefined;
             const participants = participantsByAuctionId.get(auction.id) ?? [];
             const winnerId = winningBid?.bidderId ?? null;
 
@@ -571,7 +583,7 @@ export class AuctionService {
                   userId: p.bidderId,
                   auctionId: auction.id,
                   productId: auction.productId,
-                  productTitle: productTitle ?? undefined,
+                  productTitle,
                   isWinner: winnerId !== null && p.bidderId === winnerId,
                 }),
               ),

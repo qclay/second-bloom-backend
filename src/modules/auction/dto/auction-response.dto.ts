@@ -89,7 +89,7 @@ export class AuctionResponseDto {
     auction: Auction & {
       product?: {
         id: string;
-        title: string;
+        title: unknown;
         slug: string;
         price: unknown;
         images?: Array<{ fileId: string; file?: { url: string } }>;
@@ -133,7 +133,7 @@ export class AuctionResponseDto {
       product: auction.product
         ? {
             id: auction.product.id,
-            title: auction.product.title,
+            title: (auction.product.title as string) ?? '',
             slug: auction.product.slug,
             price:
               typeof auction.product.price === 'number'

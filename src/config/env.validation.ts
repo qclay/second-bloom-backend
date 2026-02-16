@@ -165,7 +165,7 @@ export function validateEnv(config: Record<string, unknown>) {
   });
 
   const errors = validateSync(validatedConfig, {
-    skipMissingProperties: true, // Allow optional properties
+    skipMissingProperties: true,
     skipNullProperties: true,
     skipUndefinedProperties: true,
   });

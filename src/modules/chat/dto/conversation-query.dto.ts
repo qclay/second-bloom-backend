@@ -1,4 +1,4 @@
-import { IsOptional, IsBoolean, IsString } from 'class-validator';
+import { IsOptional, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -35,22 +35,4 @@ export class ConversationQueryDto {
   @IsBoolean()
   @IsOptional()
   archived?: boolean;
-
-  @ApiProperty({
-    description: 'Filter by order ID',
-    example: 'clx1234567890abcdef',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  orderId?: string;
-
-  @ApiProperty({
-    description: 'Filter by product ID',
-    example: 'clx1234567890abcdef',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  productId?: string;
 }

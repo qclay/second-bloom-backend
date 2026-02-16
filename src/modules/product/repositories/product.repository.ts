@@ -39,6 +39,7 @@ export class ProductRepository implements IProductRepository {
         deletedAt: new Date(),
         deletedBy,
         status: 'INACTIVE' as const,
+        isActive: false,
       },
     });
   }

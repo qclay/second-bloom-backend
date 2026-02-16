@@ -5,5 +5,5 @@ export const redisConfig = registerAs('redis', () => ({
   port: parseInt(process.env.REDIS_PORT || '6379', 10),
   url: process.env.REDIS_URL || 'redis://localhost:6379',
   password: process.env.REDIS_PASSWORD,
-  ttl: parseInt(process.env.REDIS_TTL || '3600', 10), // Default 1 hour
+  ttl: parseInt(process.env.REDIS_TTL || '3600', 10),
 }));

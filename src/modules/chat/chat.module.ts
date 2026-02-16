@@ -11,9 +11,6 @@ import {
   ConfigModule as NestConfigModule,
   ConfigService,
 } from '@nestjs/config';
-import { ProductModule } from '../product/product.module';
-import { OrderModule } from '../order/order.module';
-
 @Module({
   imports: [
     PrismaModule,
@@ -31,8 +28,6 @@ import { OrderModule } from '../order/order.module';
       },
       inject: [ConfigService],
     }),
-    ProductModule,
-    OrderModule,
   ],
   controllers: [ChatController],
   providers: [

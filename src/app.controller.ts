@@ -12,7 +12,8 @@ export class AppController {
       status: 'ok',
       message: 'Second Bloom API',
       timestamp: new Date().toISOString(),
-      docs: '/api/v1/docs',
+      docs: '/api/docs',
+      apiPrefix: '/api/v1',
     };
   }
 }

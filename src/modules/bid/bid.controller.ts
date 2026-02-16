@@ -162,9 +162,9 @@ export class BidController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Retract a bid',
+    summary: 'Retract or remove a bid',
     description:
-      'Only bidder or admin. Bid can be retracted before auction ends.',
+      'Bidder can retract their own bid, auction owner can remove any bid, admin can remove any bid. Only works while auction is active.',
   })
   @ApiParam({ name: 'id', description: 'Bid UUID' })
   @ApiCommonErrorResponses({ conflict: false })

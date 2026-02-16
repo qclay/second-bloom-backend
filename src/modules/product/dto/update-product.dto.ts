@@ -1,4 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateProductDto } from './create-product.dto';
 import {
   IsString,
@@ -15,16 +16,6 @@ import { ProductType, ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class UpdateProductDto extends PartialType(CreateProductDto) {
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  title?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(5000)
-  description?: string;
-
   @IsNumber()
   @Type(() => Number)
   @Min(0)
@@ -87,6 +78,15 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @MaxLength(100)
   district?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'File UUIDs for product images (from GET /files or upload). Replaces current images. Include existing image IDs to keep them; order is preserved. All IDs are validated. Max 10. Omit to leave images unchanged.',
+    example: [
+      '550e8400-e29b-41d4-a716-446655440001',
+      '550e8400-e29b-41d4-a716-446655440002',
+    ],
+    maxItems: 10,
+  })
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(10)

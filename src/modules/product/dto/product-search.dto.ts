@@ -262,9 +262,10 @@ export class ProductSearchDto {
   limit?: number = 20;
 
   @ApiProperty({
-    description: 'Field to sort by',
+    description:
+      'Sort field: city, price (use sortOrder asc for low→high), createdAt, new (newest first), rating (seller rating), views, updatedAt.',
     example: 'price',
-    enum: ['price', 'views', 'createdAt', 'updatedAt'],
+    enum: ['city', 'price', 'createdAt', 'new', 'rating', 'views', 'updatedAt'],
     default: 'createdAt',
     required: false,
   })

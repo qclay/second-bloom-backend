@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Body,
   Patch,
   Param,
@@ -12,6 +13,7 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { AuctionService } from './auction.service';
+import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { AuctionQueryDto } from './dto/auction-query.dto';
 import { AuctionResponseDto } from './dto/auction-response.dto';
@@ -39,6 +41,30 @@ import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 @Controller('auctions')
 export class AuctionController {
   constructor(private readonly auctionService: AuctionService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new SanitizePipe())
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Create auction',
+    description:
+      'Create an auction for an existing product. Product must be active and not already have an active auction. Caller must be the product seller or admin.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Auction created.',
+    type: AuctionResponseDto,
+  })
+  @ApiCommonErrorResponses({ conflict: true })
+  async create(
+    @Body() dto: CreateAuctionDto,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ): Promise<AuctionResponseDto> {
+    return this.auctionService.createAuction(dto, userId, role);
+  }
 
   @Get()
   @Public()

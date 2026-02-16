@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
@@ -10,10 +11,17 @@ import { CreateConditionDto } from './dto/create-condition.dto';
 import { UpdateConditionDto } from './dto/update-condition.dto';
 import { ConditionQueryDto } from './dto/condition-query.dto';
 import { ConditionResponseDto } from './dto/condition-response.dto';
+import { atLeastOneTranslation } from '../../common/dto/translation.dto';
+import { getTranslationForSlug } from '../../common/i18n/translation.util';
+import { Prisma } from '@prisma/client';
+import { TranslationService } from '../translation/translation.service';
 
 @Injectable()
 export class ConditionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly translationService: TranslationService,
+  ) {}
 
   private slugify(name: string): string {
     return name
@@ -47,7 +55,18 @@ export class ConditionService {
     dto: CreateConditionDto,
     userId: string,
   ): Promise<ConditionResponseDto> {
-    const baseSlug = this.slugify(dto.name);
+    if (!atLeastOneTranslation(dto.name)) {
+      throw new BadRequestException(
+        'Condition name must have at least one translation (en, ru, or uz)',
+      );
+    }
+
+    dto.name = await this.translationService.autoCompleteTranslations(dto.name);
+
+    const nameForSlug = getTranslationForSlug(
+      dto.name as Record<string, string>,
+    );
+    const baseSlug = this.slugify(nameForSlug);
     const slug = await this.ensureUniqueSlug(baseSlug);
 
     const existing = await this.prisma.condition.findFirst({
@@ -59,7 +78,7 @@ export class ConditionService {
 
     const condition = await this.prisma.condition.create({
       data: {
-        name: dto.name,
+        name: dto.name as unknown as Prisma.InputJsonValue,
         slug,
         createdById: userId,
       },
@@ -86,7 +105,7 @@ export class ConditionService {
     const [items, total] = await Promise.all([
       this.prisma.condition.findMany({
         where,
-        orderBy: { name: 'asc' },
+        orderBy: { slug: 'asc' },
         skip,
         take: limit,
         include: { createdBy: { select: { id: true, role: true } } },
@@ -134,15 +153,24 @@ export class ConditionService {
     }
 
     let slug: string | undefined;
-    if (dto.name !== undefined) {
-      const baseSlug = this.slugify(dto.name);
+    if (dto.name !== undefined && atLeastOneTranslation(dto.name)) {
+      dto.name = await this.translationService.autoCompleteTranslations(
+        dto.name,
+      );
+      const nameForSlug = getTranslationForSlug(
+        dto.name as Record<string, string>,
+      );
+      const baseSlug = this.slugify(nameForSlug);
       slug = await this.ensureUniqueSlug(baseSlug, id);
     }
 
     const updated = await this.prisma.condition.update({
       where: { id },
       data: {
-        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.name !== undefined &&
+          atLeastOneTranslation(dto.name) && {
+            name: dto.name as unknown as Prisma.InputJsonValue,
+          }),
         ...(slug !== undefined && { slug }),
       },
     });

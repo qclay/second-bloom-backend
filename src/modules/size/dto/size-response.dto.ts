@@ -23,7 +23,7 @@ export class SizeResponseDto {
   static fromEntity(size: Size): SizeResponseDto {
     return {
       id: size.id,
-      name: size.name,
+      name: size.name as unknown as string,
       slug: size.slug,
       createdById: size.createdById,
       createdAt: size.createdAt,

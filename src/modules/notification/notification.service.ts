@@ -89,7 +89,11 @@ export class NotificationService {
   }
 
   private getLocalizedText(
-    type: NotificationType | 'NEW_MESSAGE_SYSTEM' | 'NEW_BID_SELLER',
+    type:
+      | NotificationType
+      | 'NEW_MESSAGE_SYSTEM'
+      | 'NEW_BID_SELLER'
+      | 'BID_REJECTED',
     lang: 'uz' | 'ru' | 'en',
     context: {
       productTitle?: string;
@@ -173,6 +177,28 @@ export class NotificationService {
         message: isWinner
           ? `"${product}" buketi bo‘yicha auksionda g‘olib bo‘ldingiz.`
           : `"${product}" buketi bo‘yicha auksion yakunlandi.`,
+      };
+    }
+
+    if (titleKey === 'BID_REJECTED') {
+      if (lang === 'ru') {
+        return {
+          title: 'Ваша ставка отклонена',
+          message:
+            `Автор аукциона отклонил вашу ставку${amountText ? ` на сумму ${amountText}` : ''} по букету "${product}".`.trim(),
+        };
+      }
+      if (lang === 'en') {
+        return {
+          title: 'Your bid was rejected',
+          message:
+            `The auction owner rejected your bid${amountText ? ` of ${amountText}` : ''} for "${product}".`.trim(),
+        };
+      }
+      return {
+        title: 'Stavkangiz rad etildi',
+        message:
+          `Auksion muallifi "${product}" buketi bo'yicha${amountText ? ` ${amountText} miqdoridagi` : ''} stavkangizni rad etdi.`.trim(),
       };
     }
 
@@ -415,6 +441,55 @@ export class NotificationService {
     await this.persistAndPush(
       { id: user.id, fcmToken: user.fcmToken },
       NotificationType.NEW_BID,
+      title,
+      message,
+      {
+        auctionId: params.auctionId,
+        productId: params.productId,
+      },
+    );
+  }
+
+  async notifyBidRejected(params: {
+    userId: string;
+    auctionId: string;
+    productId: string;
+    productTitle?: string;
+    amount?: number;
+    currency?: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.userId },
+      select: {
+        id: true,
+        fcmToken: true,
+        language: true,
+        notificationPreference: true,
+      },
+    });
+
+    if (!user) {
+      this.logger.warn(
+        `notifyBidRejected: user ${params.userId} not found, skipping notification`,
+      );
+      return;
+    }
+
+    const prefs = user.notificationPreference;
+    if (!this.isNotificationEnabled(prefs, 'outbid')) {
+      return;
+    }
+
+    const lang = this.getUserLanguage(user);
+    const { title, message } = this.getLocalizedText('BID_REJECTED', lang, {
+      productTitle: params.productTitle,
+      amount: params.amount,
+      currency: params.currency,
+    });
+
+    await this.persistAndPush(
+      { id: user.id, fcmToken: user.fcmToken },
+      NotificationType.BID_REJECTED,
       title,
       message,
       {

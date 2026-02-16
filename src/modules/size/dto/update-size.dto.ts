@@ -1,14 +1,15 @@
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsOptional, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { TranslationDto } from '../../../common/dto/translation.dto';
 
 export class UpdateSizeDto {
   @ApiPropertyOptional({
-    description: 'New name. Slug regenerated.',
-    example: 'Medium',
-    maxLength: 100,
+    description: 'Name in one or more languages. Slug regenerated.',
+    example: { en: 'Medium', ru: 'Средний' },
   })
-  @IsString()
   @IsOptional()
-  @MaxLength(100)
-  name?: string;
+  @ValidateNested()
+  @Type(() => TranslationDto)
+  name?: TranslationDto;
 }

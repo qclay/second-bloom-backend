@@ -29,7 +29,7 @@ export class SellerService {
       SELECT
         (SELECT COUNT(*) FROM products WHERE seller_id = ${sellerId} AND deleted_at IS NULL) as total_products,
         (SELECT COUNT(*) FROM products WHERE seller_id = ${sellerId} AND status = 'ACTIVE' AND deleted_at IS NULL) as active_products,
-        (SELECT COUNT(*) FROM products WHERE seller_id = ${sellerId} AND status IN ('INACTIVE', 'SOLD') AND deleted_at IS NULL) as inactive_products,
+        (SELECT COUNT(*) FROM products WHERE seller_id = ${sellerId} AND status = 'INACTIVE' AND deleted_at IS NULL) as inactive_products,
         (SELECT COALESCE(SUM(views), 0) FROM products WHERE seller_id = ${sellerId} AND deleted_at IS NULL) as total_views,
         (SELECT COUNT(*) FROM orders o INNER JOIN products p ON o.product_id = p.id WHERE p.seller_id = ${sellerId} AND o.deleted_at IS NULL) as total_orders,
         (SELECT COUNT(*) FROM orders o INNER JOIN products p ON o.product_id = p.id WHERE p.seller_id = ${sellerId} AND o.status = 'PENDING' AND o.deleted_at IS NULL) as pending_orders,

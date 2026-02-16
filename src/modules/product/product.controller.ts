@@ -88,8 +88,24 @@ export class ProductController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create product',
-    description:
-      'Create a flower/bouquet listing. Fixed price: send price. With auction: set createAuction: true and auction (startPrice, endTime). Use categoryId from GET /categories; conditionId and sizeId required from GET /conditions, GET /sizes.',
+    description: [
+      'Create a flower/bouquet listing for either normal selling (fixed price) or auction.',
+      '',
+      'Fixed‑price product (no auction):',
+      '- Required: title, categoryId, conditionId, sizeId, price.',
+      '- Optional: description, tags, type, quantity, imageIds, region/city/district, status (defaults to ACTIVE).',
+      '- Do NOT set createAuction (or leave it false).',
+      '',
+      'Product with auction:',
+      '- Required: title, categoryId, conditionId, sizeId, createAuction: true.',
+      '- You must provide at least one price source: price or auction.startPrice (recommended).',
+      '- Optional: auction.durationHours (default 2h), auction.endTime (ISO string), auction.autoExtend, auction.extendMinutes.',
+      '',
+      'IDs:',
+      '- categoryId: from GET /categories.',
+      '- conditionId: from GET /conditions.',
+      '- sizeId: from GET /sizes.',
+    ].join('\n'),
   })
   @ApiCommonErrorResponses({ conflict: true })
   @ApiResponse({
@@ -193,8 +209,11 @@ export class ProductController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update product',
-    description:
-      'Partial update. Owner or admin only. Send only fields to change.',
+    description: [
+      'Partial update. Owner or admin only. Send only the fields you want to change.',
+      '',
+      '**Images:** To set or replace product images, send `imageIds` (array of file UUIDs from GET /files or upload). Include existing image IDs to keep them; order is preserved. All IDs are validated (files must exist and not be deleted). Omit `imageIds` to leave images unchanged. Max 10 images.',
+    ].join('\n'),
   })
   @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiCommonErrorResponses({ conflict: false })

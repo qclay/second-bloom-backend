@@ -136,18 +136,22 @@ export class ProductQueryDto {
   limit?: number = 20;
 
   @ApiPropertyOptional({
-    description: 'Sort field: createdAt, price, views.',
+    description:
+      'Sort field: city, price (use sortOrder asc for low→high), createdAt, new (newest first), rating (seller rating), views.',
+    enum: ['city', 'price', 'createdAt', 'new', 'rating', 'views'],
     default: 'createdAt',
   })
   @IsOptional()
-  @IsString()
-  sortBy?: string = 'createdAt';
+  @IsIn(['city', 'price', 'createdAt', 'new', 'rating', 'views'])
+  sortBy?: 'city' | 'price' | 'createdAt' | 'new' | 'rating' | 'views' =
+    'createdAt';
 
   @ApiPropertyOptional({
-    description: 'Sort order: asc or desc.',
+    description:
+      'Sort order: asc or desc. For price: asc = low to high, desc = high to low.',
     default: 'desc',
   })
   @IsOptional()
-  @IsString()
+  @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'desc';
 }

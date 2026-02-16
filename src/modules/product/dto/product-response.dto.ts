@@ -2,10 +2,16 @@ import { Product, ProductImage } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ProductImageResponseDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001' })
+  @ApiProperty({
+    description: 'File UUID (use this as imageIds item when updating product).',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
   id!: string;
 
-  @ApiProperty({ example: 'https://cdn.example.com/images/rose.jpg' })
+  @ApiProperty({
+    description: 'Public URL of the image.',
+    example: 'https://cdn.example.com/images/rose.jpg',
+  })
   url!: string;
 
   static fromEntity(
@@ -83,7 +89,7 @@ export class ProductResponseDto {
   quantity!: number;
 
   @ApiProperty({
-    description: 'Product status: ACTIVE, INACTIVE, PENDING, SOLD.',
+    description: 'Product status: ACTIVE or INACTIVE.',
     example: 'ACTIVE',
   })
   status!: string;
@@ -157,7 +163,8 @@ export class ProductResponseDto {
   @ApiProperty({
     type: () => [ProductImageResponseDto],
     required: false,
-    description: 'Images (id, fileId, order, url).',
+    description:
+      'Product images. Each item has id (file UUID—use in PATCH imageIds) and url. Ordered by display order.',
   })
   images?: ProductImageResponseDto[];
 
@@ -183,9 +190,9 @@ export class ProductResponseDto {
 
   static fromEntity(
     product: Product & {
-      category?: { id: string; name: string; slug: string };
-      condition?: { id: string; name: string; slug: string } | null;
-      size?: { id: string; name: string; slug: string } | null;
+      category?: { id: string; name: unknown; slug: string };
+      condition?: { id: string; name: unknown; slug: string } | null;
+      size?: { id: string; name: unknown; slug: string } | null;
       seller?: {
         id: string;
         firstName: string | null;
@@ -204,9 +211,9 @@ export class ProductResponseDto {
   ): ProductResponseDto {
     return {
       id: product.id,
-      title: product.title,
+      title: product.title as unknown as string,
       slug: product.slug,
-      description: product.description,
+      description: product.description as unknown as string | null,
       price: Number(product.price),
       currency: product.currency,
       categoryId: product.categoryId,
@@ -215,14 +222,14 @@ export class ProductResponseDto {
       condition: product.condition
         ? {
             id: product.condition.id,
-            name: product.condition.name,
+            name: product.condition.name as string,
             slug: product.condition.slug,
           }
         : undefined,
       size: product.size
         ? {
             id: product.size.id,
-            name: product.size.name,
+            name: product.size.name as string,
             slug: product.size.slug,
           }
         : undefined,
@@ -240,7 +247,7 @@ export class ProductResponseDto {
       category: product.category
         ? {
             id: product.category.id,
-            name: product.category.name,
+            name: product.category.name as string,
             slug: product.category.slug,
           }
         : undefined,

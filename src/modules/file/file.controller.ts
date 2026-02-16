@@ -45,7 +45,7 @@ export class FileController {
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: 100 * 1024 * 1024, // 100MB max
+        fileSize: 100 * 1024 * 1024,
       },
     }),
     FileValidationInterceptor,

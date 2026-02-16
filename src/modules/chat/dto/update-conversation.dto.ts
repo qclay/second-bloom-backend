@@ -1,25 +1,44 @@
-import { IsOptional, IsBoolean } from 'class-validator';
+import { IsOptional, IsBoolean, IsUUID, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateConversationDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Archive/unarchive conversation',
     example: true,
-    required: false,
   })
   @Type(() => Boolean)
   @IsBoolean()
   @IsOptional()
   isArchived?: boolean;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Block/unblock user in conversation',
     example: false,
-    required: false,
   })
   @Type(() => Boolean)
   @IsBoolean()
   @IsOptional()
   isBlocked?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Pin product to conversation. Set to null or omit to unpin.',
+    example: 'clx1234567890abcdef',
+    nullable: true,
+  })
+  @ValidateIf((_, v) => v != null)
+  @IsUUID()
+  @IsOptional()
+  productId?: string | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Pin order to conversation to show progress. Set to null or omit to unpin.',
+    example: 'clx1234567890abcdef',
+    nullable: true,
+  })
+  @ValidateIf((_, v) => v != null)
+  @IsUUID()
+  @IsOptional()
+  orderId?: string | null;
 }

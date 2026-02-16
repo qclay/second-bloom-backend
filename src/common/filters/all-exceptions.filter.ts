@@ -208,7 +208,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (status === 429) {
       return {
         retryable: true,
-        retryAfter: 60, // seconds
+        retryAfter: 60,
       };
     }
 

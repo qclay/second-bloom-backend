@@ -70,7 +70,9 @@ export class AuctionGateway
 
   private setupKeepAlive() {
     setInterval(() => {
-      this.server.emit('ping', { timestamp: Date.now() });
+      if (this.server) {
+        this.server.emit('ping', { timestamp: Date.now() });
+      }
     }, 20000);
   }
 
@@ -266,6 +268,31 @@ export class AuctionGateway
 
     this.logger.log(
       `Outbid notification sent to user ${userId} for auction ${auctionId}`,
+    );
+  }
+
+  notifyBidRejected(
+    userId: string,
+    auctionId: string,
+    bid: BidResponseDto,
+  ): void {
+    const payload = {
+      auctionId,
+      bid,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.sendToUser(userId, AUCTION_EVENTS.BID_REJECTED, payload);
+
+    const userSockets = this.userSockets.get(userId);
+    const excludeIds = userSockets ? Array.from(userSockets) : [];
+    this.server
+      .to(`auction:${auctionId}`)
+      .except(excludeIds)
+      .emit(AUCTION_EVENTS.BID_REJECTED, payload);
+
+    this.logger.log(
+      `Bid rejected notification sent to user ${userId} for auction ${auctionId}, bid ${bid.id}`,
     );
   }
 

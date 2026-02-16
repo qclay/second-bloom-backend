@@ -14,11 +14,14 @@ import { CategoryResponseDto } from './dto/category-response.dto';
 import { Prisma, Category, ProductStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
+import { atLeastOneTranslation } from '../../common/dto/translation.dto';
+import { getTranslationForSlug } from '../../common/i18n/translation.util';
+import { TranslationService } from '../translation/translation.service';
 
 @Injectable()
 export class CategoryService {
   private readonly logger = new Logger(CategoryService.name);
-  private readonly CACHE_TTL = 3600; // 1 hour
+  private readonly CACHE_TTL = 3600;
   private readonly CACHE_PREFIX = 'category:';
   private readonly CACHE_LIST_PREFIX = 'categories:list:';
 
@@ -26,10 +29,27 @@ export class CategoryService {
     private readonly categoryRepository: CategoryRepository,
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
+    private readonly translationService: TranslationService,
   ) {}
 
   async createCategory(dto: CreateCategoryDto): Promise<CategoryResponseDto> {
-    const slug = this.generateSlug(dto.name);
+    if (!atLeastOneTranslation(dto.name)) {
+      throw new BadRequestException(
+        'Category name must have at least one translation (en, ru, or uz)',
+      );
+    }
+
+    dto.name = await this.translationService.autoCompleteTranslations(dto.name);
+    if (dto.description) {
+      dto.description = await this.translationService.autoCompleteTranslations(
+        dto.description,
+      );
+    }
+
+    const nameForSlug = getTranslationForSlug(
+      dto.name as Record<string, string>,
+    );
+    const slug = this.generateSlug(nameForSlug);
     const existingCategory = await this.categoryRepository.findBySlug(slug);
 
     if (existingCategory) {
@@ -54,9 +74,11 @@ export class CategoryService {
     const order = dto.order ?? maxOrder + 1;
 
     const category = await this.categoryRepository.create({
-      name: dto.name,
+      name: dto.name as unknown as Prisma.InputJsonValue,
       slug,
-      description: dto.description,
+      description: dto.description
+        ? (dto.description as unknown as Prisma.InputJsonValue)
+        : undefined,
       image: dto.imageId
         ? {
             connect: { id: dto.imageId },
@@ -119,11 +141,7 @@ export class CategoryService {
     };
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { slug: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      where.OR = [{ slug: { contains: search, mode: 'insensitive' } }];
     }
 
     if (isActive !== undefined) {
@@ -276,14 +294,20 @@ export class CategoryService {
 
     const updateData: Prisma.CategoryUpdateInput = {};
 
-    if (dto.name && dto.name !== category.name) {
-      const slug = this.generateSlug(dto.name);
+    if (dto.name && atLeastOneTranslation(dto.name)) {
+      dto.name = await this.translationService.autoCompleteTranslations(
+        dto.name,
+      );
+      const nameForSlug = getTranslationForSlug(
+        dto.name as Record<string, string>,
+      );
+      const slug = this.generateSlug(nameForSlug);
       const existingCategory = await this.categoryRepository.findBySlug(slug);
       if (existingCategory && existingCategory.id !== id) {
         throw new ConflictException('Category with this name already exists');
       }
       updateData.slug = slug;
-      updateData.name = dto.name;
+      updateData.name = dto.name as unknown as Prisma.InputJsonValue;
     }
 
     if (dto.parentId !== undefined) {
@@ -322,7 +346,15 @@ export class CategoryService {
     }
 
     if (dto.description !== undefined) {
-      updateData.description = dto.description;
+      if (dto.description) {
+        dto.description =
+          await this.translationService.autoCompleteTranslations(
+            dto.description,
+          );
+      }
+      updateData.description = dto.description
+        ? (dto.description as unknown as Prisma.InputJsonValue)
+        : undefined;
     }
 
     if (dto.isActive !== undefined) {
