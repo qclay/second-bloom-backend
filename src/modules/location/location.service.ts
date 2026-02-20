@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import type { TranslationRecord } from '../../common/i18n/translation.util';
 import {
   CountryResponseDto,
   RegionResponseDto,
@@ -33,7 +34,7 @@ export class LocationService {
     return sortByName(
       countries.map((c) => ({
         id: c.id,
-        name: c.name,
+        name: c.name as string | TranslationRecord,
         code: c.code ?? undefined,
       })),
     );
@@ -54,7 +55,7 @@ export class LocationService {
     return sortByName(
       regions.map((r) => ({
         id: r.id,
-        name: r.name,
+        name: r.name as string | TranslationRecord,
         countryId: r.countryId,
       })),
     );
@@ -75,7 +76,7 @@ export class LocationService {
     return sortByName(
       cities.map((c) => ({
         id: c.id,
-        name: c.name,
+        name: c.name as string | TranslationRecord,
         regionId: c.regionId,
       })),
     );
@@ -96,7 +97,7 @@ export class LocationService {
     return sortByName(
       districts.map((d) => ({
         id: d.id,
-        name: d.name,
+        name: d.name as string | TranslationRecord,
         cityId: d.cityId,
       })),
     );

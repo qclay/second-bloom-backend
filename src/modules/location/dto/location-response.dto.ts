@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { TranslationRecord } from '../../../common/i18n/translation.util';
 
 /** Name is localized (en, ru, uz). Resolved to a single string by Accept-Language. */
 const nameDesc =
@@ -9,7 +10,7 @@ export class CountryResponseDto {
   id!: string;
 
   @ApiProperty({ example: 'Uzbekistan', description: nameDesc })
-  name!: string;
+  name!: string | TranslationRecord;
 
   @ApiPropertyOptional({ example: 'UZ' })
   code?: string | null;
@@ -20,7 +21,7 @@ export class RegionResponseDto {
   id!: string;
 
   @ApiProperty({ example: 'Tashkent', description: nameDesc })
-  name!: string;
+  name!: string | TranslationRecord;
 
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   countryId!: string;
@@ -31,7 +32,7 @@ export class CityResponseDto {
   id!: string;
 
   @ApiProperty({ example: 'Tashkent', description: nameDesc })
-  name!: string;
+  name!: string | TranslationRecord;
 
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001' })
   regionId!: string;
@@ -42,7 +43,7 @@ export class DistrictResponseDto {
   id!: string;
 
   @ApiProperty({ example: 'Yunusabad', description: nameDesc })
-  name!: string;
+  name!: string | TranslationRecord;
 
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440002' })
   cityId!: string;
