@@ -1,5 +1,5 @@
 import { Product, ProductImage } from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ProductImageResponseDto {
   @ApiProperty({
@@ -188,6 +188,17 @@ export class ProductResponseDto {
     totalBids: number;
   };
 
+  @ApiPropertyOptional({
+    description:
+      'Last order for this product (Sell section: sold / awaiting delivery). For card: status, deliveredAt, shippedAt.',
+  })
+  saleOrderSummary?: {
+    orderId: string;
+    status: string;
+    deliveredAt?: Date | null;
+    shippedAt?: Date | null;
+  };
+
   static fromEntity(
     product: Product & {
       category?: { id: string; name: unknown; slug: string };
@@ -209,6 +220,12 @@ export class ProductResponseDto {
         status: string;
         currentPrice: unknown;
         totalBids: number;
+      };
+      saleOrderSummary?: {
+        id: string;
+        status: string;
+        deliveredAt: Date | null;
+        shippedAt: Date | null;
       };
     },
   ): ProductResponseDto {
@@ -276,6 +293,14 @@ export class ProductResponseDto {
                 ? product.activeAuction.currentPrice
                 : Number(product.activeAuction.currentPrice) || 0,
             totalBids: product.activeAuction.totalBids,
+          }
+        : undefined,
+      saleOrderSummary: product.saleOrderSummary
+        ? {
+            orderId: product.saleOrderSummary.id,
+            status: product.saleOrderSummary.status,
+            deliveredAt: product.saleOrderSummary.deliveredAt ?? undefined,
+            shippedAt: product.saleOrderSummary.shippedAt ?? undefined,
           }
         : undefined,
     };

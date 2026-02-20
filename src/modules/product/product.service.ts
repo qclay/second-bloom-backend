@@ -291,8 +291,26 @@ export class ProductService {
           },
         };
       } else if (salePhase === 'sold') {
-        where.status = ProductStatus.INACTIVE;
+        where.OR = [
+          {
+            orders: {
+              some: {
+                status: OrderStatus.DELIVERED,
+                deletedAt: null,
+              },
+            },
+          },
+          {
+            auctions: {
+              some: {
+                status: 'ENDED',
+                deletedAt: null,
+              },
+            },
+          },
+        ];
       } else if (salePhase === 'in_delivery') {
+        // Ожидают доставки: order confirmed/shipped but not yet delivered
         where.orders = {
           some: {
             status: {
@@ -306,6 +324,7 @@ export class ProductService {
           },
         };
       }
+      // salePhase === 'all' → no extra filter (all seller's products)
     }
 
     if (regionId) {
@@ -401,74 +420,89 @@ export class ProductService {
     }
 
     const now = new Date();
+    const listInclude: Prisma.ProductInclude = {
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      condition: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      size: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      regionRelation: { select: { name: true } },
+      cityRelation: { select: { name: true } },
+      districtRelation: { select: { name: true } },
+      seller: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phoneNumber: true,
+        },
+      },
+      images: {
+        where: { deletedAt: null, isActive: true },
+        include: {
+          file: {
+            select: {
+              url: true,
+            },
+          },
+        },
+        orderBy: { displayOrder: 'asc' },
+      },
+      auctions: {
+        where: {
+          status: 'ACTIVE',
+          isActive: true,
+          deletedAt: null,
+          endTime: { gte: now },
+        },
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          endTime: true,
+          status: true,
+          currentPrice: true,
+          totalBids: true,
+        },
+      },
+    };
+    if (salePhase === 'sold' || salePhase === 'in_delivery') {
+      listInclude.orders = {
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          status: true,
+          deliveredAt: true,
+          shippedAt: true,
+        },
+      };
+    }
+
     const [products, total] = await Promise.all([
       this.productRepository.findMany({
         where,
         skip,
         take: maxLimit,
         orderBy,
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          condition: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          size: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          regionRelation: { select: { name: true } },
-          cityRelation: { select: { name: true } },
-          districtRelation: { select: { name: true } },
-          seller: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              phoneNumber: true,
-            },
-          },
-          images: {
-            where: { deletedAt: null, isActive: true },
-            include: {
-              file: {
-                select: {
-                  url: true,
-                },
-              },
-            },
-            orderBy: { displayOrder: 'asc' },
-          },
-          auctions: {
-            where: {
-              status: 'ACTIVE',
-              isActive: true,
-              deletedAt: null,
-              endTime: { gte: now },
-            },
-            take: 1,
-            orderBy: { createdAt: 'desc' },
-            select: {
-              id: true,
-              endTime: true,
-              status: true,
-              currentPrice: true,
-              totalBids: true,
-            },
-          },
-        },
+        include: listInclude,
       }),
       this.productRepository.count({ where }),
     ]);
@@ -481,13 +515,28 @@ export class ProductService {
         currentPrice: unknown;
         totalBids: number;
       }>;
+      orders?: Array<{
+        id: string;
+        status: string;
+        deliveredAt: Date | null;
+        shippedAt: Date | null;
+      }>;
     };
     const result = {
       data: products.map((product) => {
         const p = product as ProductWithActiveAuction;
+        const lastOrder = p.orders?.[0];
         return ProductResponseDto.fromEntity({
           ...p,
           activeAuction: p.auctions?.[0],
+          saleOrderSummary: lastOrder
+            ? {
+                id: lastOrder.id,
+                status: lastOrder.status,
+                deliveredAt: lastOrder.deliveredAt,
+                shippedAt: lastOrder.shippedAt,
+              }
+            : undefined,
         } as Parameters<typeof ProductResponseDto.fromEntity>[0]);
       }),
       meta: {

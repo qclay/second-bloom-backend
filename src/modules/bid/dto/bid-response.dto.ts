@@ -8,6 +8,7 @@ export class BidResponseDto {
   isWinning!: boolean;
   isRetracted!: boolean;
   readByOwnerAt!: Date | null;
+  isNew!: boolean;
   rejectedAt!: Date | null;
   rejectedBy!: string | null;
   ipAddress!: string | null;
@@ -65,6 +66,7 @@ export class BidResponseDto {
       isWinning: bid.isWinning,
       isRetracted: bid.isRetracted,
       readByOwnerAt: bid.readByOwnerAt ?? null,
+      isNew: bid.readByOwnerAt == null && bid.rejectedAt == null,
       rejectedAt: bid.rejectedAt ?? null,
       rejectedBy: bid.rejectedBy ?? null,
       ipAddress: bid.ipAddress,

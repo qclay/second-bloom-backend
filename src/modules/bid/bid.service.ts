@@ -47,6 +47,72 @@ export class BidService {
     }
 
     const now = new Date();
+    const bidder = await this.prisma.user.findUnique({
+      where: { id: bidderId },
+      select: { auctionBannedUntil: true },
+    });
+    if (
+      bidder?.auctionBannedUntil &&
+      bidder.auctionBannedUntil.getTime() > now.getTime()
+    ) {
+      throw new ForbiddenException(
+        `You are temporarily banned from participating in auctions until ${bidder.auctionBannedUntil.toISOString()}. Contact support for more information.`,
+      );
+    }
+
+    const rejectedCountInAuction = await this.prisma.bid.count({
+      where: {
+        auctionId: dto.auctionId,
+        bidderId,
+        rejectedAt: { not: null },
+      },
+    });
+    if (rejectedCountInAuction >= 2) {
+      throw new ForbiddenException(
+        'You can no longer participate in this auction because your bids were rejected twice by the seller.',
+      );
+    }
+
+    const bidderBlockedByCreator =
+      await this.prisma.conversationParticipant.findFirst({
+        where: {
+          userId: bidderId,
+          isBlocked: true,
+          conversation: {
+            participants: {
+              some: { userId: auction.creatorId },
+            },
+            deletedAt: null,
+          },
+        },
+        select: { id: true },
+      });
+    if (bidderBlockedByCreator) {
+      throw new ForbiddenException(
+        'You cannot participate in this auction. The seller has restricted your access.',
+      );
+    }
+
+    const BID_COOLDOWN_MS = 60_000;
+    const lastBidByUser = await this.prisma.bid.findFirst({
+      where: {
+        auctionId: dto.auctionId,
+        bidderId,
+        isRetracted: false,
+        rejectedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    if (lastBidByUser) {
+      const elapsed = now.getTime() - lastBidByUser.createdAt.getTime();
+      if (elapsed < BID_COOLDOWN_MS) {
+        const secondsLeft = Math.ceil((BID_COOLDOWN_MS - elapsed) / 1000);
+        throw new BadRequestException(
+          `You can place your next bid in ${secondsLeft} second(s). One bid per minute per auction.`,
+        );
+      }
+    }
 
     const bidAmount = dto.amount;
     const minBidAmount = Number(auction.minBidAmount);
@@ -476,7 +542,118 @@ export class BidService {
           error instanceof Error ? error.stack : error,
         );
       }
+
+      await this.applyPlatformBanIfNeeded(bid.bidderId);
     }
+  }
+
+  private static readonly PLATFORM_BAN_DAYS = 3;
+  private static readonly PLATFORM_BAN_STRIKES = 6;
+
+  private async applyPlatformBanIfNeeded(bidderId: string): Promise<void> {
+    const rejectedBids = await this.prisma.bid.findMany({
+      where: {
+        bidderId,
+        rejectedAt: { not: null },
+      },
+      select: {
+        auction: {
+          select: { creatorId: true },
+        },
+      },
+    });
+    const distinctSellerIds = [
+      ...new Set(rejectedBids.map((b) => b.auction.creatorId)),
+    ];
+    if (distinctSellerIds.length < BidService.PLATFORM_BAN_STRIKES) {
+      return;
+    }
+    const bannedUntil = new Date();
+    bannedUntil.setDate(bannedUntil.getDate() + BidService.PLATFORM_BAN_DAYS);
+    await this.prisma.user.update({
+      where: { id: bidderId },
+      data: { auctionBannedUntil: bannedUntil },
+    });
+    this.logger.log(
+      `Platform auction ban applied for user ${bidderId} until ${bannedUntil.toISOString()} (${distinctSellerIds.length} strikes)`,
+    );
+  }
+
+  async restoreBid(
+    id: string,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<BidResponseDto> {
+    const bid = await this.bidRepository.findById(id);
+
+    if (!bid) {
+      throw new NotFoundException(`Bid with ID ${id} not found`);
+    }
+
+    const auction = await this.auctionRepository.findById(bid.auctionId);
+
+    if (!auction || auction.deletedAt) {
+      throw new NotFoundException('Auction not found');
+    }
+
+    if (auction.status !== AuctionStatus.ACTIVE) {
+      throw new BadRequestException('Cannot restore bid on inactive auction');
+    }
+
+    const isOwner = auction.creatorId === userId;
+    if (!isOwner && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Only the auction owner or admin can restore a rejected bid',
+      );
+    }
+
+    if (bid.rejectedAt == null) {
+      throw new BadRequestException(
+        'Bid was not rejected by owner; nothing to restore',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.bid.update({
+        where: { id },
+        data: {
+          rejectedAt: null,
+          rejectedBy: null,
+          isRetracted: false,
+        },
+      });
+
+      const winningBid = await tx.bid.findFirst({
+        where: {
+          auctionId: bid.auctionId,
+          isRetracted: false,
+          rejectedAt: null,
+        },
+        orderBy: { amount: 'desc' },
+        select: { id: true, amount: true },
+      });
+
+      if (winningBid) {
+        await tx.bid.updateMany({
+          where: { auctionId: bid.auctionId },
+          data: { isWinning: false },
+        });
+        await tx.bid.update({
+          where: { id: winningBid.id },
+          data: { isWinning: true },
+        });
+        await tx.auction.update({
+          where: { id: bid.auctionId },
+          data: { currentPrice: winningBid.amount },
+        });
+      }
+    });
+
+    this.logger.log(
+      `Bid ${id} restored by ${isOwner ? 'auction owner' : 'admin'} (user: ${userId})`,
+    );
+
+    return this.findById(id);
   }
 
   async getAuctionBids(
@@ -557,6 +734,30 @@ export class BidService {
       where: { id: bidId },
       data: { readByOwnerAt: new Date() },
     });
+  }
+
+  async markAllBidsAsRead(
+    auctionId: string,
+    userId: string,
+  ): Promise<{ markedCount: number }> {
+    const auction = await this.auctionRepository.findById(auctionId);
+    if (!auction || auction.deletedAt) {
+      throw new NotFoundException('Auction not found');
+    }
+    if (auction.creatorId !== userId) {
+      throw new ForbiddenException(
+        'Only the auction owner can mark bids as read',
+      );
+    }
+    const result = await this.prisma.bid.updateMany({
+      where: {
+        auctionId,
+        readByOwnerAt: null,
+        rejectedAt: null,
+      },
+      data: { readByOwnerAt: new Date() },
+    });
+    return { markedCount: result.count };
   }
 
   async getUserBids(userId: string, query: BidQueryDto) {

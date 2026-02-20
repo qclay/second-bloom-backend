@@ -542,10 +542,10 @@ model User {
   publicationCredits     Int                     @default(0)
   birthDate              String?
   country                String?
-  gender                 String?
-  language               String?
+  gender                 String?                 
+  language               String?                 @default("ru")
   username               String?                 @unique
-  auctionBannedUntil     DateTime?               /// When set (future), user cannot participate in any auction (3-day platform ban after 6 strikes).
+  auctionBannedUntil     DateTime?               
   createdAuctions        Auction[]               @relation("AuctionCreator")
   wonAuctions            Auction[]               @relation("AuctionWinner")
   bids                   Bid[]

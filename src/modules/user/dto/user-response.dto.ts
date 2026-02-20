@@ -73,6 +73,19 @@ export class UserResponseDto {
   @ApiProperty({ required: false, nullable: true })
   country!: string | null;
 
+  @ApiProperty({
+    description: 'User balance (UZS). Used for purchases, etc.',
+    example: 0,
+  })
+  balance!: number;
+
+  @ApiProperty({
+    description:
+      'Remaining publication credits. Required to create products (1 per product). Admins have unlimited.',
+    example: 5,
+  })
+  publicationCredits!: number;
+
   @ApiProperty()
   createdAt!: Date;
 
@@ -110,6 +123,8 @@ export class UserResponseDto {
       gender: user.gender,
       language: user.language,
       country: user.country,
+      balance: Number(user.balance ?? 0),
+      publicationCredits: user.publicationCredits ?? 0,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

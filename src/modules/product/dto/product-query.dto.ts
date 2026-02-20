@@ -52,7 +52,7 @@ export class ProductQueryDto {
 
   @ApiPropertyOptional({
     description:
-      'Filter by sale phase (seller dashboard): all, in_auction, sold, in_delivery. Use with sellerId for "All bouquets", "On auction", "Sold", "In delivery".',
+      'Sell section: filter by tab. Use with sellerId = current user. all = All bouquets (user’s products), in_auction = On auction (user’s products with active auction), sold = Sold (order delivered or auction ended), in_delivery = Awaiting delivery (order confirmed/shipped, not yet delivered).',
     enum: ['all', 'in_auction', 'sold', 'in_delivery'],
     example: 'all',
   })

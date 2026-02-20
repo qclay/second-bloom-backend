@@ -31,6 +31,7 @@ const CONVERSATION_INCLUDE = {
       user: {
         select: {
           id: true,
+          username: true,
           phoneNumber: true,
           phoneCountryCode: true,
           firstName: true,
@@ -1056,7 +1057,8 @@ export class ChatService {
         ? `${u.phoneCountryCode}${u.phoneNumber}`
         : u.phoneNumber;
       return {
-        id: u.id,
+        userId: u.id,
+        username: u.username ?? null,
         phoneNumber,
         firstName: u.firstName,
         lastName: u.lastName,
@@ -1158,7 +1160,7 @@ export class ChatService {
       conversation.participants.length === 2
     ) {
       const other = conversation.participants.find(
-        (p) => p.userId !== conv.product.seller!.id,
+        (p) => p.userId !== conv.product.seller.id,
       );
       if (other?.user) {
         buyer = this.mapUserToSellerBuyer({
@@ -1174,6 +1176,7 @@ export class ChatService {
 
     return {
       id: conversation.id,
+      flowerId: conv.product?.id ?? null,
       participants,
       unreadCount: myParticipant?.unreadCount ?? 0,
       isArchived: myParticipant?.isArchived ?? false,

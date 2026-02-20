@@ -1,8 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ConversationParticipantDto {
-  @ApiProperty({ example: 'clx1234567890abcdef' })
-  id!: string;
+  @ApiProperty({ example: 'clx1234567890abcdef', description: 'User ID' })
+  userId!: string;
+
+  @ApiPropertyOptional({ example: 'johndoe', description: 'Username' })
+  username?: string | null;
 
   @ApiProperty({ example: '+998901234567' })
   phoneNumber!: string;
@@ -125,6 +128,13 @@ export class ConversationLastMessageDto {
 export class ConversationResponseDto {
   @ApiProperty({ example: 'clx1234567890abcdef' })
   id!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Pinned product (bouquet) ID – which flower this conversation is about',
+    example: 'clx1234567890abcdef',
+  })
+  flowerId?: string | null;
 
   @ApiProperty({
     type: [ConversationParticipantDto],

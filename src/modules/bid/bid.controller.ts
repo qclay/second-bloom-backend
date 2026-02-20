@@ -87,7 +87,7 @@ export class BidController {
   @ApiOperation({
     summary: 'Get bids for an auction',
     description:
-      'List of bids for an auction. view: all (last on top), new (unread by owner), top (highest first), rejected (owner-rejected). Owner can use view=new and PATCH :id/read to mark as read.',
+      'List of bids for an auction. view: all (last on top), new (unread by owner), top (highest first), rejected (owner-rejected). Owner can use view=new and PATCH :id/read or PATCH auction/:auctionId/read-all to mark as read.',
   })
   @ApiParam({
     name: 'auctionId',
@@ -102,6 +102,27 @@ export class BidController {
     @Query() query: BidQueryDto,
   ) {
     return await this.bidService.getAuctionBids(auctionId, query);
+  }
+
+  @Patch('auction/:auctionId/read-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Mark all new bids in auction as read (auction owner)',
+    description:
+      'One HTTP call to mark all unread bids in this auction as read. Use this instead of many PATCH :id/read when opening the Applications page or clicking "Mark all as read".',
+  })
+  @ApiParam({ name: 'auctionId', description: 'Auction UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Number of bids marked as read',
+    schema: { properties: { markedCount: { type: 'number' } } },
+  })
+  async markAllBidsAsRead(
+    @Param('auctionId') auctionId: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<{ markedCount: number }> {
+    return await this.bidService.markAllBidsAsRead(auctionId, userId);
   }
 
   @Patch(':id/read')
@@ -120,6 +141,28 @@ export class BidController {
     @CurrentUser('id') userId: string,
   ): Promise<void> {
     return await this.bidService.markBidAsRead(id, userId);
+  }
+
+  @Patch(':id/restore')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Restore a rejected bid (auction owner)',
+    description:
+      'Auction owner can restore a bid they had previously removed. Only works for bids rejected by owner; auction must still be active. Returns the restored bid.',
+  })
+  @ApiParam({ name: 'id', description: 'Bid UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Bid restored',
+    type: BidResponseDto,
+  })
+  async restoreBid(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ): Promise<BidResponseDto> {
+    return await this.bidService.restoreBid(id, userId, role);
   }
 
   @Get()
