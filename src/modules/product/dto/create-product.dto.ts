@@ -23,18 +23,18 @@ import {
 } from '../../../common/dto/translation.dto';
 
 export class CreateProductDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Product title in one or more languages (en, ru, uz).',
     example: {
       en: 'Fresh Red Roses Bouquet',
       ru: 'Букет свежих красных роз',
       uz: 'Yangi qizil atirgul buketi',
     },
-    required: true,
   })
+  @IsOptional()
   @ValidateNested()
   @Type(() => TranslationDto)
-  title!: TranslationDto;
+  title?: TranslationDto;
 
   @ApiProperty({
     description: 'Product description in one or more languages.',
@@ -152,30 +152,28 @@ export class CreateProductDto {
   isFeatured?: boolean = false;
 
   @ApiPropertyOptional({
-    description: 'Region',
-    example: 'Tashkent',
-    maxLength: 100,
+    description: 'Region ID (from GET /locations/regions).',
+    example: '550e8400-e29b-41d4-a716-446655440001',
   })
-  @IsString()
+  @IsUUID()
   @IsOptional()
-  @MaxLength(100)
-  region?: string;
+  regionId?: string;
 
   @ApiPropertyOptional({
-    description: 'City',
-    example: 'Tashkent',
-    maxLength: 100,
+    description: 'City ID (from GET /locations/cities).',
+    example: '550e8400-e29b-41d4-a716-446655440002',
   })
-  @IsString()
+  @IsUUID()
   @IsOptional()
-  @MaxLength(100)
-  city?: string;
+  cityId?: string;
 
-  @ApiPropertyOptional({ description: 'District', maxLength: 100 })
-  @IsString()
+  @ApiPropertyOptional({
+    description: 'District ID (from GET /locations/districts).',
+    example: '550e8400-e29b-41d4-a716-446655440003',
+  })
+  @IsUUID()
   @IsOptional()
-  @MaxLength(100)
-  district?: string;
+  districtId?: string;
 
   @ApiPropertyOptional({
     description: 'Uploaded file IDs for product images (order preserved)',

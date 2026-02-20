@@ -13,7 +13,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
-import { Prisma, ProductStatus, UserRole } from '@prisma/client';
+import { Prisma, ProductStatus, UserRole, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRepository } from '../category/repositories/category.repository';
 import { CacheService } from '../../common/services/cache.service';
@@ -103,15 +103,11 @@ export class ProductService {
       throw new NotFoundException('Size not found or inactive');
     }
 
-    if (!atLeastOneTranslation(dto.title)) {
-      throw new BadRequestException(
-        'Product title must have at least one translation (en, ru, or uz)',
+    if (dto.title && atLeastOneTranslation(dto.title)) {
+      dto.title = await this.translationService.autoCompleteTranslations(
+        dto.title,
       );
     }
-
-    dto.title = await this.translationService.autoCompleteTranslations(
-      dto.title,
-    );
     if (dto.description) {
       dto.description = await this.translationService.autoCompleteTranslations(
         dto.description,
@@ -123,10 +119,15 @@ export class ProductService {
         ? (dto.auction?.startPrice ?? dto.price ?? 0)
         : (dto.price ?? 0);
 
-    const titleForSlug = getTranslationForSlug(
-      dto.title as Record<string, string>,
+    const titleForSlug =
+      dto.title && atLeastOneTranslation(dto.title)
+        ? getTranslationForSlug(dto.title as Record<string, string>)
+        : '';
+    const slug = await this.ensureUniqueSlug(
+      titleForSlug
+        ? this.generateSlug(titleForSlug)
+        : `product-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     );
-    const slug = await this.ensureUniqueSlug(this.generateSlug(titleForSlug));
 
     const validatedImageIds = dto.imageIds
       ? this.validateAndDeduplicateImages(dto.imageIds)
@@ -151,7 +152,9 @@ export class ProductService {
 
         const createdProduct = await tx.product.create({
           data: {
-            title: dto.title as unknown as Prisma.InputJsonValue,
+            ...(dto.title && {
+              title: dto.title as unknown as Prisma.InputJsonValue,
+            }),
             slug,
             description: dto.description
               ? (dto.description as unknown as Prisma.InputJsonValue)
@@ -168,9 +171,15 @@ export class ProductService {
             quantity: dto.quantity ?? 1,
             status: dto.status ?? ProductStatus.ACTIVE,
             isFeatured: dto.isFeatured ?? false,
-            region: dto.region,
-            city: dto.city,
-            district: dto.district,
+            ...(dto.regionId && {
+              regionRelation: { connect: { id: dto.regionId } },
+            }),
+            ...(dto.cityId && {
+              cityRelation: { connect: { id: dto.cityId } },
+            }),
+            ...(dto.districtId && {
+              districtRelation: { connect: { id: dto.districtId } },
+            }),
             seller: {
               connect: { id: sellerId },
             },
@@ -228,8 +237,9 @@ export class ProductService {
       type,
       status,
       salePhase,
-      region,
-      city,
+      regionId,
+      cityId,
+      districtId,
       minPrice,
       maxPrice,
       sortBy = 'createdAt',
@@ -282,15 +292,30 @@ export class ProductService {
         };
       } else if (salePhase === 'sold') {
         where.status = ProductStatus.INACTIVE;
+      } else if (salePhase === 'in_delivery') {
+        where.orders = {
+          some: {
+            status: {
+              in: [
+                OrderStatus.CONFIRMED,
+                OrderStatus.PROCESSING,
+                OrderStatus.SHIPPED,
+              ],
+            },
+            deletedAt: null,
+          },
+        };
       }
     }
 
-    if (region) {
-      where.region = region;
+    if (regionId) {
+      where.regionId = regionId;
     }
-
-    if (city) {
-      where.city = city;
+    if (cityId) {
+      where.cityId = cityId;
+    }
+    if (districtId) {
+      where.districtId = districtId;
     }
 
     if (query.conditionId) {
@@ -348,8 +373,9 @@ export class ProductService {
           isFeatured,
           type,
           status,
-          region,
-          city,
+          regionId,
+          cityId,
+          districtId,
           sortBy,
           sortOrder,
         })
@@ -403,6 +429,9 @@ export class ProductService {
               slug: true,
             },
           },
+          regionRelation: { select: { name: true } },
+          cityRelation: { select: { name: true } },
+          districtRelation: { select: { name: true } },
           seller: {
             select: {
               id: true,
@@ -493,11 +522,12 @@ export class ProductService {
       types,
       status,
       statuses,
-      region,
-      regions,
-      city,
-      cities,
-      district,
+      regionId,
+      regionIds,
+      cityId,
+      cityIds,
+      districtId,
+      districtIds,
       conditionId,
       conditionIds,
       sizeId,
@@ -550,20 +580,20 @@ export class ProductService {
       where.status = { in: statuses };
     }
 
-    if (region) {
-      where.region = region;
-    } else if (regions && regions.length > 0) {
-      where.region = { in: regions };
+    if (regionId) {
+      where.regionId = regionId;
+    } else if (regionIds && regionIds.length > 0) {
+      where.regionId = { in: regionIds };
     }
-
-    if (city) {
-      where.city = city;
-    } else if (cities && cities.length > 0) {
-      where.city = { in: cities };
+    if (cityId) {
+      where.cityId = cityId;
+    } else if (cityIds && cityIds.length > 0) {
+      where.cityId = { in: cityIds };
     }
-
-    if (district) {
-      where.district = district;
+    if (districtId) {
+      where.districtId = districtId;
+    } else if (districtIds && districtIds.length > 0) {
+      where.districtId = { in: districtIds };
     }
 
     if (conditionId) {
@@ -642,6 +672,9 @@ export class ProductService {
               slug: true,
             },
           },
+          regionRelation: { select: { name: true } },
+          cityRelation: { select: { name: true } },
+          districtRelation: { select: { name: true } },
           seller: {
             select: {
               id: true,
@@ -707,6 +740,9 @@ export class ProductService {
             slug: true,
           },
         },
+        regionRelation: { select: { name: true } },
+        cityRelation: { select: { name: true } },
+        districtRelation: { select: { name: true } },
         seller: {
           select: {
             id: true,
@@ -895,14 +931,20 @@ export class ProductService {
     if (dto.isFeatured !== undefined) {
       updateData.isFeatured = dto.isFeatured;
     }
-    if (dto.region !== undefined) {
-      updateData.region = dto.region;
+    if (dto.regionId !== undefined) {
+      updateData.regionRelation = dto.regionId
+        ? { connect: { id: dto.regionId } }
+        : { disconnect: true };
     }
-    if (dto.city !== undefined) {
-      updateData.city = dto.city;
+    if (dto.cityId !== undefined) {
+      updateData.cityRelation = dto.cityId
+        ? { connect: { id: dto.cityId } }
+        : { disconnect: true };
     }
-    if (dto.district !== undefined) {
-      updateData.district = dto.district;
+    if (dto.districtId !== undefined) {
+      updateData.districtRelation = dto.districtId
+        ? { connect: { id: dto.districtId } }
+        : { disconnect: true };
     }
 
     if (validatedImageIds !== undefined || Object.keys(updateData).length > 0) {

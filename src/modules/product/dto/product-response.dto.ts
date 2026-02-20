@@ -28,8 +28,8 @@ export class ProductResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
 
-  @ApiProperty({ example: 'Red Roses Bouquet' })
-  title!: string;
+  @ApiProperty({ example: 'Red Roses Bouquet', nullable: true })
+  title!: string | null;
 
   @ApiProperty({ example: 'red-roses-bouquet' })
   slug!: string;
@@ -199,6 +199,9 @@ export class ProductResponseDto {
         lastName: string | null;
         phoneNumber: string;
       };
+      regionRelation?: { name: unknown } | null;
+      cityRelation?: { name: unknown } | null;
+      districtRelation?: { name: unknown } | null;
       images?: (ProductImage & { file?: { url: string } })[];
       activeAuction?: {
         id: string;
@@ -211,7 +214,8 @@ export class ProductResponseDto {
   ): ProductResponseDto {
     return {
       id: product.id,
-      title: product.title as unknown as string,
+      title:
+        product.title != null ? (product.title as unknown as string) : null,
       slug: product.slug,
       description: product.description as unknown as string | null,
       price: Number(product.price),
@@ -237,9 +241,9 @@ export class ProductResponseDto {
       status: product.status,
       isFeatured: product.isFeatured,
       views: product.views,
-      region: product.region,
-      city: product.city,
-      district: product.district,
+      region: (product.regionRelation?.name ?? null) as string | null,
+      city: (product.cityRelation?.name ?? null) as string | null,
+      district: (product.districtRelation?.name ?? null) as string | null,
       sellerId: product.sellerId,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,

@@ -115,51 +115,55 @@ export class ProductSearchDto {
   statuses?: ProductStatus[];
 
   @ApiProperty({
-    description: 'Filter by region',
-    example: 'Tashkent',
+    description: 'Filter by region ID (from GET /locations/regions)',
     required: false,
   })
   @IsOptional()
   @IsString()
-  region?: string;
+  regionId?: string;
 
   @ApiProperty({
-    description: 'Filter by multiple regions',
-    example: ['Tashkent', 'Samarkand'],
+    description: 'Filter by multiple region IDs',
     required: false,
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  regions?: string[];
+  regionIds?: string[];
 
   @ApiProperty({
-    description: 'Filter by city',
-    example: 'Tashkent',
+    description: 'Filter by city ID (from GET /locations/cities)',
     required: false,
   })
   @IsOptional()
   @IsString()
-  city?: string;
+  cityId?: string;
 
   @ApiProperty({
-    description: 'Filter by multiple cities',
-    example: ['Tashkent', 'Samarkand'],
+    description: 'Filter by multiple city IDs',
     required: false,
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  cities?: string[];
+  cityIds?: string[];
 
   @ApiProperty({
-    description: 'Filter by district',
-    example: 'Yunusabad',
+    description: 'Filter by district ID (from GET /locations/districts)',
     required: false,
   })
   @IsOptional()
   @IsString()
-  district?: string;
+  districtId?: string;
+
+  @ApiProperty({
+    description: 'Filter by multiple district IDs',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  districtIds?: string[];
 
   @ApiProperty({
     description: 'Filter by condition ID (from GET /conditions)',

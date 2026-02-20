@@ -1,12 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProductImageDto } from './product-image.dto';
 
 export class ProductNestedDto {
   @ApiProperty()
   id!: string;
 
-  @ApiProperty()
-  title!: string;
+  @ApiPropertyOptional({ nullable: true })
+  title?: string | null;
 
   @ApiProperty()
   slug!: string;

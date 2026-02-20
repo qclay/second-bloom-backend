@@ -11,6 +11,7 @@ import {
   IsBoolean,
   Min,
   ArrayMaxSize,
+  IsUUID,
 } from 'class-validator';
 import { ProductType, ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -63,20 +64,17 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @IsOptional()
   isFeatured?: boolean;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
-  @MaxLength(100)
-  region?: string;
+  regionId?: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
-  @MaxLength(100)
-  city?: string;
+  cityId?: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
-  @MaxLength(100)
-  district?: string;
+  districtId?: string;
 
   @ApiPropertyOptional({
     description:

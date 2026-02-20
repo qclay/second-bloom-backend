@@ -49,6 +49,10 @@ async function main() {
   await prisma.favorite.deleteMany();
   await prisma.productImage.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.district.deleteMany();
+  await prisma.city.deleteMany();
+  await prisma.region.deleteMany();
+  await prisma.country.deleteMany();
   await prisma.condition.deleteMany();
   await prisma.size.deleteMany();
   await prisma.category.deleteMany();
@@ -57,6 +61,196 @@ async function main() {
   await prisma.payment.deleteMany();
   await prisma.verificationCode.deleteMany();
   await prisma.user.deleteMany();
+
+  console.log('📍 Seeding locations (Uzbekistan)...');
+  const tr = (en: string, ru: string, uz: string) => ({ en, ru, uz });
+
+  const uzbekistan = await prisma.country.create({
+    data: {
+      name: tr('Uzbekistan', 'Узбекистан', "O'zbekiston"),
+      code: 'UZ',
+      isActive: true,
+    },
+  });
+
+  const regionsData: { name: ReturnType<typeof tr> }[] = [
+    { name: tr('Tashkent', 'Ташкент', 'Toshkent') },
+    { name: tr('Tashkent City', 'Город Ташкент', 'Toshkent shahri') },
+    { name: tr('Andijan', 'Андижан', 'Andijon') },
+    { name: tr('Bukhara', 'Бухара', 'Buxoro') },
+    { name: tr('Fergana', 'Фергана', "Farg'ona") },
+    { name: tr('Jizzakh', 'Джизак', 'Jizzax') },
+    { name: tr('Namangan', 'Наманган', 'Namangan') },
+    { name: tr('Navoiy', 'Навои', 'Navoiy') },
+    { name: tr('Qashqadaryo', 'Кашкадарья', 'Qashqadaryo') },
+    { name: tr('Samarqand', 'Самарканд', 'Samarqand') },
+    { name: tr('Sirdaryo', 'Сырдарья', 'Sirdaryo') },
+    { name: tr('Surxondaryo', 'Сурхандарья', 'Surxondaryo') },
+    { name: tr('Xorazm', 'Хорезм', 'Xorazm') },
+    {
+      name: tr(
+        'Republic of Karakalpakstan',
+        'Республика Каракалпакстан',
+        "Qoraqalpog'iston Respublikasi",
+      ),
+    },
+  ];
+  const regions = await Promise.all(
+    regionsData.map((r) =>
+      prisma.region.create({
+        data: {
+          countryId: uzbekistan.id,
+          name: r.name,
+          isActive: true,
+        },
+      }),
+    ),
+  );
+
+  const byRegionName = (key: string) =>
+    regions.find((r) => (r.name as { en: string }).en === key)!;
+  const tashkentRegion = byRegionName('Tashkent');
+  const tashkentCityRegion = byRegionName('Tashkent City');
+  const andijanRegion = byRegionName('Andijan');
+  const bukharaRegion = byRegionName('Bukhara');
+  const ferganaRegion = byRegionName('Fergana');
+  const jizzakhRegion = byRegionName('Jizzakh');
+  const namanganRegion = byRegionName('Namangan');
+  const navoiyRegion = byRegionName('Navoiy');
+  const qashqadaryoRegion = byRegionName('Qashqadaryo');
+  const samarqandRegion = byRegionName('Samarqand');
+  const sirdaryoRegion = byRegionName('Sirdaryo');
+  const surxondaryoRegion = byRegionName('Surxondaryo');
+  const xorazmRegion = byRegionName('Xorazm');
+  const karakalpakstanRegion = byRegionName('Republic of Karakalpakstan');
+
+  const citiesData: { name: ReturnType<typeof tr>; regionId: string }[] = [
+    {
+      name: tr('Tashkent', 'Ташкент', 'Toshkent'),
+      regionId: tashkentRegion.id,
+    },
+    {
+      name: tr('Tashkent', 'Ташкент', 'Toshkent'),
+      regionId: tashkentCityRegion.id,
+    },
+    { name: tr('Andijan', 'Андижан', 'Andijon'), regionId: andijanRegion.id },
+    { name: tr('Bukhara', 'Бухара', 'Buxoro'), regionId: bukharaRegion.id },
+    { name: tr('Fergana', 'Фергана', "Farg'ona"), regionId: ferganaRegion.id },
+    { name: tr('Jizzakh', 'Джизак', 'Jizzax'), regionId: jizzakhRegion.id },
+    {
+      name: tr('Namangan', 'Наманган', 'Namangan'),
+      regionId: namanganRegion.id,
+    },
+    { name: tr('Navoiy', 'Навои', 'Navoiy'), regionId: navoiyRegion.id },
+    { name: tr('Qarshi', 'Карши', 'Qarshi'), regionId: qashqadaryoRegion.id },
+    {
+      name: tr('Samarqand', 'Самарканд', 'Samarqand'),
+      regionId: samarqandRegion.id,
+    },
+    {
+      name: tr('Kattakurgan', 'Каттакурган', "Kattaqo'rg'on"),
+      regionId: samarqandRegion.id,
+    },
+    {
+      name: tr('Guliston', 'Гулистан', 'Guliston'),
+      regionId: sirdaryoRegion.id,
+    },
+    { name: tr('Termiz', 'Термез', 'Termiz'), regionId: surxondaryoRegion.id },
+    { name: tr('Urgench', 'Ургенч', 'Urganch'), regionId: xorazmRegion.id },
+    { name: tr('Nukus', 'Нукус', 'Nukus'), regionId: karakalpakstanRegion.id },
+    // Tashkent Region cities
+    {
+      name: tr('Nurafshon', 'Нурафшон', 'Nurafshon'),
+      regionId: tashkentRegion.id,
+    },
+    { name: tr('Olmaliq', 'Олмалиқ', 'Olmaliq'), regionId: tashkentRegion.id },
+    { name: tr('Angren', 'Ангрен', 'Angren'), regionId: tashkentRegion.id },
+    { name: tr('Bekabad', 'Бекабад', 'Bekobod'), regionId: tashkentRegion.id },
+    { name: tr('Chirchiq', 'Чирчик', 'Chirchiq'), regionId: tashkentRegion.id },
+    {
+      name: tr('Yangiyoʻl', 'Янгийўл', "Yangiyo'l"),
+      regionId: tashkentRegion.id,
+    },
+    {
+      name: tr('Oqqoʻrgʻon', 'Оққўрғон', "Oqqo'rg'on"),
+      regionId: tashkentRegion.id,
+    },
+    { name: tr('Parkent', 'Паркент', 'Parkent'), regionId: tashkentRegion.id },
+    { name: tr('Piskent', 'Пискент', 'Piskent'), regionId: tashkentRegion.id },
+    { name: tr('Chinoz', 'Чиназ', 'Chinoz'), regionId: tashkentRegion.id },
+    { name: tr('Keles', 'Келес', 'Keles'), regionId: tashkentRegion.id },
+    {
+      name: tr('Doʻstobod', 'Дўстобод', "Do'stobod"),
+      regionId: tashkentRegion.id,
+    },
+    // Samarqand Region district towns (as cities)
+    {
+      name: tr('Bulungʻur', 'Булунғур', "Bulung'ur"),
+      regionId: samarqandRegion.id,
+    },
+    {
+      name: tr('Ishtixon', 'Иштихан', 'Ishtixon'),
+      regionId: samarqandRegion.id,
+    },
+    { name: tr('Jomboy', 'Джомбой', 'Jomboy'), regionId: samarqandRegion.id },
+    { name: tr('Payariq', 'Паяриқ', 'Payariq'), regionId: samarqandRegion.id },
+    { name: tr('Urgut', 'Ургут', 'Urgut'), regionId: samarqandRegion.id },
+    { name: tr('Oqtosh', 'Оқтош', 'Oqtosh'), regionId: samarqandRegion.id },
+    { name: tr('Nurobod', 'Нуробод', 'Nurobod'), regionId: samarqandRegion.id },
+    { name: tr('Toyloq', 'Тойлоқ', 'Toyloq'), regionId: samarqandRegion.id },
+  ];
+  const cities = await Promise.all(
+    citiesData.map((c) =>
+      prisma.city.create({
+        data: {
+          regionId: c.regionId,
+          name: c.name,
+          isActive: true,
+        },
+      }),
+    ),
+  );
+
+  const tashkentCity = cities.find(
+    (c) =>
+      (c.name as { en: string }).en === 'Tashkent' &&
+      c.regionId === tashkentCityRegion.id,
+  )!;
+
+  const tashkentCityDistricts: ReturnType<typeof tr>[] = [
+    tr('Bektemir', 'Бектемир', 'Bektemir'),
+    tr('Chilanzar', 'Чиланзар', 'Chilanzar'),
+    tr('Yashnobod', 'Яшнабад', 'Yashnobod'),
+    tr('Mirobod', 'Мирабад', 'Mirobod'),
+    tr('Mirzo Ulugbek', 'Мирзо Улугбек', "Mirzo Ulug'bek"),
+    tr('Sergeli', 'Сергели', 'Sergeli'),
+    tr('Shayxontoxur', 'Шайхантохур', 'Shayxontoxur'),
+    tr('Olmazor', 'Олмазор', 'Olmazor'),
+    tr('Uchtepa', 'Учтепа', 'Uchtepa'),
+    tr('Yakkasaray', 'Яккасарай', 'Yakkasaray'),
+    tr('Yunusabad', 'Юнусабад', 'Yunusobod'),
+    tr('Yangihayot', 'Янгихаёт', 'Yangihayot'),
+  ];
+  await Promise.all(
+    tashkentCityDistricts.map((name) =>
+      prisma.district.create({
+        data: {
+          cityId: tashkentCity.id,
+          name,
+          isActive: true,
+        },
+      }),
+    ),
+  );
+  const tashkentDistricts = await prisma.district.findMany({
+    where: { cityId: tashkentCity.id },
+  });
+  const byDistrictName = (en: string) =>
+    tashkentDistricts.find((d) => (d.name as { en: string }).en === en)!;
+
+  console.log(
+    `   ${regions.length} regions, ${cities.length} cities, ${tashkentCityDistricts.length} districts (Tashkent city)`,
+  );
 
   console.log('👥 Seeding users...');
   const admin = await prisma.user.create({
@@ -207,18 +401,26 @@ async function main() {
   console.log('📁 Seeding categories...');
   const flowersCategory = await prisma.category.create({
     data: {
-      name: 'Flowers',
+      name: tr('Flowers', 'Цветы', 'Gullar'),
       slug: 'flowers',
-      description: 'Fresh and beautiful flowers for all occasions',
+      description: tr(
+        'Fresh and beautiful flowers for all occasions',
+        'Свежие и красивые цветы на любой случай',
+        'Barcha tadbirlar uchun yangi va chiroyli gullar',
+      ),
       order: 1,
     },
   });
 
   const rosesCategory = await prisma.category.create({
     data: {
-      name: 'Roses',
+      name: tr('Roses', 'Розы', 'Atirgullar'),
       slug: 'roses',
-      description: 'Various types of roses',
+      description: tr(
+        'Various types of roses',
+        'Различные виды роз',
+        'Turli xil atirgullar',
+      ),
       parentId: flowersCategory.id,
       order: 1,
     },
@@ -226,9 +428,13 @@ async function main() {
 
   const tulipsCategory = await prisma.category.create({
     data: {
-      name: 'Tulips',
+      name: tr('Tulips', 'Тюльпаны', 'Lolalar'),
       slug: 'tulips',
-      description: 'Colorful tulips',
+      description: tr(
+        'Colorful tulips',
+        'Яркие тюльпаны',
+        'Rang-barang lolalar',
+      ),
       parentId: flowersCategory.id,
       order: 2,
     },
@@ -236,9 +442,13 @@ async function main() {
 
   const orchidsCategory = await prisma.category.create({
     data: {
-      name: 'Orchids',
+      name: tr('Orchids', 'Орхидеи', 'Orxideyalar'),
       slug: 'orchids',
-      description: 'Exotic orchids',
+      description: tr(
+        'Exotic orchids',
+        'Экзотические орхидеи',
+        'Eksotik orxideyalar',
+      ),
       parentId: flowersCategory.id,
       order: 3,
     },
@@ -246,9 +456,13 @@ async function main() {
 
   const bouquetsCategory = await prisma.category.create({
     data: {
-      name: 'Bouquets',
+      name: tr('Bouquets', 'Букеты', 'Buketlar'),
       slug: 'bouquets',
-      description: 'Beautiful flower bouquets',
+      description: tr(
+        'Beautiful flower bouquets',
+        'Красивые цветочные букеты',
+        'Chiroyli gul buketlari',
+      ),
       parentId: flowersCategory.id,
       order: 4,
     },
@@ -256,18 +470,26 @@ async function main() {
 
   const plantsCategory = await prisma.category.create({
     data: {
-      name: 'Plants',
+      name: tr('Plants', 'Растения', "O'simliklar"),
       slug: 'plants',
-      description: 'Indoor and outdoor plants',
+      description: tr(
+        'Indoor and outdoor plants',
+        'Комнатные и садовые растения',
+        "Uy va bog' o'simliklari",
+      ),
       order: 2,
     },
   });
 
   const accessoriesCategory = await prisma.category.create({
     data: {
-      name: 'Accessories',
+      name: tr('Accessories', 'Аксессуары', 'Aksessuarlar'),
       slug: 'accessories',
-      description: 'Flower accessories and supplies',
+      description: tr(
+        'Flower accessories and supplies',
+        'Аксессуары и принадлежности для цветов',
+        'Gul aksessuarlari va materiallari',
+      ),
       order: 3,
     },
   });
@@ -286,33 +508,68 @@ async function main() {
   console.log('📋 Seeding conditions...');
   const conditions = await Promise.all([
     prisma.condition.create({
-      data: { name: 'Freshest', slug: 'freshest' },
+      data: {
+        name: tr('Freshest', 'Свежайшие', 'Eng yangi'),
+        slug: 'freshest',
+      },
     }),
     prisma.condition.create({
-      data: { name: 'Good condition', slug: 'good-condition' },
+      data: {
+        name: tr('Good condition', 'Хорошее состояние', 'Yaxshi holat'),
+        slug: 'good-condition',
+      },
     }),
     prisma.condition.create({
-      data: { name: 'Losing freshness', slug: 'losing-freshness' },
+      data: {
+        name: tr(
+          'Losing freshness',
+          'Теряет свежесть',
+          "Yangilikni yo'qotmoqda",
+        ),
+        slug: 'losing-freshness',
+      },
     }),
     prisma.condition.create({
-      data: { name: 'Slightly wilted', slug: 'slightly-wilted' },
+      data: {
+        name: tr('Slightly wilted', 'Немного увядшие', "Biroz so'lgan"),
+        slug: 'slightly-wilted',
+      },
     }),
     prisma.condition.create({
-      data: { name: 'Noticeably wilting', slug: 'noticeably-wilting' },
+      data: {
+        name: tr('Noticeably wilting', 'Заметно вянут', "Aniq so'lmoqda"),
+        slug: 'noticeably-wilting',
+      },
     }),
     prisma.condition.create({
-      data: { name: 'Wilted', slug: 'wilted' },
+      data: {
+        name: tr('Wilted', 'Увядшие', "So'lgan"),
+        slug: 'wilted',
+      },
     }),
   ]);
   console.log('✅ Created 6 conditions');
 
   console.log('📐 Seeding sizes...');
   const sizes = await Promise.all([
-    prisma.size.create({ data: { name: 'Small', slug: 'small' } }),
-    prisma.size.create({ data: { name: 'Medium', slug: 'medium' } }),
-    prisma.size.create({ data: { name: 'Voluminous', slug: 'voluminous' } }),
-    prisma.size.create({ data: { name: 'Large', slug: 'large' } }),
-    prisma.size.create({ data: { name: 'Huge', slug: 'huge' } }),
+    prisma.size.create({
+      data: { name: tr('Small', 'Маленький', 'Kichik'), slug: 'small' },
+    }),
+    prisma.size.create({
+      data: { name: tr('Medium', 'Средний', "O'rta"), slug: 'medium' },
+    }),
+    prisma.size.create({
+      data: {
+        name: tr('Voluminous', 'Объёмный', 'Hajmli'),
+        slug: 'voluminous',
+      },
+    }),
+    prisma.size.create({
+      data: { name: tr('Large', 'Большой', 'Katta'), slug: 'large' },
+    }),
+    prisma.size.create({
+      data: { name: tr('Huge', 'Огромный', 'Juda katta'), slug: 'huge' },
+    }),
   ]);
   console.log('✅ Created 5 sizes');
 
@@ -320,10 +577,17 @@ async function main() {
   const products = await Promise.all([
     prisma.product.create({
       data: {
-        title: 'Red Roses Bouquet',
+        title: tr(
+          'Red Roses Bouquet',
+          'Букет красных роз',
+          'Qizil atirgullar buketi',
+        ),
         slug: 'red-roses-bouquet',
-        description:
+        description: tr(
           'Beautiful fresh red roses bouquet perfect for romantic occasions. 12 stems of premium quality roses.',
+          'Красивый букет свежих красных роз для романтических поводов. 12 стеблей роз премиум качества.',
+          'Romantik tadbirlar uchun yangi qizil atirgullar buketi. 12 ta premium sifatida gul.',
+        ),
         price: 150000,
         currency: 'UZS',
         categoryId: rosesCategory.id,
@@ -335,18 +599,22 @@ async function main() {
         status: 'ACTIVE',
         isFeatured: true,
         views: 45,
-        region: 'Tashkent',
-        city: 'Tashkent',
-        district: 'Mirobod',
+        countryId: uzbekistan.id,
+        regionId: tashkentCityRegion.id,
+        cityId: tashkentCity.id,
+        districtId: byDistrictName('Mirobod').id,
         sellerId: sellers[0].id,
       },
     }),
     prisma.product.create({
       data: {
-        title: 'White Tulips',
+        title: tr('White Tulips', 'Белые тюльпаны', 'Oq lolalar'),
         slug: 'white-tulips',
-        description:
+        description: tr(
           'Fresh white tulips, perfect for weddings and special events. 20 stems.',
+          'Свежие белые тюльпаны для свадеб и торжеств. 20 стеблей.',
+          "To'ylar va maxsus tadbirlar uchun yangi oq lolalar. 20 ta.",
+        ),
         price: 120000,
         currency: 'UZS',
         categoryId: tulipsCategory.id,
@@ -358,18 +626,26 @@ async function main() {
         status: 'ACTIVE',
         isFeatured: false,
         views: 32,
-        region: 'Tashkent',
-        city: 'Tashkent',
-        district: 'Mirobod',
+        countryId: uzbekistan.id,
+        regionId: tashkentCityRegion.id,
+        cityId: tashkentCity.id,
+        districtId: byDistrictName('Mirobod').id,
         sellerId: sellers[0].id,
       },
     }),
     prisma.product.create({
       data: {
-        title: 'Mixed Flower Bouquet',
+        title: tr(
+          'Mixed Flower Bouquet',
+          'Смешанный букет',
+          'Aralash gul buketi',
+        ),
         slug: 'mixed-flower-bouquet',
-        description:
+        description: tr(
           'Colorful mixed flower bouquet with roses, tulips, and baby breath. Perfect gift.',
+          'Яркий смешанный букет из роз, тюльпанов и гипсофилы. Идеальный подарок.',
+          "Atirgul, lola va boshqa gullardan aralash buket. Mukammal sovg'a.",
+        ),
         price: 200000,
         currency: 'UZS',
         categoryId: bouquetsCategory.id,
@@ -381,18 +657,22 @@ async function main() {
         status: 'ACTIVE',
         isFeatured: true,
         views: 67,
-        region: 'Tashkent',
-        city: 'Tashkent',
-        district: 'Mirobod',
+        countryId: uzbekistan.id,
+        regionId: tashkentCityRegion.id,
+        cityId: tashkentCity.id,
+        districtId: byDistrictName('Mirobod').id,
         sellerId: sellers[0].id,
       },
     }),
     prisma.product.create({
       data: {
-        title: 'Pink Orchids',
+        title: tr('Pink Orchids', 'Розовые орхидеи', 'Pushti orxideyalar'),
         slug: 'pink-orchids',
-        description:
+        description: tr(
           'Exotic pink orchids in elegant pot. Perfect for home decoration.',
+          'Экзотические розовые орхидеи в элегантном горшке. Идеально для интерьера.',
+          'Elegant idishda eksotik pushti orxideyalar. Uy bezagi uchun.',
+        ),
         price: 180000,
         currency: 'UZS',
         categoryId: orchidsCategory.id,
@@ -404,18 +684,22 @@ async function main() {
         status: 'ACTIVE',
         isFeatured: false,
         views: 28,
-        region: 'Tashkent',
-        city: 'Tashkent',
-        district: 'Uchtepa',
+        countryId: uzbekistan.id,
+        regionId: tashkentCityRegion.id,
+        cityId: tashkentCity.id,
+        districtId: byDistrictName('Uchtepa').id,
         sellerId: sellers[1].id,
       },
     }),
     prisma.product.create({
       data: {
-        title: 'Yellow Roses',
+        title: tr('Yellow Roses', 'Жёлтые розы', 'Sariq atirgullar'),
         slug: 'yellow-roses',
-        description:
+        description: tr(
           'Bright yellow roses, symbol of friendship and joy. 15 stems.',
+          'Яркие жёлтые розы — символ дружбы и радости. 15 стеблей.',
+          "Do'stlik va quvonch ramzi — sariq atirgullar. 15 ta.",
+        ),
         price: 140000,
         currency: 'UZS',
         categoryId: rosesCategory.id,
@@ -427,18 +711,26 @@ async function main() {
         status: 'ACTIVE',
         isFeatured: false,
         views: 19,
-        region: 'Tashkent',
-        city: 'Tashkent',
-        district: 'Uchtepa',
+        countryId: uzbekistan.id,
+        regionId: tashkentCityRegion.id,
+        cityId: tashkentCity.id,
+        districtId: byDistrictName('Uchtepa').id,
         sellerId: sellers[1].id,
       },
     }),
     prisma.product.create({
       data: {
-        title: 'Wedding Flower Arrangement',
+        title: tr(
+          'Wedding Flower Arrangement',
+          'Свадебная композиция',
+          "To'y gul kompozitsiyasi",
+        ),
         slug: 'wedding-flower-arrangement',
-        description:
+        description: tr(
           'Elegant wedding flower arrangement with white roses and eucalyptus. Perfect for ceremonies.',
+          'Элегантная свадебная композиция из белых роз и эвкалипта. Идеально для церемоний.',
+          "Oq atirgul va evkaliptdan to'y kompozitsiyasi. Marosimlar uchun.",
+        ),
         price: 350000,
         currency: 'UZS',
         categoryId: bouquetsCategory.id,
@@ -450,17 +742,22 @@ async function main() {
         status: 'ACTIVE',
         isFeatured: true,
         views: 89,
-        region: 'Tashkent',
-        city: 'Tashkent',
-        district: 'Sergeli',
+        countryId: uzbekistan.id,
+        regionId: tashkentCityRegion.id,
+        cityId: tashkentCity.id,
+        districtId: byDistrictName('Sergeli').id,
         sellerId: sellers[2].id,
       },
     }),
     prisma.product.create({
       data: {
-        title: 'Purple Tulips',
+        title: tr('Purple Tulips', 'Фиолетовые тюльпаны', 'Binafsha lolalar'),
         slug: 'purple-tulips',
-        description: 'Beautiful purple tulips, rare and elegant. 18 stems.',
+        description: tr(
+          'Beautiful purple tulips, rare and elegant. 18 stems.',
+          'Красивые фиолетовые тюльпаны, редкие и элегантные. 18 стеблей.',
+          'Kam uchraydigan binafsha lolalar. 18 ta.',
+        ),
         price: 160000,
         currency: 'UZS',
         categoryId: tulipsCategory.id,
@@ -472,18 +769,26 @@ async function main() {
         status: 'ACTIVE',
         isFeatured: false,
         views: 41,
-        region: 'Tashkent',
-        city: 'Tashkent',
-        district: 'Sergeli',
+        countryId: uzbekistan.id,
+        regionId: tashkentCityRegion.id,
+        cityId: tashkentCity.id,
+        districtId: byDistrictName('Sergeli').id,
         sellerId: sellers[2].id,
       },
     }),
     prisma.product.create({
       data: {
-        title: 'Indoor Plant Collection',
+        title: tr(
+          'Indoor Plant Collection',
+          'Коллекция комнатных растений',
+          "Uy o'simliklari to'plami",
+        ),
         slug: 'indoor-plant-collection',
-        description:
+        description: tr(
           'Set of 3 beautiful indoor plants: Monstera, Fiddle Leaf Fig, and Snake Plant.',
+          'Набор из 3 комнатных растений: Монстера, Фикус лирата и Сансевиерия.',
+          "3 ta uy o'simligi: Monstera, Fikus va Sanseviyeriya.",
+        ),
         price: 250000,
         currency: 'UZS',
         categoryId: plantsCategory.id,
@@ -495,9 +800,10 @@ async function main() {
         status: 'ACTIVE',
         isFeatured: false,
         views: 56,
-        region: 'Tashkent',
-        city: 'Tashkent',
-        district: 'Sergeli',
+        countryId: uzbekistan.id,
+        regionId: tashkentCityRegion.id,
+        cityId: tashkentCity.id,
+        districtId: byDistrictName('Sergeli').id,
         sellerId: sellers[2].id,
       },
     }),
@@ -527,11 +833,10 @@ async function main() {
         buyerId: buyers[1].id,
         productId: products[3].id,
         amount: 180000,
-        status: 'SHIPPED',
-        paymentStatus: 'COMPLETED',
-        shippingAddress: 'Olmazor district, Navoi street, 12',
-        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        shippedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        status: 'PENDING',
+        paymentStatus: 'PENDING',
+        shippingAddress: 'Yakkasaroy district, Bunyodkor avenue, 78',
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.order.create({

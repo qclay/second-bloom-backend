@@ -333,9 +333,70 @@ model Payment {
   @@map("payments")
 }
 
+model Country {
+  id        String    @id @default(uuid())
+  name      Json      @db.JsonB 
+  code      String?   @unique
+  isActive  Boolean   @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  regions   Region[]
+  products  Product[]
+
+  @@index([isActive])
+  @@map("countries")
+}
+
+model Region {
+  id        String    @id @default(uuid())
+  countryId String
+  name      Json      @db.JsonB 
+  isActive  Boolean   @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  country   Country   @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  cities    City[]
+  products  Product[]
+
+  @@index([countryId])
+  @@index([isActive])
+  @@map("regions")
+}
+
+model City {
+  id        String     @id @default(uuid())
+  regionId  String
+  name      Json       @db.JsonB 
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  region    Region     @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  districts District[]
+  products  Product[]
+
+  @@index([regionId])
+  @@index([isActive])
+  @@map("cities")
+}
+
+model District {
+  id        String   @id @default(uuid())
+  cityId    String
+  name      Json     @db.JsonB 
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  products  Product[]
+
+  @@index([cityId])
+  @@index([isActive])
+  @@map("districts")
+}
+
 model Product {
   id                   String            @id @default(uuid())
-  title                Json              @db.JsonB
+  title                Json?             @db.JsonB 
   slug                 String            @unique
   description          Json?             @db.JsonB
   price                Decimal           @db.Decimal(10, 2)
@@ -349,9 +410,10 @@ model Product {
   status               ProductStatus     @default(ACTIVE)
   isFeatured           Boolean           @default(false)
   views                Int               @default(0)
-  region               String?
-  city                 String?
-  district             String?
+  countryId            String?
+  regionId             String?
+  cityId               String?
+  districtId           String?
   sellerId             String
   deletedAt            DateTime?
   deletedBy            String?
@@ -366,6 +428,10 @@ model Product {
   category             Category          @relation(fields: [categoryId], references: [id])
   condition            Condition?        @relation(fields: [conditionId], references: [id])
   size                 Size?             @relation(fields: [sizeId], references: [id])
+  country              Country?          @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  regionRelation       Region?           @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  cityRelation         City?             @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  districtRelation     District?         @relation(fields: [districtId], references: [id], onDelete: SetNull)
   publicationPayment   Payment?          @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id])
   seller               User              @relation(fields: [sellerId], references: [id])
   reviews              Review[]
@@ -376,16 +442,17 @@ model Product {
   @@index([slug])
   @@index([conditionId])
   @@index([sizeId])
+  @@index([countryId])
+  @@index([regionId])
+  @@index([cityId])
+  @@index([districtId])
   @@index([isActive, deletedAt])
   @@index([status, deletedAt])
   @@index([status, type, categoryId])
   @@index([type, status])
   @@index([categoryId, status])
   @@index([isFeatured, status])
-  @@index([region])
-  @@index([city])
-  @@index([region, city])
-  @@index([status, region, city])
+  @@index([status, regionId, cityId])
   @@index([createdAt])
   @@index([deletedAt])
   @@map("products")
@@ -478,6 +545,7 @@ model User {
   gender                 String?
   language               String?
   username               String?                 @unique
+  auctionBannedUntil     DateTime?               /// When set (future), user cannot participate in any auction (3-day platform ban after 6 strikes).
   createdAuctions        Auction[]               @relation("AuctionCreator")
   wonAuctions            Auction[]               @relation("AuctionWinner")
   bids                   Bid[]

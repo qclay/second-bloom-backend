@@ -69,17 +69,25 @@ export class ProductQueryDto {
   status?: ProductStatus;
 
   @ApiPropertyOptional({
-    description: 'Filter by region.',
-    example: 'Tashkent',
+    description: 'Filter by region ID (from GET /locations/regions).',
   })
   @IsOptional()
   @IsString()
-  region?: string;
+  regionId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by city.' })
+  @ApiPropertyOptional({
+    description: 'Filter by city ID (from GET /locations/cities).',
+  })
   @IsOptional()
   @IsString()
-  city?: string;
+  cityId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by district ID (from GET /locations/districts).',
+  })
+  @IsOptional()
+  @IsString()
+  districtId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by condition ID (from GET /conditions).',
