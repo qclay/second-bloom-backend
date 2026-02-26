@@ -16,6 +16,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
+import { AddPublicationCreditsDto } from './dto/add-publication-credits.dto';
 import { SendPhoneChangeOtpDto } from './dto/send-phone-change-otp.dto';
 import { VerifyPhoneChangeDto } from './dto/verify-phone-change.dto';
 import { UserQueryDto } from './dto/user-query.dto';
@@ -100,6 +101,27 @@ export class UserController {
     @Body() updateProfileDto: UpdateProfileDto,
   ): Promise<UserResponseDto> {
     return this.userService.updateProfile(user.id, updateProfileDto);
+  }
+
+  @Post('add-publication-credits')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Add publication credits',
+    description: 'Adds publication credits to the current user.',
+  })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Credits added; returns updated profile with new publicationCredits',
+    type: UserResponseDto,
+  })
+  async addPublicationCredits(
+    @CurrentUser() user: { id: string },
+    @Body() dto: AddPublicationCreditsDto,
+  ): Promise<UserResponseDto> {
+    return this.userService.addPublicationCredits(user.id, dto);
   }
 
   @Get(':id')

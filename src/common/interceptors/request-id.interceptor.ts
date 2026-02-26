@@ -7,6 +7,7 @@ import {
 import { Observable } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
+import * as Sentry from '@sentry/node';
 
 @Injectable()
 export class RequestIdInterceptor implements NestInterceptor {
@@ -24,6 +25,8 @@ export class RequestIdInterceptor implements NestInterceptor {
 
     request.id = requestId;
     response.setHeader('X-Request-ID', requestId);
+
+    Sentry.setTag('request_id', requestId);
 
     return next.handle();
   }

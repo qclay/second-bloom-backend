@@ -385,11 +385,14 @@
   let currentAuctionId = null;
   let currentAuctionCreatorId = null;
   let auctionTimerInterval = null;
+  let auctionBidsView = 'all';
 
   let currentConversationId = null;
   let conversationsCache = [];
   const onlineUsers = new Set();
   let typingTimeout = null;
+  let pendingChatProductId = null;
+  let pendingChatOtherUserId = null;
 
   let notificationsCache = [];
   let notifFilter = 'all';
@@ -519,6 +522,7 @@
     if (options.body instanceof FormData) delete headers['Content-Type'];
     return fetch(url, { ...options, headers }).then(async (res) => {
       const text = await res.text();
+      if (res.status === 204) return null;
       let raw;
       try { raw = text ? JSON.parse(text) : null; } catch { throw new Error(text || res.statusText); }
       if (!res.ok) {
@@ -579,6 +583,10 @@
         localStorage.setItem('sb_access_token', accessToken);
         localStorage.setItem('sb_user', JSON.stringify(currentUser));
         showApp();
+        const fcmToken = window.TEST_APP_FCM_TOKEN || localStorage.getItem('sb_fcm_token') || '';
+        if (fcmToken && fcmToken.length >= 10) {
+          api('/users/fcm-token', { method: 'POST', body: JSON.stringify({ fcmToken }) }).catch(() => {});
+        }
       })
       .catch((err) => setLoginError(err.message))
       .finally(() => { $('btn-verify').disabled = false; });
@@ -664,7 +672,7 @@
         </div>
         <h3 class="card-title">${escapeHtml(p.title)}</h3>
         <div class="card-meta">
-          <span>${escapeHtml(p.category?.name || '')}</span>
+          <span>${escapeHtml(resolveLabel(p.category || {}, 'name'))}</span>
           <span>${p.views || 0} ${t('views')}</span>
         </div>
         <div class="card-price">${formatPrice(hasAuction ? p.activeAuction.currentPrice : p.price, p.currency)}</div>
@@ -691,6 +699,7 @@
       .then((product) => {
         const p = product;
         currentProductDetail = p;
+        window._currentProductDetail = p;
         const hasAuction = p.activeAuction;
         const statusClass = p.status === 'ACTIVE' ? 'status-active' : 'status-inactive';
         const tags = (p.tags || []).map((tg) => `<span class="tag">${escapeHtml(tg)}</span>`).join('');
@@ -721,7 +730,8 @@
                 <h2 class="detail-title">${escapeHtml(p.title)}</h2>
                 <span class="card-status ${statusClass}">${p.status}</span>
               </div>
-              <div style="display:flex;gap:.5rem">
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                ${p.sellerId && p.sellerId !== currentUser?.id ? `<button class="btn primary small" onclick="window._startChatWithProduct(window._currentProductDetail)">Contact seller</button>` : ''}
                 <button class="btn primary small" onclick="window._editProduct()">${t('edit')}</button>
                 <button class="btn danger small" onclick="window._deleteProduct('${p.id}')">${t('delete')}</button>
               </div>
@@ -729,9 +739,9 @@
             <div class="detail-section">
               <h4>${t('product_details')}</h4>
               <div class="detail-row"><span class="detail-label">${t('product_price')}</span><span class="detail-value card-price">${formatPrice(p.price, p.currency)}</span></div>
-              <div class="detail-row"><span class="detail-label">${t('product_category')}</span><span class="detail-value">${escapeHtml(p.category?.name || '--')}</span></div>
-              <div class="detail-row"><span class="detail-label">${t('product_condition')}</span><span class="detail-value">${escapeHtml(p.condition?.name || '--')}</span></div>
-              <div class="detail-row"><span class="detail-label">${t('product_size')}</span><span class="detail-value">${escapeHtml(p.size?.name || '--')}</span></div>
+              <div class="detail-row"><span class="detail-label">${t('product_category')}</span><span class="detail-value">${escapeHtml(resolveLabel(p.category || {}, 'name') || '--')}</span></div>
+              <div class="detail-row"><span class="detail-label">${t('product_condition')}</span><span class="detail-value">${escapeHtml(resolveLabel(p.condition || {}, 'name') || '--')}</span></div>
+              <div class="detail-row"><span class="detail-label">${t('product_size')}</span><span class="detail-value">${escapeHtml(resolveLabel(p.size || {}, 'name') || '--')}</span></div>
               <div class="detail-row"><span class="detail-label">${t('product_region')}</span><span class="detail-value">${escapeHtml([p.region, p.city].filter(Boolean).join(', ') || '--')}</span></div>
               <div class="detail-row"><span class="detail-label">${t('views')}</span><span class="detail-value">${p.views || 0}</span></div>
               <div class="detail-row"><span class="detail-label">${t('created')}</span><span class="detail-value">${formatDate(p.createdAt)}</span></div>
@@ -886,10 +896,17 @@
     } else { fillSelect('pc-size', sizesCache, 'id', 'name'); }
   }
 
+  function resolveLabel(item, labelKey) {
+    const v = item[labelKey];
+    if (typeof v === 'string') return v;
+    if (v && typeof v === 'object') return v.en || v.ru || v.uz || Object.values(v)[0] || '';
+    return '';
+  }
+
   function fillSelect(selectId, items, valueKey, labelKey) {
     const sel = $(selectId);
     sel.innerHTML = '<option value="">-- Select --</option>';
-    items.forEach((item) => { const opt = document.createElement('option'); opt.value = item[valueKey]; opt.textContent = item[labelKey]; sel.appendChild(opt); });
+    items.forEach((item) => { const opt = document.createElement('option'); opt.value = item[valueKey]; opt.textContent = resolveLabel(item, labelKey); sel.appendChild(opt); });
   }
 
   function onCreateProduct(e) {
@@ -1014,7 +1031,7 @@
           <h4 style="margin:0 0 .75rem;color:#8b98a5;text-transform:uppercase;font-size:.85rem">${t('product_details')}</h4>
           <div class="detail-row"><span class="detail-label">${t('product_title')}</span><span class="detail-value">${escapeHtml(a.product?.title || '--')}</span></div>
           <div class="detail-row"><span class="detail-label">${t('product_price')}</span><span class="detail-value">${formatPrice(a.product?.price, a.product?.currency)}</span></div>
-          <div class="detail-row"><span class="detail-label">${t('product_category')}</span><span class="detail-value">${escapeHtml(a.product?.category?.name || '--')}</span></div>
+          <div class="detail-row"><span class="detail-label">${t('product_category')}</span><span class="detail-value">${escapeHtml(resolveLabel(a.product?.category || {}, 'name') || '--')}</span></div>
           <div class="detail-row"><span class="detail-label">${t('views')}</span><span class="detail-value">${a.views || 0}</span></div>
           <div class="detail-row"><span class="detail-label">${t('created')}</span><span class="detail-value">${formatDate(a.createdAt)}</span></div>
           ${a.product?.description ? `<div style="margin-top:.75rem;color:#8b98a5;font-size:.9rem">${escapeHtml(a.product.description)}</div>` : ''}
@@ -1057,12 +1074,20 @@
     container.innerHTML = `<div class="loading-state">${t('loading')}</div>`;
     const isAuctionOwner = currentUser?.id && currentAuctionCreatorId && currentUser.id === currentAuctionCreatorId;
     if (section === 'bids') {
-      api(`/bids/auction/${auctionId}?limit=50&view=all`).then((res) => {
+      const viewParam = auctionBidsView || 'all';
+      api(`/bids/auction/${auctionId}?limit=50&view=${viewParam}`).then((res) => {
         const bids = res.data || res || [];
         if (bids.length === 0) { container.innerHTML = `<div class="empty-state">${t('no_bids')}</div>`; return; }
-        container.innerHTML = '<div class="bid-feed" id="bid-feed"></div>';
+        container.innerHTML = '<div class="bid-view-tabs" id="bid-view-tabs"></div><div class="bid-feed" id="bid-feed"></div>';
+        const viewTabsEl = $('bid-view-tabs');
+        if (viewTabsEl && isAuctionOwner) {
+          viewTabsEl.innerHTML = `<button type="button" class="section-tab ${auctionBidsView === 'all' ? 'active' : ''}" data-bid-view="all">All</button><button type="button" class="section-tab ${auctionBidsView === 'new' ? 'active' : ''}" data-bid-view="new">New</button><button type="button" class="section-tab ${auctionBidsView === 'top' ? 'active' : ''}" data-bid-view="top">Top</button><button type="button" class="section-tab ${auctionBidsView === 'rejected' ? 'active' : ''}" data-bid-view="rejected">${t('rejected')}</button>`;
+          viewTabsEl.querySelectorAll('button').forEach((btn) => {
+            btn.addEventListener('click', () => { auctionBidsView = btn.dataset.bidView; document.querySelectorAll('#bid-view-tabs .section-tab').forEach((t) => t.classList.toggle('active', t.dataset.bidView === auctionBidsView)); loadAuctionSection(auctionId, 'bids'); });
+          });
+        } else if (viewTabsEl) viewTabsEl.innerHTML = '';
         const feed = $('bid-feed');
-        (Array.isArray(bids) ? bids : []).forEach((b) => { feed.appendChild(createBidItem(b, { showOwnerRemove: isAuctionOwner })); });
+        (Array.isArray(bids) ? bids : []).forEach((b) => { feed.appendChild(createBidItem(b, { showOwnerRemove: isAuctionOwner, showMarkRead: isAuctionOwner, showRestore: isAuctionOwner })); });
       }).catch((err) => { container.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`; });
     } else if (section === 'leaderboard') {
       api(`/auctions/${auctionId}/leaderboard?limit=20`).then((res) => {
@@ -1090,9 +1115,9 @@
   }
 
   function createBidItem(bid, opts = {}) {
-    const { showRetract = false, showOwnerRemove = false } = typeof opts === 'boolean' ? { showRetract: opts } : opts;
+    const { showRetract = false, showOwnerRemove = false, showMarkRead = false, showRestore = false } = typeof opts === 'boolean' ? { showRetract: opts } : opts;
     const div = document.createElement('div');
-    div.className = `bid-item ${bid.isWinning ? 'winning' : ''} ${bid.isRetracted ? 'retracted' : ''}`;
+    div.className = `bid-item ${bid.isWinning ? 'winning' : ''} ${bid.isRetracted ? 'retracted' : ''} ${bid.isNew ? 'is-new' : ''}`;
     const userName = bid.bidder ? ([bid.bidder.firstName, bid.bidder.lastName].filter(Boolean).join(' ') || bid.bidder.phoneNumber || 'User') : 'User';
     const avatarUrl = bid.bidder?.avatarUrl || null;
     const initials = userName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
@@ -1103,11 +1128,14 @@
         : '<span class="bid-status-tag retracted">Retracted</span>')
       : '';
     const winTag = bid.isWinning ? `<span class="bid-status-tag winning">${t('winning')}</span>` : '';
+    const newTag = bid.isNew ? '<span class="bid-status-tag new">New</span>' : '';
     let actionBtn = '';
     if (!bid.isRetracted) {
       if (showRetract) actionBtn = `<button class="bid-action-btn retract" onclick="event.stopPropagation();window._retractBid('${bid.id}','retract')" title="${t('retract')}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
       else if (showOwnerRemove) actionBtn = `<button class="bid-action-btn remove" onclick="event.stopPropagation();window._retractBid('${bid.id}','remove')" title="${t('remove_bid')}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>`;
     }
+    if (showMarkRead && bid.isNew && !isRejected) actionBtn += `<button class="bid-action-btn read" onclick="event.stopPropagation();window._markBidRead('${bid.id}')" title="Mark read">✓</button>`;
+    if (showRestore && isRejected) actionBtn += `<button class="bid-action-btn restore" onclick="event.stopPropagation();window._restoreBid('${bid.id}')" title="Restore">↩</button>`;
     div.innerHTML = `
       <div class="bid-avatar">
         ${avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" alt="" />` : `<span class="bid-avatar-initials">${escapeHtml(initials)}</span>`}
@@ -1117,7 +1145,7 @@
           <span class="bid-user">${escapeHtml(userName)}</span>
           <span class="bid-dot">&bull;</span>
           <span class="bid-time">${timeAgo(bid.createdAt)}</span>
-          ${winTag}${statusTag}
+          ${newTag}${winTag}${statusTag}
         </div>
         <div class="bid-price-row">
           <span class="bid-amount">${formatPrice(bid.amount)}</span>
@@ -1136,6 +1164,27 @@
         if (currentAuctionId) {
           const activeSection = document.querySelector('.section-tab.active');
           loadAuctionSection(currentAuctionId, activeSection?.dataset?.section || 'bids');
+          api(`/auctions/${currentAuctionId}`).then((a) => { const priceEl = $('auction-current-price'); if (priceEl) priceEl.textContent = formatPrice(a.currentPrice, a.product?.currency); });
+        }
+      })
+      .catch((err) => showToast(err.message, 'error'));
+  };
+
+  window._markBidRead = function (bidId) {
+    api(`/bids/${bidId}/read`, { method: 'PATCH' })
+      .then(() => {
+        showToast('Bid marked as read', 'success');
+        if (currentAuctionId) loadAuctionSection(currentAuctionId, 'bids');
+      })
+      .catch((err) => showToast(err.message, 'error'));
+  };
+
+  window._restoreBid = function (bidId) {
+    api(`/bids/${bidId}/restore`, { method: 'PATCH' })
+      .then(() => {
+        showToast('Bid restored', 'success');
+        if (currentAuctionId) {
+          loadAuctionSection(currentAuctionId, 'bids');
           api(`/auctions/${currentAuctionId}`).then((a) => { const priceEl = $('auction-current-price'); if (priceEl) priceEl.textContent = formatPrice(a.currentPrice, a.product?.currency); });
         }
       })
@@ -1286,17 +1335,17 @@
   function requestOnlineStatuses() {
     if (!chatSocket?.connected || conversationsCache.length === 0) return;
     const userIds = [];
-    conversationsCache.forEach((c) => { const other = c.participants?.find((p) => p.id !== currentUser?.id); if (other) userIds.push(other.id); });
+    conversationsCache.forEach((c) => { const other = c.participants?.find((p) => p.userId !== currentUser?.id); if (other) userIds.push(other.userId); });
     if (userIds.length === 0) return;
     chatSocket.emit('get_online_status', { userIds }, (res) => { if (res?.statuses) { Object.entries(res.statuses).forEach(([uid, isOnline]) => { if (isOnline) onlineUsers.add(uid); else onlineUsers.delete(uid); }); updatePresenceUI(); } });
   }
 
   function updatePresenceUI() {
     document.querySelectorAll('.conversation-list li').forEach((li) => {
-      const cid = li.dataset.conversationId; const conv = conversationsCache.find((c) => c.id === cid); const other = conv?.participants?.find((p) => p.id !== currentUser?.id); const dot = li.querySelector('.online-dot');
+      const cid = li.dataset.conversationId; const conv = conversationsCache.find((c) => c.id === cid); const other = conv?.participants?.find((p) => p.userId !== currentUser?.id); const dot = li.querySelector('.online-dot');
       if (other && onlineUsers.has(other.id)) { if (!dot) { const d = document.createElement('span'); d.className = 'online-dot'; li.querySelector('.conv-row')?.prepend(d); } } else if (dot) { dot.remove(); }
     });
-    if (currentConversationId) { const conv = conversationsCache.find((c) => c.id === currentConversationId); const other = conv?.participants?.find((p) => p.id !== currentUser?.id); const statusEl = $('conversation-status'); if (statusEl && other) { const isOnline = onlineUsers.has(other.id); statusEl.textContent = isOnline ? t('online') : t('offline'); statusEl.className = 'conversation-status ' + (isOnline ? 'online' : 'offline'); } }
+    if (currentConversationId) { const conv = conversationsCache.find((c) => c.id === currentConversationId); const other = conv?.participants?.find((p) => p.userId !== currentUser?.id); const statusEl = $('conversation-status'); if (statusEl && other) { const isOnline = onlineUsers.has(other.userId); statusEl.textContent = isOnline ? t('online') : t('offline'); statusEl.className = 'conversation-status ' + (isOnline ? 'online' : 'offline'); } }
   }
 
   function loadConversations() {
@@ -1311,11 +1360,11 @@
     if (conversations.length === 0) { show(emptyEl); return; }
     hide(emptyEl);
     conversations.forEach((c) => {
-      const other = c.participants?.find((p) => p.id !== currentUser?.id);
-      const name = [other?.firstName, other?.lastName].filter(Boolean).join(' ') || other?.phoneNumber || 'Chat';
+      const other = c.participants?.find((p) => p.userId !== currentUser?.id);
+      const name = [other?.firstName, other?.lastName].filter(Boolean).join(' ') || other?.username || other?.phoneNumber || 'Chat';
       const preview = c.lastMessage?.content ? (c.lastMessage.content.slice(0, 40) + (c.lastMessage.content.length > 40 ? '...' : '')) : 'No messages yet';
       const unread = c.unreadCount || 0;
-      const isOnline = other && onlineUsers.has(other.id);
+      const isOnline = other && onlineUsers.has(other.userId);
       const li = document.createElement('li'); li.dataset.conversationId = c.id;
       li.innerHTML = `<div class="conv-row">${isOnline ? '<span class="online-dot"></span>' : ''}<strong>${escapeHtml(name)}</strong>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div><div class="conv-preview">${escapeHtml(preview)}</div>`;
       li.addEventListener('click', () => selectConversation(c.id));
@@ -1331,11 +1380,13 @@
     hide($('no-conversation')); show($('conversation-view'));
     if (chatSocket?.connected) chatSocket.emit(CHAT_EVENTS.JOIN_CONVERSATION, { conversationId });
     const conv = conversationsCache.find((c) => c.id === conversationId);
-    const other = conv ? conv.participants?.find((p) => p.id !== currentUser?.id) : null;
-    const name = other ? [other.firstName, other.lastName].filter(Boolean).join(' ') || other.phoneNumber : 'Chat';
+    const other = conv ? conv.participants?.find((p) => p.userId !== currentUser?.id) : null;
+    const name = other ? [other.firstName, other.lastName].filter(Boolean).join(' ') || other.username || other.phoneNumber : 'Chat';
     $('conversation-title').textContent = name;
+    const flowerEl = document.getElementById('conversation-flower');
+    if (flowerEl) { flowerEl.textContent = conv.flowerId ? 'About product' : ''; flowerEl.style.display = conv.flowerId ? 'block' : 'none'; }
     const statusEl = $('conversation-status');
-    if (statusEl && other) { const isOnline = onlineUsers.has(other.id); statusEl.textContent = isOnline ? t('online') : t('offline'); statusEl.className = 'conversation-status ' + (isOnline ? 'online' : 'offline'); }
+    if (statusEl && other) { const isOnline = onlineUsers.has(other.userId); statusEl.textContent = isOnline ? t('online') : t('offline'); statusEl.className = 'conversation-status ' + (isOnline ? 'online' : 'offline'); }
     $('messages-list').innerHTML = '';
     api(`/chat/conversations/${conversationId}/messages?limit=50`)
       .then((res) => {
@@ -1414,11 +1465,25 @@
     const initialMessage = $('new-chat-message').value.trim();
     const body = { otherUserId };
     if (initialMessage) body.initialMessage = initialMessage;
+    if (pendingChatProductId) body.productId = pendingChatProductId;
+    pendingChatProductId = null;
+    pendingChatOtherUserId = null;
     $('user-list').innerHTML = `<div class="user-list-loading">Starting chat...</div>`;
     api('/chat/conversations', { method: 'POST', body: JSON.stringify(body) })
       .then((conv) => { if (!conv || !conv.id) throw new Error('No conversation returned'); hide($('new-chat-form')); loadConversations(); selectConversation(conv.id); })
       .catch((err) => { showToast(err.message, 'error'); loadUserList($('new-chat-search').value.trim()); });
   }
+
+  window._startChatWithProduct = function (product) {
+    if (!product || !product.sellerId) return;
+    if (product.sellerId === currentUser?.id) { showToast('You cannot chat with yourself', 'error'); return; }
+    switchTab('chat');
+    pendingChatProductId = product.id;
+    pendingChatOtherUserId = product.sellerId;
+    onNewChat();
+    $('new-chat-search').value = [product.seller?.firstName, product.seller?.lastName].filter(Boolean).join(' ') || product.seller?.phoneNumber || '';
+    loadUserList($('new-chat-search').value.trim());
+  };
 
   function loadNotifications() {
     hide($('notifications-empty')); show($('notifications-loading')); $('notifications-list').innerHTML = '';
@@ -1499,6 +1564,7 @@
       AUCTION_ENDED: 'Ended',
       AUCTION_STARTED: 'Started',
       NEW_BID: 'New Bid',
+      BID_REJECTED: 'Bid Rejected',
       ORDER_CONFIRMED: 'Confirmed',
       ORDER_DELIVERED: 'Delivered',
       ORDER_SHIPPED: 'Shipped',

@@ -9,6 +9,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import compression from 'compression';
+import * as Sentry from '@sentry/node';
 import { AppModule } from './app.module';
 import { setupSwagger } from './config/swagger.config';
 
@@ -93,6 +94,11 @@ async function bootstrap() {
   });
 
   setupSwagger(app);
+
+  if (configService.get<boolean>('sentry.enabled', false)) {
+    const expressApp = app.getHttpAdapter().getInstance();
+    Sentry.setupExpressErrorHandler(expressApp);
+  }
 
   const port = configService.get<number>('PORT', 3000);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');

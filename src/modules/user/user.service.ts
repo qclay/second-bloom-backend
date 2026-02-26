@@ -26,6 +26,7 @@ import {
 } from '../../infrastructure/firebase/firebase-service.interface';
 import { OtpService } from '../auth/services/otp.service';
 import { MessageResponseDto } from '../auth/dto/message-response.dto';
+import { AddPublicationCreditsDto } from './dto/add-publication-credits.dto';
 
 @Injectable()
 export class UserService {
@@ -172,6 +173,34 @@ export class UserService {
     }
 
     return UserResponseDto.fromEntity(user);
+  }
+
+  async addPublicationCredits(
+    userId: string,
+    dto: AddPublicationCreditsDto,
+  ): Promise<UserResponseDto> {
+    const quantity = dto.quantity ?? 5;
+    const user = await this.userRepository.findById(userId);
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        publicationCredits: { increment: quantity },
+      },
+    });
+
+    this.logger.log(
+      `Publication credits added: userId=${userId}, quantity=${quantity}`,
+    );
+
+    const updated = await this.userRepository.findByIdWithAvatar(userId);
+    if (!updated) {
+      throw new NotFoundException('User not found after update');
+    }
+    return UserResponseDto.fromEntity(updated);
   }
 
   async updateProfile(

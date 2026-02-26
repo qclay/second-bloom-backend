@@ -2,6 +2,8 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import { expressIntegration } from '@sentry/node';
+import { prismaIntegration } from '@sentry/node';
 
 @Injectable()
 export class SentryService implements OnModuleInit {
@@ -33,7 +35,11 @@ export class SentryService implements OnModuleInit {
     Sentry.init({
       dsn,
       environment,
-      integrations: [nodeProfilingIntegration()],
+      integrations: [
+        nodeProfilingIntegration(),
+        expressIntegration(),
+        prismaIntegration(),
+      ],
       tracesSampleRate,
       profilesSampleRate,
       beforeSend: (event) => {

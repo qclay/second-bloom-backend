@@ -16,4 +16,12 @@ export class AppController {
       apiPrefix: '/api/v1',
     };
   }
+
+  @Get('debug-sentry')
+  @Public()
+  debugSentry(): never {
+    throw new Error(
+      'Observability test error – if you see this in Sentry, error tracking works.',
+    );
+  }
 }

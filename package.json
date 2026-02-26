@@ -21,6 +21,8 @@
     "prisma:clear-locations": "ts-node -r dotenv/config scripts/clear-locations.ts",
     "prisma:fix-checksum": "ts-node -r dotenv/config scripts/fix-migration-checksum.ts",
     "prisma:sync": "npm run prisma:fix-checksum && prisma migrate deploy && prisma generate",
+    "check:backend": "ts-node -r dotenv/config scripts/check-backend.ts",
+    "client": "npx serve client -l 5000",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",

@@ -2,6 +2,8 @@
 
 This document describes **Locations**, **Products**, **Orders**, **Bids**, **Auctions**, **Conversations (Chat)**, **Reviews**, **Publication Pricing**, the **buy flow**, WebSocket usage, error logic, and answers to common requirements.
 
+For a **client integration checklist** (products, categories, bids, auction, WebSocket chat/auction, notifications, Firebase FCM) and a **backend verification script**, see [CLIENT_AND_INTEGRATION_CHECKLIST.md](./CLIENT_AND_INTEGRATION_CHECKLIST.md).
+
 ---
 
 ## Table of contents
@@ -16,6 +18,7 @@ This document describes **Locations**, **Products**, **Orders**, **Bids**, **Auc
 8. [Publication Pricing](#8-publication-pricing)
 9. [Full buy flow](#9-full-buy-flow)
 10. [Answers to requirements (1–9)](#10-answers-to-requirements-19)
+11. [Translation policy (logs, notifications, API)](#11-translation-policy-logs-notifications-api)
 
 ---
 
@@ -415,6 +418,16 @@ End‑to‑end path to “buy” (auction or direct).
 | **7** | Sorting for applications: New, Rejected, Top | **GET /bids/auction/:auctionId?view=...**: **new** = unread not rejected, **rejected** = owner-rejected, **top** = highest amount first, **all** = all (last on top). So New, Rejected, Top (and All) are supported. |
 | **8** | Check user balance and publication credits | Get **balance** and **publicationCredits** from the **user profile API** (e.g. **GET /users/profile**). Use them to check and display before creating a product or buying credits. On **POST /products**, backend also checks **publicationCredits ≥ 1** (admins can bypass); otherwise **400**: "Insufficient publication credits. Please purchase credits to create a product." |
 | **9** | Sell section: All / On auction / Sold / Awaiting delivery; different card info | Use **GET /products?sellerId=&lt;currentUserId&gt;&salePhase=all|in_auction|sold|in_delivery**. **all** = all my products; **in_auction** = with active auction; **sold** = order DELIVERED or auction ENDED; **in_delivery** = order CONFIRMED/PROCESSING/SHIPPED. For **sold** and **in_delivery**, each product has **saleOrderSummary** (orderId, status, deliveredAt, shippedAt) for card details. |
+
+---
+
+## 11. Translation policy (logs, notifications, API)
+
+| Target | Policy |
+|--------|--------|
+| **Logs** | Backend logs (Winston, Sentry) are **not** translated. They stay in one language (e.g. English) for operations and debugging. |
+| **Notifications** | Push and in-app notifications are **translated by the user’s preferred language** (`user.language`). The notification service builds title/message in `uz`, `ru`, or `en` before persisting and sending (e.g. FCM). |
+| **API error/success messages** | Optional translation by **Accept-Language**. The global exception filter reads `Accept-Language`, resolves locale (`en` / `ru` / `uz`), and if the error message matches a key in `src/common/i18n/api-messages.i18n.ts`, the response `error.message` (and `error.details[].message` for validation) is returned in that locale. Unknown messages are returned as-is. Add new entries to `API_MESSAGES` for any message you want translated. |
 
 ---
 

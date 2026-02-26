@@ -16,6 +16,12 @@ import {
 } from '../constants/error-codes.constant';
 import { ApiErrorDetailDto } from '../dto/api-error-detail.dto';
 import { ConfigService } from '@nestjs/config';
+import { API_MESSAGES } from '../i18n/api-messages.i18n';
+import {
+  parseAcceptLanguage,
+  resolveTranslation,
+  type Locale,
+} from '../i18n/translation.util';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -102,6 +108,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
     ) {
       errorMessage = 'An internal server error occurred';
       finalErrorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+    }
+
+    const locale: Locale | null = parseAcceptLanguage(
+      request.headers['accept-language'],
+    );
+    if (locale) {
+      const translated = resolveTranslation(API_MESSAGES[errorMessage], locale);
+      if (translated) errorMessage = translated;
+      if (errorDetails?.length) {
+        errorDetails.forEach((d) => {
+          const t = resolveTranslation(API_MESSAGES[d.message], locale);
+          if (t) d.message = t;
+        });
+      }
     }
 
     const retryInfo = this.getRetryInfo(status);
