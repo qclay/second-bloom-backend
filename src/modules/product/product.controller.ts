@@ -26,55 +26,18 @@ import { SanitizePipe } from '../../common/pipes/sanitize.pipe';
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
-import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import {
+  ApiPaginatedResponse,
+  ApiSuccessResponse,
+} from '../../common/decorators/api-success-responses.decorator';
 import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
-
-const PRODUCT_LIST_EXAMPLE: ProductResponseDto[] = [
-  {
-    id: '550e8400-e29b-41d4-a716-446655440000',
-    title: 'Red Roses Bouquet',
-    slug: 'red-roses-bouquet',
-    description: 'Beautiful fresh red roses bouquet. 12 stems.',
-    price: 150000,
-    currency: 'UZS',
-    categoryId: '550e8400-e29b-41d4-a716-446655440010',
-    tags: ['roses', 'bouquet', 'romantic'],
-    type: 'FRESH',
-    condition: {
-      id: '550e8400-e29b-41d4-a716-446655440020',
-      name: 'New',
-      slug: 'new',
-    },
-    quantity: 10,
-    status: 'ACTIVE',
-    isFeatured: true,
-    views: 45,
-    region: 'Tashkent',
-    city: 'Tashkent',
-    district: 'Mirobod',
-    sellerId: '550e8400-e29b-41d4-a716-446655440030',
-    createdAt: new Date('2026-01-04T17:15:29.000Z'),
-    updatedAt: new Date('2026-01-04T17:15:29.000Z'),
-    deletedAt: null,
-    category: {
-      id: '550e8400-e29b-41d4-a716-446655440010',
-      name: 'Roses',
-      slug: 'roses',
-    },
-    seller: {
-      id: '550e8400-e29b-41d4-a716-446655440030',
-      firstName: 'Ali',
-      lastName: 'Karimov',
-      phoneNumber: '+998901234569',
-    },
-  } as ProductResponseDto,
-];
+import { ProductCountsResponseDto } from './dto/product-counts-response.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -88,24 +51,7 @@ export class ProductController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create product',
-    description: [
-      'Create a flower/bouquet listing for either normal selling (fixed price) or auction.',
-      '',
-      'Fixed‑price product (no auction):',
-      '- Required: title, categoryId, conditionId, sizeId, price.',
-      '- Optional: description, tags, type, quantity, imageIds, region/city/district, status (defaults to ACTIVE).',
-      '- Do NOT set createAuction (or leave it false).',
-      '',
-      'Product with auction:',
-      '- Required: title, categoryId, conditionId, sizeId, createAuction: true.',
-      '- You must provide at least one price source: price or auction.startPrice (recommended).',
-      '- Optional: auction.durationHours (default 2h), auction.endTime (ISO string), auction.autoExtend, auction.extendMinutes.',
-      '',
-      'IDs:',
-      '- categoryId: from GET /categories.',
-      '- conditionId: from GET /conditions.',
-      '- sizeId: from GET /sizes.',
-    ].join('\n'),
+    description: 'Create a product with or without an auction',
   })
   @ApiCommonErrorResponses({ conflict: true })
   @ApiResponse({
@@ -125,6 +71,23 @@ export class ProductController {
     return this.productService.createProduct(createProductDto, userId);
   }
 
+  @Get('counts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'My products: total counts only',
+    description:
+      'Returns total number of products for current user in each phase: all, inAuction, sold, inDelivery. No product list. Use for badges/counters.',
+  })
+  @ApiSuccessResponse(
+    200,
+    'My product counts by phase',
+    ProductCountsResponseDto,
+  )
+  async getProductCounts(@CurrentUser() user: { id: string }) {
+    return this.productService.getProductCounts(user.id);
+  }
+
   @Get()
   @Public()
   @ApiOperation({
@@ -142,7 +105,6 @@ export class ProductController {
     ProductResponseDto,
     'Paginated list of products (data + meta.pagination)',
     200,
-    PRODUCT_LIST_EXAMPLE,
   )
   async findAll(@Query() query: ProductQueryDto) {
     return this.productService.findAll(query);
@@ -166,7 +128,6 @@ export class ProductController {
     ProductResponseDto,
     'Paginated search results (data + meta.pagination)',
     200,
-    PRODUCT_LIST_EXAMPLE,
   )
   async search(@Body() searchDto: ProductSearchDto) {
     return this.productService.searchProducts(searchDto);

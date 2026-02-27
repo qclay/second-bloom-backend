@@ -199,6 +199,13 @@ export class ProductResponseDto {
     shippedAt?: Date | null;
   };
 
+  @ApiPropertyOptional({
+    description:
+      "For seller views: sale phase of this product in the seller's Sell section tabs.",
+    enum: ['all', 'in_auction', 'sold', 'in_delivery'],
+  })
+  salePhase?: 'all' | 'in_auction' | 'sold' | 'in_delivery';
+
   static fromEntity(
     product: Product & {
       category?: { id: string; name: unknown; slug: string };
@@ -227,6 +234,7 @@ export class ProductResponseDto {
         deliveredAt: Date | null;
         shippedAt: Date | null;
       };
+      salePhase?: 'all' | 'in_auction' | 'sold' | 'in_delivery';
     },
   ): ProductResponseDto {
     return {
@@ -303,6 +311,7 @@ export class ProductResponseDto {
             shippedAt: product.saleOrderSummary.shippedAt ?? undefined,
           }
         : undefined,
+      salePhase: product.salePhase,
     };
   }
 }

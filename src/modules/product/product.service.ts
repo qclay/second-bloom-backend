@@ -537,6 +537,7 @@ export class ProductService {
                 shippedAt: lastOrder.shippedAt,
               }
             : undefined,
+          salePhase: salePhase,
         } as Parameters<typeof ProductResponseDto.fromEntity>[0]);
       }),
       meta: {
@@ -555,6 +556,82 @@ export class ProductService {
     }
 
     return result;
+  }
+
+  private buildWhereBySellerAndPhase(
+    sellerId: string,
+    salePhase: 'all' | 'in_auction' | 'sold' | 'in_delivery',
+  ): Prisma.ProductWhereInput {
+    const where: Prisma.ProductWhereInput = {
+      deletedAt: null,
+      isActive: true,
+      sellerId,
+    };
+    if (salePhase === 'in_auction') {
+      where.auctions = {
+        some: {
+          status: 'ACTIVE',
+          endTime: { gte: new Date() },
+          deletedAt: null,
+        },
+      };
+    } else if (salePhase === 'sold') {
+      where.OR = [
+        {
+          orders: {
+            some: {
+              status: OrderStatus.DELIVERED,
+              deletedAt: null,
+            },
+          },
+        },
+        {
+          auctions: {
+            some: {
+              status: 'ENDED',
+              deletedAt: null,
+            },
+          },
+        },
+      ];
+    } else if (salePhase === 'in_delivery') {
+      where.orders = {
+        some: {
+          status: {
+            in: [
+              OrderStatus.CONFIRMED,
+              OrderStatus.PROCESSING,
+              OrderStatus.SHIPPED,
+            ],
+          },
+          deletedAt: null,
+        },
+      };
+    }
+    return where;
+  }
+
+  async getProductCounts(sellerId: string): Promise<{
+    all: number;
+    inAuction: number;
+    sold: number;
+    inDelivery: number;
+  }> {
+    const [all, inAuction, sold, inDelivery] = await Promise.all([
+      this.prisma.product.count({
+        where: this.buildWhereBySellerAndPhase(sellerId, 'all'),
+      }),
+      this.prisma.product.count({
+        where: this.buildWhereBySellerAndPhase(sellerId, 'in_auction'),
+      }),
+      this.prisma.product.count({
+        where: this.buildWhereBySellerAndPhase(sellerId, 'sold'),
+      }),
+      this.prisma.product.count({
+        where: this.buildWhereBySellerAndPhase(sellerId, 'in_delivery'),
+      }),
+    ]);
+    return { all, inAuction, sold, inDelivery };
   }
 
   async searchProducts(query: ProductSearchDto) {
