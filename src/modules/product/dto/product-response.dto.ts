@@ -201,10 +201,10 @@ export class ProductResponseDto {
 
   @ApiPropertyOptional({
     description:
-      "For seller views: sale phase of this product in the seller's Sell section tabs.",
-    enum: ['all', 'in_auction', 'sold', 'in_delivery'],
+      'High-level sale status for buyers: available, onAuction, awaitingDelivery, sold.',
+    enum: ['available', 'onAuction', 'awaitingDelivery', 'sold'],
   })
-  salePhase?: 'all' | 'in_auction' | 'sold' | 'in_delivery';
+  saleStatus?: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold';
 
   static fromEntity(
     product: Product & {
@@ -234,7 +234,7 @@ export class ProductResponseDto {
         deliveredAt: Date | null;
         shippedAt: Date | null;
       };
-      salePhase?: 'all' | 'in_auction' | 'sold' | 'in_delivery';
+      saleStatus?: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold';
     },
   ): ProductResponseDto {
     return {
@@ -311,7 +311,7 @@ export class ProductResponseDto {
             shippedAt: product.saleOrderSummary.shippedAt ?? undefined,
           }
         : undefined,
-      salePhase: product.salePhase,
+      saleStatus: product.saleStatus,
     };
   }
 }

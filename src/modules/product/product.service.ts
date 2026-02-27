@@ -481,9 +481,7 @@ export class ProductService {
           totalBids: true,
         },
       },
-    };
-    if (salePhase === 'sold' || salePhase === 'in_delivery') {
-      listInclude.orders = {
+      orders: {
         take: 1,
         orderBy: { createdAt: 'desc' },
         where: { deletedAt: null },
@@ -493,8 +491,8 @@ export class ProductService {
           deliveredAt: true,
           shippedAt: true,
         },
-      };
-    }
+      },
+    };
 
     const [products, total] = await Promise.all([
       this.productRepository.findMany({
@@ -526,9 +524,28 @@ export class ProductService {
       data: products.map((product) => {
         const p = product as ProductWithActiveAuction;
         const lastOrder = p.orders?.[0];
+        const activeAuction = p.auctions?.[0];
+        let saleStatus:
+          | 'available'
+          | 'onAuction'
+          | 'awaitingDelivery'
+          | 'sold' = 'available';
+        if (activeAuction) {
+          saleStatus = 'onAuction';
+        } else if (lastOrder) {
+          if (lastOrder.status === OrderStatus.DELIVERED) {
+            saleStatus = 'sold';
+          } else if (
+            lastOrder.status === OrderStatus.CONFIRMED ||
+            lastOrder.status === OrderStatus.PROCESSING ||
+            lastOrder.status === OrderStatus.SHIPPED
+          ) {
+            saleStatus = 'awaitingDelivery';
+          }
+        }
         return ProductResponseDto.fromEntity({
           ...p,
-          activeAuction: p.auctions?.[0],
+          activeAuction,
           saleOrderSummary: lastOrder
             ? {
                 id: lastOrder.id,
@@ -537,7 +554,7 @@ export class ProductService {
                 shippedAt: lastOrder.shippedAt,
               }
             : undefined,
-          salePhase: salePhase,
+          saleStatus,
         } as Parameters<typeof ProductResponseDto.fromEntity>[0]);
       }),
       meta: {
@@ -917,6 +934,33 @@ export class ProductService {
       },
     });
 
+    const lastOrder = await this.prisma.order.findFirst({
+      where: {
+        productId: id,
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        status: true,
+      },
+    });
+
+    let saleStatus: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold' =
+      'available';
+    if (activeAuction) {
+      saleStatus = 'onAuction';
+    } else if (lastOrder) {
+      if (lastOrder.status === OrderStatus.DELIVERED) {
+        saleStatus = 'sold';
+      } else if (
+        lastOrder.status === OrderStatus.CONFIRMED ||
+        lastOrder.status === OrderStatus.PROCESSING ||
+        lastOrder.status === OrderStatus.SHIPPED
+      ) {
+        saleStatus = 'awaitingDelivery';
+      }
+    }
+
     if (incrementViews) {
       await this.productRepository.incrementViews(id);
       await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
@@ -925,6 +969,7 @@ export class ProductService {
     const result = ProductResponseDto.fromEntity({
       ...productWithRelations,
       activeAuction: activeAuction ?? undefined,
+      saleStatus,
     } as typeof productWithRelations & {
       activeAuction?: {
         id: string;
@@ -933,6 +978,7 @@ export class ProductService {
         currentPrice: unknown;
         totalBids: number;
       };
+      saleStatus: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold';
     });
 
     return result;
