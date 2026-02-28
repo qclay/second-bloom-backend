@@ -171,22 +171,29 @@ export class ProductResponseDto {
   @ApiProperty({
     required: false,
     description:
-      'Active auction (id, endTime, status, currentPrice, totalBids). Use id for GET /bids/auction/:auctionId.',
+      'Active auction (id, endTime, status, currentPrice, totalBids, winner). Use id for GET /bids/auction/:auctionId. winner is set when auction has ended.',
     example: {
       id: '550e8400-e29b-41d4-a716-446655440040',
       endTime: '2026-01-05T17:15:29.000Z',
       status: 'ACTIVE',
       currentPrice: 100000,
       totalBids: 3,
+      winner: null,
     },
   })
   activeAuction?: {
     id: string;
-    endTime: Date;
+    endTime: string;
     status: string;
     currentPrice: number;
     totalBids: number;
-  };
+    winner?: {
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      phoneNumber: string;
+    } | null;
+  } | null;
 
   @ApiPropertyOptional({
     description:
@@ -227,6 +234,12 @@ export class ProductResponseDto {
         status: string;
         currentPrice: unknown;
         totalBids: number;
+        winner?: {
+          id: string;
+          firstName: string | null;
+          lastName: string | null;
+          phoneNumber: string;
+        } | null;
       };
       saleOrderSummary?: {
         id: string;
@@ -294,15 +307,28 @@ export class ProductResponseDto {
       activeAuction: product.activeAuction
         ? {
             id: product.activeAuction.id,
-            endTime: product.activeAuction.endTime,
+            endTime:
+              product.activeAuction.endTime instanceof Date
+                ? product.activeAuction.endTime.toISOString()
+                : new Date(
+                    product.activeAuction.endTime as unknown as string | number,
+                  ).toISOString(),
             status: product.activeAuction.status,
             currentPrice:
               typeof product.activeAuction.currentPrice === 'number'
                 ? product.activeAuction.currentPrice
                 : Number(product.activeAuction.currentPrice) || 0,
             totalBids: product.activeAuction.totalBids,
+            winner: product.activeAuction.winner
+              ? {
+                  id: product.activeAuction.winner.id,
+                  firstName: product.activeAuction.winner.firstName,
+                  lastName: product.activeAuction.winner.lastName,
+                  phoneNumber: product.activeAuction.winner.phoneNumber,
+                }
+              : null,
           }
-        : undefined,
+        : null,
       saleOrderSummary: product.saleOrderSummary
         ? {
             orderId: product.saleOrderSummary.id,

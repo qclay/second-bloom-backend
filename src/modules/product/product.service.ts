@@ -465,20 +465,23 @@ export class ProductService {
         orderBy: { displayOrder: 'asc' },
       },
       auctions: {
-        where: {
-          status: 'ACTIVE',
-          isActive: true,
-          deletedAt: null,
-          endTime: { gte: now },
-        },
+        where: { deletedAt: null },
         take: 1,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { endTime: 'desc' },
         select: {
           id: true,
           endTime: true,
           status: true,
           currentPrice: true,
           totalBids: true,
+          winner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              phoneNumber: true,
+            },
+          },
         },
       },
       orders: {
@@ -512,6 +515,12 @@ export class ProductService {
         status: string;
         currentPrice: unknown;
         totalBids: number;
+        winner: {
+          id: string;
+          firstName: string | null;
+          lastName: string | null;
+          phoneNumber: string;
+        } | null;
       }>;
       orders?: Array<{
         id: string;
@@ -525,12 +534,16 @@ export class ProductService {
         const p = product as ProductWithActiveAuction;
         const lastOrder = p.orders?.[0];
         const activeAuction = p.auctions?.[0];
+        const isAuctionActive =
+          activeAuction &&
+          activeAuction.status === 'ACTIVE' &&
+          activeAuction.endTime >= now;
         let saleStatus:
           | 'available'
           | 'onAuction'
           | 'awaitingDelivery'
           | 'sold' = 'available';
-        if (activeAuction) {
+        if (isAuctionActive) {
           saleStatus = 'onAuction';
         } else if (lastOrder) {
           if (lastOrder.status === OrderStatus.DELIVERED) {
@@ -787,6 +800,7 @@ export class ProductService {
       orderBy.createdAt = 'desc';
     }
 
+    const now = new Date();
     const [products, total] = await Promise.all([
       this.productRepository.findMany({
         where,
@@ -837,13 +851,105 @@ export class ProductService {
             },
             orderBy: { displayOrder: 'asc' },
           },
+          auctions: {
+            where: { deletedAt: null },
+            take: 1,
+            orderBy: { endTime: 'desc' },
+            select: {
+              id: true,
+              endTime: true,
+              status: true,
+              currentPrice: true,
+              totalBids: true,
+              winner: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  phoneNumber: true,
+                },
+              },
+            },
+          },
+          orders: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            where: { deletedAt: null },
+            select: {
+              id: true,
+              status: true,
+              deliveredAt: true,
+              shippedAt: true,
+            },
+          },
         },
       }),
       this.productRepository.count({ where }),
     ]);
 
+    type ProductWithActiveAuction = (typeof products)[number] & {
+      auctions?: Array<{
+        id: string;
+        endTime: Date;
+        status: string;
+        currentPrice: unknown;
+        totalBids: number;
+        winner: {
+          id: string;
+          firstName: string | null;
+          lastName: string | null;
+          phoneNumber: string;
+        } | null;
+      }>;
+      orders?: Array<{
+        id: string;
+        status: string;
+        deliveredAt: Date | null;
+        shippedAt: Date | null;
+      }>;
+    };
+
     return {
-      data: products.map((product) => ProductResponseDto.fromEntity(product)),
+      data: products.map((product) => {
+        const p = product as ProductWithActiveAuction;
+        const lastOrder = p.orders?.[0];
+        const activeAuction = p.auctions?.[0];
+        const isAuctionActive =
+          activeAuction &&
+          activeAuction.status === 'ACTIVE' &&
+          activeAuction.endTime >= now;
+        let saleStatus:
+          | 'available'
+          | 'onAuction'
+          | 'awaitingDelivery'
+          | 'sold' = 'available';
+        if (isAuctionActive) {
+          saleStatus = 'onAuction';
+        } else if (lastOrder) {
+          if (lastOrder.status === OrderStatus.DELIVERED) {
+            saleStatus = 'sold';
+          } else if (
+            lastOrder.status === OrderStatus.CONFIRMED ||
+            lastOrder.status === OrderStatus.PROCESSING ||
+            lastOrder.status === OrderStatus.SHIPPED
+          ) {
+            saleStatus = 'awaitingDelivery';
+          }
+        }
+        return ProductResponseDto.fromEntity({
+          ...p,
+          activeAuction,
+          saleOrderSummary: lastOrder
+            ? {
+                id: lastOrder.id,
+                status: lastOrder.status,
+                deliveredAt: lastOrder.deliveredAt,
+                shippedAt: lastOrder.shippedAt,
+              }
+            : undefined,
+          saleStatus,
+        } as Parameters<typeof ProductResponseDto.fromEntity>[0]);
+      }),
       meta: {
         total,
         page,
@@ -916,21 +1022,26 @@ export class ProductService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
-    const now = new Date();
     const activeAuction = await this.prisma.auction.findFirst({
       where: {
         productId: id,
-        status: 'ACTIVE',
-        isActive: true,
         deletedAt: null,
-        endTime: { gte: now },
       },
+      orderBy: { endTime: 'desc' },
       select: {
         id: true,
         endTime: true,
         status: true,
         currentPrice: true,
         totalBids: true,
+        winner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+          },
+        },
       },
     });
 
@@ -945,9 +1056,14 @@ export class ProductService {
       },
     });
 
+    const now = new Date();
+    const isAuctionActive =
+      activeAuction &&
+      activeAuction.status === 'ACTIVE' &&
+      activeAuction.endTime >= now;
     let saleStatus: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold' =
       'available';
-    if (activeAuction) {
+    if (isAuctionActive) {
       saleStatus = 'onAuction';
     } else if (lastOrder) {
       if (lastOrder.status === OrderStatus.DELIVERED) {
@@ -977,6 +1093,12 @@ export class ProductService {
         status: string;
         currentPrice: unknown;
         totalBids: number;
+        winner: {
+          id: string;
+          firstName: string | null;
+          lastName: string | null;
+          phoneNumber: string;
+        } | null;
       };
       saleStatus: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold';
     });
