@@ -15,6 +15,7 @@ import { Prisma, OrderStatus, PaymentStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { AuctionRepository } from '../auction/repositories/auction.repository';
+import { ConversationService } from '../conversation/conversation.service';
 
 @Injectable()
 export class OrderService {
@@ -25,6 +26,7 @@ export class OrderService {
     private readonly productRepository: ProductRepository,
     private readonly auctionRepository: AuctionRepository,
     private readonly prisma: PrismaService,
+    private readonly conversationService: ConversationService,
   ) {}
 
   async createOrder(
@@ -170,6 +172,14 @@ export class OrderService {
         `Purchase request created for product ${dto.productId}. Seller: ${product.sellerId}`,
       );
     }
+
+    await this.conversationService
+      .createConversationForOrder(order.id)
+      .catch((err) => {
+        this.logger.warn(
+          `Failed to create chat for order ${order.id}: ${err?.message ?? err}`,
+        );
+      });
 
     return this.findById(order.id);
   }
@@ -537,6 +547,17 @@ export class OrderService {
     }
 
     await this.orderRepository.update(id, updateData);
+
+    if (updateData.status === 'DELIVERED') {
+      this.conversationService
+        .deactivateConversationsForOrder(id)
+        .catch((err) => {
+          this.logger.warn(
+            `Failed to deactivate conversation(s) for order ${id}`,
+            err instanceof Error ? err.message : err,
+          );
+        });
+    }
 
     this.logger.log(
       `Order ${id} updated by ${isBuyer ? 'buyer' : isSeller ? 'seller' : 'admin'}. Status: ${dto.status ?? order.status}`,

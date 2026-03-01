@@ -259,6 +259,23 @@ export class AuctionGateway
     );
   }
 
+  notifyBidReplaced(
+    auctionId: string,
+    removedBidIds: string[],
+    newBid: BidResponseDto,
+  ): void {
+    this.server.to(`auction:${auctionId}`).emit(AUCTION_EVENTS.BID_REPLACED, {
+      auctionId,
+      removedBidIds,
+      newBid,
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log(
+      `Bid replaced notification sent for auction ${auctionId}: removed ${removedBidIds.length} bid(s), new bid ${newBid.id}`,
+    );
+  }
+
   notifyOutbid(userId: string, auctionId: string, bid: BidResponseDto): void {
     this.sendToUser(userId, AUCTION_EVENTS.OUTBID, {
       auctionId,

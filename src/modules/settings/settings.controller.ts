@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -30,18 +30,6 @@ export class SettingsController {
     return this.settingsService.getPublicationPricing();
   }
 
-  @Get('publication-price/history')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get publication price history (Admin only)' })
-  @ApiCommonErrorResponses({ conflict: false, notFound: false })
-  @ApiResponse({
-    status: 200,
-    description: 'Publication price history',
-  })
-  async getAllPublicationPricing() {
-    return this.settingsService.getAllPublicationPricing();
-  }
-
   @Post('publication-price')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update publication price per post (Admin only)' })
@@ -56,17 +44,5 @@ export class SettingsController {
       dto.updatedBy,
       dto.description,
     );
-  }
-
-  @Patch('publication-price/:id/activate')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Activate specific price (Admin only)' })
-  @ApiCommonErrorResponses({ conflict: false })
-  @ApiResponse({
-    status: 200,
-    description: 'Price activated',
-  })
-  async activatePricing(@Param('id') id: string) {
-    return this.settingsService.activatePricing(id);
   }
 }

@@ -115,20 +115,6 @@ export class CategoryController {
     return this.categoryService.findById(id, includeChildren === 'true');
   }
 
-  @Get(':id/children')
-  @Public()
-  @ApiOperation({ summary: 'Get child categories' })
-  @ApiCommonErrorResponses({
-    unauthorized: false,
-    forbidden: false,
-    notFound: false,
-    conflict: false,
-  })
-  @ApiResponse({ status: 200, description: 'List of child categories' })
-  async findChildren(@Param('id') id: string): Promise<CategoryResponseDto[]> {
-    return this.categoryService.findChildren(id);
-  }
-
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @Roles(UserRole.ADMIN)

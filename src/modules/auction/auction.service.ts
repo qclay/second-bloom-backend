@@ -480,26 +480,32 @@ export class AuctionService {
           endTime: { lte: now },
           deletedAt: null,
         },
-        select: {
-          id: true,
-          productId: true,
-          bids: {
-            where: {
-              isWinning: true,
-              isRetracted: false,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-            select: { id: true, bidderId: true },
-          },
-        },
+        select: { id: true, productId: true },
         take: 100,
       });
+
+      if (expiredAuctions.length === 0) {
+        return 0;
+      }
 
       const auctionIds = expiredAuctions.map((a) => a.id);
       const productIds = [...new Set(expiredAuctions.map((a) => a.productId))];
 
-      const [products, allParticipants] = await Promise.all([
+      const [winningBids, products, allParticipants] = await Promise.all([
+        this.prisma.bid.findMany({
+          where: {
+            auctionId: { in: auctionIds },
+            isWinning: true,
+            isRetracted: false,
+          },
+          select: {
+            id: true,
+            bidderId: true,
+            auctionId: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
         productIds.length > 0
           ? this.prisma.product.findMany({
               where: { id: { in: productIds } },
@@ -518,6 +524,19 @@ export class AuctionService {
           : [],
       ]);
 
+      const winningBidByAuctionId = new Map<
+        string,
+        { id: string; bidderId: string }
+      >();
+      for (const b of winningBids) {
+        if (!winningBidByAuctionId.has(b.auctionId)) {
+          winningBidByAuctionId.set(b.auctionId, {
+            id: b.id,
+            bidderId: b.bidderId,
+          });
+        }
+      }
+
       const productTitleByProductId = new Map(
         products.map((p) => [p.id, p.title]),
       );
@@ -533,7 +552,7 @@ export class AuctionService {
 
       for (const auction of expiredAuctions) {
         try {
-          const winningBid = auction.bids[0];
+          const winningBid = winningBidByAuctionId.get(auction.id);
 
           await this.prisma.$transaction(
             async (tx: Prisma.TransactionClient) => {

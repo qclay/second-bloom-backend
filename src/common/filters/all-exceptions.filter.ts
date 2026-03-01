@@ -23,6 +23,11 @@ import {
   type Locale,
 } from '../i18n/translation.util';
 
+type LoggerWithMeta = WinstonLogger & {
+  error: (msg: string, meta?: object) => void;
+  warn: (msg: string, meta?: object) => void;
+};
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
@@ -79,8 +84,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
           userId,
           errorName: exception.name,
         };
-        const errorMessage = `Unhandled error: ${exception.message} [RequestId: ${requestId}, Error: ${exception.name}]`;
-        this.logger.error(`${errorMessage} ${JSON.stringify(meta)}`);
+        (this.logger as LoggerWithMeta).error('Unhandled error', {
+          ...meta,
+          errorMessage: exception.message,
+        });
       }
     }
 
@@ -154,8 +161,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         url: request.url,
         status,
       };
-      const errorMessage = `Internal server error - ${request.method} ${request.url} - ${status} - ${message}`;
-      this.logger.error(`${errorMessage} ${JSON.stringify(meta)}`);
+      (this.logger as LoggerWithMeta).error('Internal server error', {
+        ...meta,
+        message,
+      });
 
       this.sentry.captureException(exception, {
         requestId,
@@ -168,9 +177,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
         },
       });
     } else {
-      this.logger.warn(
-        `Client error - ${request.method} ${request.url} - ${status} - ${message} [RequestId: ${requestId}, UserId: ${userId}]`,
-      );
+      (this.logger as LoggerWithMeta).warn('Client error', {
+        context: 'AllExceptionsFilter',
+        requestId,
+        userId,
+        method: request.method,
+        url: request.url,
+        status,
+        message,
+      });
     }
 
     response.status(status).json(errorResponse);
@@ -239,7 +254,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    if (status >= 500 && status !== 500) {
+    if (status >= 500) {
       return {
         retryable: true,
       };

@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { TranslationRecord } from '../../../common/i18n/translation.util';
 
-/** Name is localized (en, ru, uz). Resolved to a single string by Accept-Language. */
 const nameDesc =
   'Localized name (en, ru, uz). Response resolves to one string per Accept-Language.';
 

@@ -13,11 +13,13 @@ import { OtpService } from './services/otp.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { InfrastructureModule } from '../../infrastructure/infrastructure.module';
+import { ConversationModule } from '../conversation/conversation.module';
 
 @Module({
   imports: [
     PrismaModule,
     InfrastructureModule,
+    ConversationModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [NestConfigModule],

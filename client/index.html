@@ -56,6 +56,7 @@
       <nav id="tab-nav">
         <button class="tab-btn active" data-tab="products" data-i18n="tab_products">Products</button>
         <button class="tab-btn" data-tab="auctions" data-i18n="tab_auctions">Auctions</button>
+        <button class="tab-btn" data-tab="orders" data-i18n="tab_orders">Orders</button>
         <button class="tab-btn" data-tab="chat" data-i18n="tab_chat">Chat</button>
         <button class="tab-btn" data-tab="notifications" data-i18n="tab_notifications">Notifications</button>
       </nav>
@@ -67,12 +68,28 @@
             <div class="panel-header">
               <h2 data-i18n="tab_products">Products</h2>
               <div class="panel-actions">
+                <label class="checkbox-inline" style="margin-right:.75rem">
+                  <input type="checkbox" id="products-my-products" />
+                  <span data-i18n="tab_my_products">My products</span>
+                </label>
                 <input type="text" id="product-search-input" data-i18n-placeholder="search_products" placeholder="Search products..." />
                 <button type="button" id="btn-create-product" class="btn primary small" data-i18n="create_product">+ Create Product</button>
               </div>
             </div>
+            <div id="products-sale-phase-bar" class="filter-bar hidden" style="margin-bottom:.75rem">
+              <button type="button" class="filter-btn active" data-sale-phase="all"><span data-i18n="sale_phase_all">All</span> <span id="sale-phase-count-all" class="badge">0</span></button>
+              <button type="button" class="filter-btn" data-sale-phase="in_auction"><span data-i18n="sale_phase_in_auction">In auction</span> <span id="sale-phase-count-in_auction" class="badge">0</span></button>
+              <button type="button" class="filter-btn" data-sale-phase="in_delivery"><span data-i18n="sale_phase_in_delivery">In delivery</span> <span id="sale-phase-count-in_delivery" class="badge">0</span></button>
+              <button type="button" class="filter-btn" data-sale-phase="sold"><span data-i18n="sale_phase_sold">Sold</span> <span id="sale-phase-count-sold" class="badge">0</span></button>
+            </div>
             <div id="products-grid" class="card-grid"></div>
-            <div id="products-empty" class="empty-state hidden" data-i18n="no_products">No products found</div>
+            <div id="products-empty" class="empty-state hidden">
+              <div class="empty-state-illustration">
+                <p class="empty-title" data-i18n="empty_oh">Oh, empty...</p>
+                <p class="empty-text" data-i18n="empty_add_nothing">It seems you haven't added anything yet. But it's never too late to start!</p>
+                <button type="button" id="btn-empty-add-bouquet" class="btn primary btn-add-bouquet">+ <span data-i18n="add_bouquet">Add bouquet</span></button>
+              </div>
+            </div>
             <div id="products-loading" class="loading-state hidden" data-i18n="loading">Loading...</div>
             <div class="pagination">
               <button type="button" id="products-prev" class="btn secondary small" disabled>&laquo; Prev</button>
@@ -86,13 +103,31 @@
             <div id="product-detail-content"></div>
           </div>
 
+          <div id="auction-modal-overlay" class="modal-overlay hidden">
+            <div id="auction-modal" class="auction-modal card">
+              <div class="auction-modal-header">
+                <h3 data-i18n="top_bids">Top bids</h3>
+                <span id="auction-modal-timer" class="auction-modal-timer"></span>
+                <button type="button" id="auction-modal-close" class="icon-btn" aria-label="Close">&times;</button>
+              </div>
+              <div id="auction-modal-product" class="auction-modal-product"></div>
+              <div id="auction-modal-bids" class="auction-modal-bids"></div>
+              <div class="auction-modal-my-bid" id="auction-modal-my-bid"></div>
+              <div class="bid-form-row">
+                <input type="number" id="auction-modal-bid-amount" placeholder="" min="0" step="1000" />
+                <button type="button" id="auction-modal-place-bid" class="btn primary" data-i18n="place_bid">Make a bid</button>
+              </div>
+              <p id="auction-modal-min-hint" class="auction-modal-hint"></p>
+            </div>
+          </div>
+
           <div id="product-create-view" class="form-view hidden">
             <button type="button" class="btn secondary small btn-back" data-i18n="back">&larr; Back</button>
             <h3 data-i18n="create_product">Create Product</h3>
             <form id="product-create-form" class="form">
               <div class="form-group">
                 <label data-i18n="product_title">Title</label>
-                <input type="text" id="pc-title" required />
+                <input type="text" id="pc-title" />
               </div>
               <div class="form-group">
                 <label data-i18n="product_description">Description</label>
@@ -130,11 +165,22 @@
                 <input type="text" id="pc-tags" placeholder="roses, fresh, gift" />
               </div>
               <div class="form-group">
-                <label data-i18n="product_region">Region / City</label>
-                <div class="form-row">
-                  <input type="text" id="pc-region" placeholder="Region" />
-                  <input type="text" id="pc-city" placeholder="City" />
-                </div>
+                <label data-i18n="product_region">Region</label>
+                <select id="pc-region"><option value="">-- Select --</option></select>
+              </div>
+              <div class="form-group">
+                <label data-i18n="product_city">City</label>
+                <select id="pc-city" disabled><option value="">-- Select region first --</option></select>
+              </div>
+              <div class="form-group">
+                <label data-i18n="product_district">District</label>
+                <select id="pc-district" disabled><option value="">-- Select city first --</option></select>
+              </div>
+              <div class="form-group">
+                <label data-i18n="product_images">Product images</label>
+                <input type="file" id="pc-images" accept="image/*" multiple />
+                <p class="form-hint" data-i18n="product_images_hint">Upload up to 10 images. They will be attached to the product.</p>
+                <div id="pc-image-previews" class="image-previews"></div>
               </div>
 
               <div class="form-group checkbox-group">
@@ -177,7 +223,7 @@
               <div id="product-edit-images" class="form-group product-edit-images"></div>
               <div class="form-group">
                 <label data-i18n="product_title">Title</label>
-                <input type="text" id="pe-title" required />
+                <input type="text" id="pe-title" />
               </div>
               <div class="form-group">
                 <label data-i18n="product_description">Description</label>
@@ -258,12 +304,48 @@
           </div>
         </div>
 
+        <div id="panel-orders" class="tab-panel">
+          <div id="orders-list-view">
+            <div class="panel-header">
+              <h2 data-i18n="tab_orders">Orders</h2>
+              <div class="panel-actions">
+                <select id="orders-status-filter">
+                  <option value="" data-i18n="all">All</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="CONFIRMED">CONFIRMED</option>
+                  <option value="PROCESSING">PROCESSING</option>
+                  <option value="SHIPPED">SHIPPED</option>
+                  <option value="DELIVERED">DELIVERED</option>
+                  <option value="CANCELLED">CANCELLED</option>
+                </select>
+                <button type="button" id="btn-refresh-orders" class="btn secondary small" data-i18n="refresh">Refresh</button>
+              </div>
+            </div>
+            <div id="orders-list" class="card-list"></div>
+            <div id="orders-empty" class="empty-state hidden" data-i18n="no_orders">No orders found</div>
+            <div id="orders-loading" class="loading-state hidden" data-i18n="loading">Loading...</div>
+            <div class="pagination">
+              <button type="button" id="orders-prev" class="btn secondary small" disabled>&laquo; Prev</button>
+              <span id="orders-page-info">Page 1</span>
+              <button type="button" id="orders-next" class="btn secondary small" disabled>Next &raquo;</button>
+            </div>
+          </div>
+          <div id="order-detail-view" class="detail-view hidden">
+            <button type="button" class="btn secondary small btn-back" data-i18n="back">&larr; Back</button>
+            <div id="order-detail-content"></div>
+          </div>
+        </div>
+
         <div id="panel-chat" class="tab-panel">
           <div class="chat-layout">
             <aside class="sidebar">
               <div class="sidebar-header">
                 <h2 data-i18n="conversations">Conversations</h2>
                 <button type="button" id="btn-new-chat" class="btn primary small" data-i18n="new_chat">New Chat</button>
+              </div>
+              <div class="chat-search-wrap">
+                <input type="text" id="chat-message-search" data-i18n-placeholder="search_messages" placeholder="Search messages..." autocomplete="off" />
+                <div id="chat-search-results" class="chat-search-results hidden"></div>
               </div>
               <div id="new-chat-form" class="new-chat-form hidden">
                 <p class="new-chat-title" data-i18n="start_chat_with_user">Start a chat with a user</p>
@@ -290,6 +372,20 @@
                     <span id="conversation-status" class="conversation-status offline" data-i18n="offline">Offline</span>
                   </div>
                   <span id="ws-status" class="ws-status">--</span>
+                </div>
+                <div id="chat-order-card" class="chat-order-card hidden">
+                  <div class="chat-order-card-status" id="chat-order-status-label"></div>
+                  <div class="chat-order-card-body">
+                    <div class="chat-order-card-product" id="chat-order-product"></div>
+                    <div class="chat-order-card-meta">
+                      <span id="chat-order-number"></span>
+                      <span id="chat-order-date"></span>
+                      <span id="chat-order-amount" class="chat-order-amount"></span>
+                    </div>
+                  </div>
+                  <div class="chat-order-card-customer" id="chat-order-customer"></div>
+                  <div class="chat-order-card-actions" id="chat-order-actions"></div>
+                  <div id="chat-order-status-dropdown" class="chat-order-status-dropdown hidden"></div>
                 </div>
                 <div id="messages-container" class="messages-container">
                   <div id="messages-list" class="messages-list"></div>
@@ -326,20 +422,6 @@
 
       </div>
     </section>
-  </div>
-
-  <div id="event-log-panel" class="event-log-panel collapsed">
-    <div id="event-log-header" class="event-log-header">
-      <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Socket Events</span>
-      <div style="display:flex;align-items:center;gap:.5rem">
-        <span id="event-log-count" class="event-log-count">0</span>
-        <button type="button" id="btn-clear-log" class="btn secondary small" style="padding:.2rem .5rem;font-size:.7rem">Clear</button>
-        <button type="button" id="btn-toggle-log" class="btn secondary small" style="padding:.2rem .5rem;font-size:.7rem">Expand</button>
-      </div>
-    </div>
-    <div id="event-log-body" class="event-log-body">
-      <div id="event-log-list" class="event-log-list"></div>
-    </div>
   </div>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

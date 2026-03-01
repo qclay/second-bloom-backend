@@ -1,5 +1,6 @@
 import { Category, File } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class CategoryImageDto {
   @ApiProperty({ example: '59fd6deb-0728-4aff-852a-33908e8c657b' })
@@ -37,14 +38,14 @@ export class CategoryResponseDto {
   @ApiProperty({ example: 12 })
   activeProductCount!: number;
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  updatedAt!: string;
 
-  @ApiProperty({ nullable: true })
-  deletedAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  deletedAt!: string | null;
 
   @ApiProperty({ type: () => [CategoryResponseDto], required: false })
   children?: CategoryResponseDto[];
@@ -68,9 +69,9 @@ export class CategoryResponseDto {
       order: category.order,
       isActive: category.isActive,
       activeProductCount: category.activeProductCount ?? 0,
-      createdAt: category.createdAt,
-      updatedAt: category.updatedAt,
-      deletedAt: category.deletedAt,
+      createdAt: toISOString(category.createdAt) ?? '',
+      updatedAt: toISOString(category.updatedAt) ?? '',
+      deletedAt: toISOString(category.deletedAt),
       children: category.children
         ? category.children.map((child) =>
             CategoryResponseDto.fromEntity(child),

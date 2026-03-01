@@ -1,15 +1,8 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ForbiddenException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { FileRepository } from './repositories/file.repository';
 import { StorageService } from '../../infrastructure/storage/storage.service';
-import { FileQueryDto } from './dto/file-query.dto';
 import { FileResponseDto } from './dto/file-response.dto';
-import { Prisma, FileType } from '@prisma/client';
+import { FileType, Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import sharp from 'sharp';
@@ -129,111 +122,6 @@ export class FileService {
       return FileType.DOCUMENT;
     }
     return FileType.OTHER;
-  }
-
-  async findById(id: string, userId?: string): Promise<FileResponseDto> {
-    const file = await this.fileRepository.findById(id);
-
-    if (!file) {
-      throw new NotFoundException(`File with ID ${id} not found`);
-    }
-
-    if (file.deletedAt) {
-      throw new NotFoundException(`File with ID ${id} not found`);
-    }
-
-    if (!file.isPublic && file.uploadedById !== userId) {
-      throw new ForbiddenException('Access denied to this file');
-    }
-
-    return FileResponseDto.fromEntity(file);
-  }
-
-  async findAll(query: FileQueryDto, userId?: string) {
-    const { page = 1, limit = 20, fileType, entityType, entityId } = query;
-    const maxLimit = Math.min(limit, 100);
-    const skip = (page - 1) * maxLimit;
-
-    const where: Prisma.FileWhereInput = {
-      deletedAt: null,
-    };
-
-    if (fileType) {
-      where.fileType = fileType;
-    }
-
-    if (entityType) {
-      where.entityType = entityType;
-    }
-
-    if (entityId) {
-      where.entityId = entityId;
-    }
-
-    if (!userId) {
-      where.isPublic = true;
-    } else {
-      where.OR = [{ isPublic: true }, { uploadedById: userId }];
-    }
-
-    const [files, total] = await Promise.all([
-      this.fileRepository.findMany({
-        where,
-        skip,
-        take: maxLimit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.fileRepository.count({ where }),
-    ]);
-
-    return {
-      data: files.map((file) => FileResponseDto.fromEntity(file)),
-      meta: {
-        total,
-        page,
-        limit: maxLimit,
-        totalPages: Math.ceil(total / maxLimit),
-      },
-    };
-  }
-
-  async deleteFile(id: string, userId: string): Promise<void> {
-    const file = await this.fileRepository.findById(id);
-
-    if (!file || file.deletedAt) {
-      throw new NotFoundException(`File with ID ${id} not found`);
-    }
-
-    if (file.uploadedById !== userId) {
-      throw new ForbiddenException('Only the file owner can delete it');
-    }
-
-    const storageDeleted = await this.storageService.deleteFile(file.key);
-    if (!storageDeleted) {
-      this.logger.warn(
-        `Failed to delete file from storage: ${file.key}, but continuing with DB deletion`,
-      );
-    }
-
-    await this.fileRepository.softDelete(id, userId);
-  }
-
-  async getSignedUrl(
-    id: string,
-    userId?: string,
-    expiresIn?: number,
-  ): Promise<string> {
-    const file = await this.fileRepository.findById(id);
-
-    if (!file || file.deletedAt) {
-      throw new NotFoundException(`File with ID ${id} not found`);
-    }
-
-    if (!file.isPublic && file.uploadedById !== userId) {
-      throw new ForbiddenException('Access denied to this file');
-    }
-
-    return this.storageService.getSignedUrl(file.key, expiresIn);
   }
 
   private getFolderForFileType(fileType: FileType): string {

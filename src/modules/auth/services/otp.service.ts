@@ -9,7 +9,6 @@ import { VerificationPurpose } from '@prisma/client';
 export class OtpService {
   private readonly logger = new Logger(OtpService.name);
   private readonly OTP_EXPIRY_MINUTES = 5;
-  /** Wait this long before allowing a new OTP request (skipped in development). */
   private readonly RATE_LIMIT_MINUTES = 4;
 
   constructor(
@@ -34,7 +33,6 @@ export class OtpService {
       'true';
     const isProduction = nodeEnv === 'production' || nodeEnv === 'staging';
 
-    // In development, skip the 4-minute wait between OTP requests.
     if (isProduction && !rateLimitDisabled) {
       const existingCode =
         await this.verificationCodeRepository.findLatestByPhone(
@@ -54,7 +52,6 @@ export class OtpService {
         }
       }
     } else {
-      // Development (or OTP_RATE_LIMIT_DISABLED): no 4-min wait.
       this.logger.debug(
         `Development mode: OTP rate limiting disabled for ${phoneCountryCode}${phoneNumber}`,
       );

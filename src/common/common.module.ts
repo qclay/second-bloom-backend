@@ -10,13 +10,11 @@ import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { ValidationExceptionFilter } from './filters/validation-exception.filter';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { SentryService } from './services/sentry.service';
-import { CacheService } from './services/cache.service';
 import { WebSocketMetricsService } from './services/websocket-metrics.service';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
 import { WsRateLimitGuard } from './guards/ws-rate-limit.guard';
 import { WsLoggingInterceptor } from './interceptors/ws-logging.interceptor';
 import { WsExceptionFilter } from './filters/ws-exception.filter';
-import { RedisModule } from '../redis/redis.module';
 import { LoggerModule } from './logger/logger.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { ConfigModule } from '../config/config.module';
@@ -26,7 +24,6 @@ import { JwtModule } from '@nestjs/jwt';
 @Global()
 @Module({
   imports: [
-    RedisModule,
     LoggerModule,
     MetricsModule,
     ConfigModule,
@@ -40,7 +37,6 @@ import { JwtModule } from '@nestjs/jwt';
   ],
   providers: [
     SentryService,
-    CacheService,
     WebSocketMetricsService,
     WsJwtGuard,
     WsRateLimitGuard,
@@ -85,7 +81,6 @@ import { JwtModule } from '@nestjs/jwt';
   ],
   exports: [
     SentryService,
-    CacheService,
     WebSocketMetricsService,
     WsJwtGuard,
     WsRateLimitGuard,

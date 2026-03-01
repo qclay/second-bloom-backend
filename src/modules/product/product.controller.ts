@@ -11,10 +11,12 @@ import {
   HttpStatus,
   UseGuards,
   UsePipes,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ModerateProductDto } from './dto/moderate-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
@@ -131,6 +133,51 @@ export class ProductController {
   )
   async search(@Body() searchDto: ProductSearchDto) {
     return this.productService.searchProducts(searchDto);
+  }
+
+  @Get('pending-moderation')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List products pending moderation (Admin/Moderator only)',
+  })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiCommonErrorResponses({ notFound: false })
+  async getPendingModeration(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @CurrentUser('role') role?: UserRole,
+  ) {
+    if (role !== UserRole.ADMIN && role !== UserRole.MODERATOR) {
+      throw new ForbiddenException(
+        'Only admins and moderators can list pending moderation',
+      );
+    }
+    return this.productService.findAllPendingModeration({ page, limit });
+  }
+
+  @Patch(':id/moderate')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new SanitizePipe())
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Approve or reject product in moderation (Admin/Moderator only)',
+  })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Product after moderation.',
+    type: ProductResponseDto,
+  })
+  @ApiCommonErrorResponses({ conflict: false })
+  async moderate(
+    @Param('id') id: string,
+    @Body() dto: ModerateProductDto,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ): Promise<ProductResponseDto> {
+    return this.productService.moderateProduct(id, userId, role, dto);
   }
 
   @Get(':id')

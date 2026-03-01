@@ -4,9 +4,10 @@ import { OrderController } from './order.controller';
 import { OrderRepository } from './repositories/order.repository';
 import { ProductModule } from '../product/product.module';
 import { AuctionModule } from '../auction/auction.module';
+import { ConversationModule } from '../conversation/conversation.module';
 
 @Module({
-  imports: [ProductModule, AuctionModule],
+  imports: [ProductModule, AuctionModule, ConversationModule],
   controllers: [OrderController],
   providers: [OrderService, OrderRepository],
   exports: [OrderService, OrderRepository],

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -40,23 +40,6 @@ export class SettingsService {
     };
   }
 
-  async getAllPublicationPricing() {
-    const pricingList = await this.prisma.publicationPricing.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return pricingList.map((pricing) => ({
-      id: pricing.id,
-      pricePerPost: Number(pricing.pricePerPost),
-      currency: pricing.currency,
-      isActive: pricing.isActive,
-      description: pricing.description,
-      updatedBy: pricing.updatedBy,
-      createdAt: pricing.createdAt,
-      updatedAt: pricing.updatedAt,
-    }));
-  }
-
   async updatePublicationPrice(
     price: number,
     updatedBy?: string,
@@ -90,41 +73,6 @@ export class SettingsService {
       description: newPricing.description,
       updatedBy: newPricing.updatedBy,
       updatedAt: newPricing.updatedAt,
-    };
-  }
-
-  async activatePricing(id: string) {
-    const pricing = await this.prisma.publicationPricing.findUnique({
-      where: { id },
-    });
-
-    if (!pricing) {
-      throw new NotFoundException('Pricing not found');
-    }
-
-    const currentActive = await this.prisma.publicationPricing.findFirst({
-      where: { isActive: true },
-    });
-
-    if (currentActive) {
-      await this.prisma.publicationPricing.update({
-        where: { id: currentActive.id },
-        data: { isActive: false },
-      });
-    }
-
-    const activated = await this.prisma.publicationPricing.update({
-      where: { id },
-      data: { isActive: true },
-    });
-
-    return {
-      id: activated.id,
-      pricePerPost: Number(activated.pricePerPost),
-      currency: activated.currency,
-      isActive: activated.isActive,
-      description: activated.description,
-      updatedAt: activated.updatedAt,
     };
   }
 }

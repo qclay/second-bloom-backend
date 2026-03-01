@@ -30,7 +30,7 @@ export function resolveTranslation(
 export function getTranslationForSlug(
   record: TranslationRecord | null | undefined,
 ): string {
-  const resolved = resolveTranslation(record) ?? '';
+  const resolved = resolveTranslation(record, 'en') ?? '';
   return resolved.trim();
 }
 

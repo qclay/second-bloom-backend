@@ -15,6 +15,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
 import { VerificationPurpose, UserRole } from '@prisma/client';
+import { ConversationService } from '../conversation/conversation.service';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ErrorCode } from '../../common/constants/error-codes.constant';
 import type { JwtSignOptions } from '@nestjs/jwt';
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly verificationCodeRepository: VerificationCodeRepository,
     private readonly otpService: OtpService,
+    private readonly conversationService: ConversationService,
   ) {}
 
   async sendOtp(dto: SendOtpDto): Promise<MessageResponseDto> {
@@ -105,6 +107,11 @@ export class AuthService {
         data: { isVerified: true },
       });
     }
+
+    await this.conversationService.ensureAdministrationConversationAndSendWelcome(
+      user.id,
+      user.language,
+    );
 
     const tokens = await this.generateTokens(user);
 

@@ -1,4 +1,5 @@
 import { Bid } from '@prisma/client';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class BidResponseDto {
   id!: string;
@@ -7,20 +8,20 @@ export class BidResponseDto {
   amount!: number;
   isWinning!: boolean;
   isRetracted!: boolean;
-  readByOwnerAt!: Date | null;
+  readByOwnerAt!: string | null;
   isNew!: boolean;
-  rejectedAt!: Date | null;
+  rejectedAt!: string | null;
   rejectedBy!: string | null;
   ipAddress!: string | null;
   userAgent!: string | null;
-  createdAt!: Date;
-  updatedAt!: Date;
+  createdAt!: string;
+  updatedAt!: string;
   auction?: {
     id: string;
     productId: string;
     currentPrice: number;
     status: string;
-    endTime: Date;
+    endTime: string;
     product?: {
       id: string;
       title: string;
@@ -65,14 +66,14 @@ export class BidResponseDto {
       amount: Number(bid.amount),
       isWinning: bid.isWinning,
       isRetracted: bid.isRetracted,
-      readByOwnerAt: bid.readByOwnerAt ?? null,
+      readByOwnerAt: toISOString(bid.readByOwnerAt),
       isNew: bid.readByOwnerAt == null && bid.rejectedAt == null,
-      rejectedAt: bid.rejectedAt ?? null,
+      rejectedAt: toISOString(bid.rejectedAt),
       rejectedBy: bid.rejectedBy ?? null,
       ipAddress: bid.ipAddress,
       userAgent: bid.userAgent,
-      createdAt: bid.createdAt,
-      updatedAt: bid.updatedAt,
+      createdAt: toISOString(bid.createdAt) ?? '',
+      updatedAt: toISOString(bid.updatedAt) ?? '',
       auction: bid.auction
         ? {
             id: bid.auction.id,
@@ -82,7 +83,7 @@ export class BidResponseDto {
                 ? bid.auction.currentPrice
                 : Number(bid.auction.currentPrice) || 0,
             status: bid.auction.status,
-            endTime: bid.auction.endTime,
+            endTime: toISOString(bid.auction.endTime) ?? '',
             product: bid.auction.product
               ? {
                   id: bid.auction.product.id,

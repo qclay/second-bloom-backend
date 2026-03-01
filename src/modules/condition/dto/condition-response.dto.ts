@@ -1,5 +1,6 @@
 import { Condition } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class ConditionResponseDto {
   @ApiProperty({ description: 'Condition ID. Use as conditionId in product.' })
@@ -17,11 +18,11 @@ export class ConditionResponseDto {
   })
   createdById!: string | null;
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  updatedAt!: string;
 
   static fromEntity(condition: Condition): ConditionResponseDto {
     return {
@@ -29,8 +30,8 @@ export class ConditionResponseDto {
       name: condition.name as unknown as string,
       slug: condition.slug,
       createdById: condition.createdById,
-      createdAt: condition.createdAt,
-      updatedAt: condition.updatedAt,
+      createdAt: toISOString(condition.createdAt) ?? '',
+      updatedAt: toISOString(condition.updatedAt) ?? '',
     };
   }
 }

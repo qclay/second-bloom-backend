@@ -1,5 +1,6 @@
 import { User } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class UserResponseDto {
   @ApiProperty()
@@ -86,11 +87,11 @@ export class UserResponseDto {
   })
   publicationCredits!: number;
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  updatedAt!: string;
 
   static fromEntity(
     user: User | (User & { avatar?: { url: string } | null }),
@@ -125,8 +126,8 @@ export class UserResponseDto {
       country: user.country,
       balance: Number(user.balance ?? 0),
       publicationCredits: user.publicationCredits ?? 0,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      createdAt: toISOString(user.createdAt) ?? '',
+      updatedAt: toISOString(user.updatedAt) ?? '',
     };
   }
 }

@@ -93,8 +93,8 @@ export class BidService {
       );
     }
 
-    const BID_COOLDOWN_MS = 60_000;
-    const lastBidByUser = await this.prisma.bid.findFirst({
+    const BID_RATE_LIMIT_MS = 60_000;
+    const lastValidBidByUser = await this.prisma.bid.findFirst({
       where: {
         auctionId: dto.auctionId,
         bidderId,
@@ -104,12 +104,12 @@ export class BidService {
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true },
     });
-    if (lastBidByUser) {
-      const elapsed = now.getTime() - lastBidByUser.createdAt.getTime();
-      if (elapsed < BID_COOLDOWN_MS) {
-        const secondsLeft = Math.ceil((BID_COOLDOWN_MS - elapsed) / 1000);
+    if (lastValidBidByUser) {
+      const elapsed = now.getTime() - lastValidBidByUser.createdAt.getTime();
+      if (elapsed < BID_RATE_LIMIT_MS) {
+        const secondsLeft = Math.ceil((BID_RATE_LIMIT_MS - elapsed) / 1000);
         throw new BadRequestException(
-          `You can place your next bid in ${secondsLeft} second(s). One bid per minute per auction.`,
+          `You can place or update your bid once per minute. Try again in ${secondsLeft} second(s).`,
         );
       }
     }
@@ -138,13 +138,20 @@ export class BidService {
 
     const outbidUserId = previousWinningBid?.bidderId ?? null;
 
-    const bid = await this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
+        await (
+          tx as { $executeRaw: (args: unknown) => Promise<unknown> }
+        ).$executeRaw(
+          Prisma.sql`SELECT 1 FROM auctions WHERE id = ${dto.auctionId} FOR UPDATE`,
+        );
+
         const auctionInTx = await tx.auction.findUnique({
           where: { id: dto.auctionId },
           select: {
             status: true,
             endTime: true,
+            startPrice: true,
             autoExtend: true,
             extendMinutes: true,
             version: true,
@@ -159,8 +166,61 @@ export class BidService {
           throw new BadRequestException('Auction is not active');
         }
 
-        if (auctionInTx.endTime <= now) {
-          throw new BadRequestException('Auction has ended');
+        const nowInTx = new Date();
+        if (auctionInTx.endTime <= nowInTx) {
+          throw new BadRequestException(
+            'Auction has ended. Bids are not accepted after the end time.',
+          );
+        }
+
+        const existingBidsByUser = await tx.bid.findMany({
+          where: {
+            auctionId: dto.auctionId,
+            bidderId,
+            isRetracted: false,
+            rejectedAt: null,
+          },
+          select: { id: true },
+        });
+        const deletedBidIds = existingBidsByUser.map((b) => b.id);
+
+        if (deletedBidIds.length > 0) {
+          await tx.bid.deleteMany({
+            where: { id: { in: deletedBidIds } },
+          });
+          await tx.auction.update({
+            where: { id: dto.auctionId },
+            data: {
+              totalBids: { decrement: deletedBidIds.length },
+            },
+          });
+          if (
+            previousWinningBid &&
+            previousWinningBid.bidderId === bidderId &&
+            deletedBidIds.includes(previousWinningBid.id)
+          ) {
+            const newHighest = await tx.bid.findFirst({
+              where: { auctionId: dto.auctionId },
+              orderBy: { amount: 'desc' },
+              select: { id: true, amount: true },
+            });
+            if (newHighest) {
+              await tx.bid.update({
+                where: { id: newHighest.id },
+                data: { isWinning: true },
+              });
+              await tx.auction.update({
+                where: { id: dto.auctionId },
+                data: { currentPrice: newHighest.amount },
+              });
+            } else {
+              const startPrice = Number(auctionInTx.startPrice);
+              await tx.auction.update({
+                where: { id: dto.auctionId },
+                data: { currentPrice: startPrice },
+              });
+            }
+          }
         }
 
         const createdBid = await tx.bid.create({
@@ -207,12 +267,13 @@ export class BidService {
         });
 
         if (auctionInTx.autoExtend) {
-          const timeUntilEnd = auctionInTx.endTime.getTime() - now.getTime();
+          const timeUntilEnd =
+            auctionInTx.endTime.getTime() - nowInTx.getTime();
           const extendThreshold = auctionInTx.extendMinutes * 60 * 1000;
 
           if (timeUntilEnd > 0 && timeUntilEnd <= extendThreshold) {
             const newEndTime = new Date(
-              now.getTime() + auctionInTx.extendMinutes * 60 * 1000,
+              nowInTx.getTime() + auctionInTx.extendMinutes * 60 * 1000,
             );
 
             await tx.auction.update({
@@ -231,17 +292,30 @@ export class BidService {
           }
         }
 
-        return createdBid;
+        return { createdBid, deletedBidIds };
       },
     );
 
+    const { createdBid: bid, deletedBidIds } = result;
+
     this.logger.log(
-      `Bid created: ${bid.id} for auction ${dto.auctionId} by user ${bidderId}. Amount: ${bidAmount}`,
+      `Bid created: ${bid.id} for auction ${dto.auctionId} by user ${bidderId}. Amount: ${bidAmount}` +
+        (deletedBidIds.length > 0
+          ? ` (replaced ${deletedBidIds.length} previous bid(s))`
+          : ''),
     );
 
     const bidResponse = await this.findById(bid.id);
 
-    this.auctionGateway.notifyNewBid(dto.auctionId, bidResponse);
+    if (deletedBidIds.length > 0) {
+      this.auctionGateway.notifyBidReplaced(
+        dto.auctionId,
+        deletedBidIds,
+        bidResponse,
+      );
+    } else {
+      this.auctionGateway.notifyNewBid(dto.auctionId, bidResponse);
+    }
 
     try {
       await this.notificationService.notifyNewBidForSeller({

@@ -1,5 +1,6 @@
-import { Product, ProductImage } from '@prisma/client';
+import { Product, ProductImage, ProductStatus } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class ProductImageResponseDto {
   @ApiProperty({
@@ -89,7 +90,8 @@ export class ProductResponseDto {
   quantity!: number;
 
   @ApiProperty({
-    description: 'Product status: ACTIVE or INACTIVE.',
+    enum: ProductStatus,
+    description: 'Product status',
     example: 'ACTIVE',
   })
   status!: string;
@@ -120,13 +122,13 @@ export class ProductResponseDto {
   sellerId!: string;
 
   @ApiProperty({ example: '2026-01-04T17:15:29.000Z' })
-  createdAt!: Date;
+  createdAt!: string;
 
   @ApiProperty({ example: '2026-01-04T17:15:29.000Z' })
-  updatedAt!: Date;
+  updatedAt!: string;
 
-  @ApiProperty({ nullable: true })
-  deletedAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-01-04T17:15:29.000Z' })
+  deletedAt!: string | null;
 
   @ApiProperty({
     required: false,
@@ -202,8 +204,8 @@ export class ProductResponseDto {
   saleOrderSummary?: {
     orderId: string;
     status: string;
-    deliveredAt?: Date | null;
-    shippedAt?: Date | null;
+    deliveredAt?: string | null;
+    shippedAt?: string | null;
   };
 
   @ApiPropertyOptional({
@@ -283,9 +285,9 @@ export class ProductResponseDto {
       city: (product.cityRelation?.name ?? null) as string | null,
       district: (product.districtRelation?.name ?? null) as string | null,
       sellerId: product.sellerId,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-      deletedAt: product.deletedAt,
+      createdAt: toISOString(product.createdAt) ?? '',
+      updatedAt: toISOString(product.updatedAt) ?? '',
+      deletedAt: toISOString(product.deletedAt),
       category: product.category
         ? {
             id: product.category.id,
@@ -333,8 +335,10 @@ export class ProductResponseDto {
         ? {
             orderId: product.saleOrderSummary.id,
             status: product.saleOrderSummary.status,
-            deliveredAt: product.saleOrderSummary.deliveredAt ?? undefined,
-            shippedAt: product.saleOrderSummary.shippedAt ?? undefined,
+            deliveredAt:
+              toISOString(product.saleOrderSummary.deliveredAt) ?? undefined,
+            shippedAt:
+              toISOString(product.saleOrderSummary.shippedAt) ?? undefined,
           }
         : undefined,
       saleStatus: product.saleStatus,

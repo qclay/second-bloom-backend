@@ -1,6 +1,7 @@
-import { Order } from '@prisma/client';
+import { Order, OrderStatus, PaymentStatus } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductNestedDto } from '../../product/dto/product-nested.dto';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class OrderResponseDto {
   @ApiProperty()
@@ -21,10 +22,18 @@ export class OrderResponseDto {
   @ApiProperty()
   amount!: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: OrderStatus,
+    description: 'Order status',
+    example: 'PENDING',
+  })
   status!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: PaymentStatus,
+    description: 'Payment status',
+    example: 'PENDING',
+  })
   paymentStatus!: string;
 
   @ApiProperty({ nullable: true })
@@ -33,8 +42,8 @@ export class OrderResponseDto {
   @ApiProperty({ nullable: true })
   notes!: string | null;
 
-  @ApiProperty({ nullable: true })
-  cancelledAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  cancelledAt!: string | null;
 
   @ApiProperty({ nullable: true })
   cancelledBy!: string | null;
@@ -42,26 +51,26 @@ export class OrderResponseDto {
   @ApiProperty({ nullable: true })
   cancellationReason!: string | null;
 
-  @ApiProperty({ nullable: true })
-  shippedAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  shippedAt!: string | null;
 
-  @ApiProperty({ nullable: true })
-  deliveredAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  deliveredAt!: string | null;
 
-  @ApiProperty({ nullable: true })
-  deletedAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  deletedAt!: string | null;
 
   @ApiProperty({ nullable: true })
   deletedBy!: string | null;
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  updatedAt!: string;
 
-  @ApiProperty({ nullable: true })
-  completedAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  completedAt!: string | null;
 
   @ApiProperty({ required: false })
   buyer?: {
@@ -88,6 +97,13 @@ export class OrderResponseDto {
     lastName: string | null;
     phoneNumber: string;
   };
+
+  @ApiProperty({
+    nullable: true,
+    required: false,
+    description: 'First conversation ID for this order (open chat)',
+  })
+  conversationId?: string | null;
 
   static fromEntity(
     order: Order & {
@@ -116,6 +132,7 @@ export class OrderResponseDto {
         lastName: string | null;
         phoneNumber: string;
       };
+      conversations?: Array<{ id: string }>;
     },
   ): OrderResponseDto {
     return {
@@ -129,16 +146,16 @@ export class OrderResponseDto {
       paymentStatus: order.paymentStatus,
       shippingAddress: order.shippingAddress,
       notes: order.notes,
-      cancelledAt: order.cancelledAt,
+      cancelledAt: toISOString(order.cancelledAt),
       cancelledBy: order.cancelledBy,
       cancellationReason: order.cancellationReason,
-      shippedAt: order.shippedAt,
-      deliveredAt: order.deliveredAt,
-      deletedAt: order.deletedAt,
+      shippedAt: toISOString(order.shippedAt),
+      deliveredAt: toISOString(order.deliveredAt),
+      deletedAt: toISOString(order.deletedAt),
       deletedBy: order.deletedBy,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
-      completedAt: order.completedAt,
+      createdAt: toISOString(order.createdAt) ?? '',
+      updatedAt: toISOString(order.updatedAt) ?? '',
+      completedAt: toISOString(order.completedAt),
       buyer: order.buyer
         ? {
             id: order.buyer.id,
@@ -178,6 +195,7 @@ export class OrderResponseDto {
             phoneNumber: order.seller.phoneNumber,
           }
         : undefined,
+      conversationId: order.conversations?.[0]?.id ?? null,
     };
   }
 }

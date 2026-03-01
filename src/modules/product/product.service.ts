@@ -16,27 +16,28 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { Prisma, ProductStatus, UserRole, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRepository } from '../category/repositories/category.repository';
-import { CacheService } from '../../common/services/cache.service';
 import { AuctionService } from '../auction/auction.service';
 import { CreateAuctionDto } from '../auction/dto/create-auction.dto';
 import { atLeastOneTranslation } from '../../common/dto/translation.dto';
-import { getTranslationForSlug } from '../../common/i18n/translation.util';
+import {
+  getTranslationForSlug,
+  resolveTranslation,
+} from '../../common/i18n/translation.util';
 import { TranslationService } from '../translation/translation.service';
+import { ConversationService } from '../conversation/conversation.service';
 
 @Injectable()
 export class ProductService {
   private readonly logger = new Logger(ProductService.name);
-  private readonly CACHE_PREFIX = 'product';
-  private readonly CACHE_TTL = 1800;
 
   constructor(
     private readonly productRepository: ProductRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly prisma: PrismaService,
-    private readonly cacheService: CacheService,
     @Inject(forwardRef(() => AuctionService))
     private readonly auctionService: AuctionService,
     private readonly translationService: TranslationService,
+    private readonly conversationService: ConversationService,
   ) {}
 
   async createProduct(
@@ -169,7 +170,11 @@ export class ProductService {
             condition: { connect: { id: dto.conditionId } },
             size: { connect: { id: dto.sizeId } },
             quantity: dto.quantity ?? 1,
-            status: dto.status ?? ProductStatus.ACTIVE,
+            status:
+              dto.status ??
+              (user.role === UserRole.ADMIN
+                ? ProductStatus.ACTIVE
+                : ProductStatus.PENDING_MODERATION),
             isFeatured: dto.isFeatured ?? false,
             ...(dto.regionId && {
               regionRelation: { connect: { id: dto.regionId } },
@@ -217,8 +222,6 @@ export class ProductService {
 
     const result = await this.findById(product.id);
 
-    await this.cacheService.invalidateEntity(this.CACHE_PREFIX);
-
     this.logger.log(
       `Product created: ${product.id} by user: ${sellerId}. Credits remaining: ${user.role !== UserRole.ADMIN ? user.publicationCredits - 1 : 'unlimited (admin)'}`,
     );
@@ -251,7 +254,13 @@ export class ProductService {
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
       isActive: true,
-      ...(status ? {} : salePhase ? {} : { status: ProductStatus.ACTIVE }),
+      ...(status
+        ? {}
+        : salePhase
+          ? {}
+          : sellerId
+            ? {}
+            : { status: ProductStatus.ACTIVE }),
     };
 
     if (search) {
@@ -310,7 +319,6 @@ export class ProductService {
           },
         ];
       } else if (salePhase === 'in_delivery') {
-        // Ожидают доставки: order confirmed/shipped but not yet delivered
         where.orders = {
           some: {
             status: {
@@ -324,7 +332,15 @@ export class ProductService {
           },
         };
       }
-      // salePhase === 'all' → no extra filter (all seller's products)
+    }
+
+    if (salePhase !== 'sold' && salePhase !== 'in_delivery') {
+      where.orders = {
+        none: {
+          status: OrderStatus.DELIVERED,
+          deletedAt: null,
+        },
+      };
     }
 
     if (regionId) {
@@ -374,49 +390,6 @@ export class ProductService {
       orderBy.seller = { rating: sortOrder };
     } else {
       orderBy.createdAt = 'desc';
-    }
-
-    const shouldCache =
-      !search &&
-      page === 1 &&
-      maxLimit <= 50 &&
-      !query.conditionId &&
-      !query.sizeId &&
-      !salePhase;
-    const cacheKey = shouldCache
-      ? this.cacheService.generateListKey(this.CACHE_PREFIX, {
-          page,
-          limit: maxLimit,
-          categoryId,
-          sellerId,
-          isFeatured,
-          type,
-          status,
-          regionId,
-          cityId,
-          districtId,
-          sortBy,
-          sortOrder,
-        })
-      : null;
-
-    if (cacheKey) {
-      const cached = await this.cacheService.get<{
-        data: ProductResponseDto[];
-        meta: {
-          total: number;
-          page: number;
-          limit: number;
-          totalPages: number;
-          hasNextPage: boolean;
-          hasPreviousPage: boolean;
-        };
-      }>(cacheKey);
-
-      if (cached) {
-        this.logger.debug(`Cache hit for products list: ${cacheKey}`);
-        return cached;
-      }
     }
 
     const now = new Date();
@@ -580,11 +553,6 @@ export class ProductService {
       },
     };
 
-    if (shouldCache && cacheKey) {
-      await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
-      this.logger.debug(`Cached products list: ${cacheKey}`);
-    }
-
     return result;
   }
 
@@ -699,6 +667,7 @@ export class ProductService {
 
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
+      status: ProductStatus.ACTIVE,
     };
 
     if (search) {
@@ -767,6 +736,13 @@ export class ProductService {
     if (tags && tags.length > 0) {
       where.tags = { hasSome: tags };
     }
+
+    where.orders = {
+      none: {
+        status: OrderStatus.DELIVERED,
+        deletedAt: null,
+      },
+    };
 
     if (minPrice !== undefined || maxPrice !== undefined) {
       if (
@@ -961,6 +937,145 @@ export class ProductService {
     };
   }
 
+  async findAllPendingModeration(query: { page?: number; limit?: number }) {
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 20, 100);
+    const skip = (page - 1) * limit;
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where: {
+          status: ProductStatus.PENDING_MODERATION,
+          deletedAt: null,
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          condition: { select: { id: true, name: true, slug: true } },
+          size: { select: { id: true, name: true, slug: true } },
+          seller: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              phoneNumber: true,
+            },
+          },
+          images: {
+            where: { deletedAt: null, isActive: true },
+            include: { file: { select: { url: true } } },
+            orderBy: { displayOrder: 'asc' },
+          },
+        },
+      }),
+      this.prisma.product.count({
+        where: {
+          status: ProductStatus.PENDING_MODERATION,
+          deletedAt: null,
+        },
+      }),
+    ]);
+    const data = products.map((p) =>
+      ProductResponseDto.fromEntity(
+        p as Parameters<typeof ProductResponseDto.fromEntity>[0],
+      ),
+    );
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async moderateProduct(
+    id: string,
+    userId: string,
+    userRole: UserRole,
+    dto: { action: 'approve' | 'reject'; rejectionReason?: string },
+  ): Promise<ProductResponseDto> {
+    if (userRole !== UserRole.ADMIN && userRole !== UserRole.MODERATOR) {
+      throw new ForbiddenException(
+        'Only admins and moderators can moderate products',
+      );
+    }
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        images: {
+          where: { deletedAt: null, isActive: true },
+          take: 1,
+          orderBy: { displayOrder: 'asc' },
+          include: { file: { select: { url: true } } },
+        },
+      },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+    if (product.status !== ProductStatus.PENDING_MODERATION) {
+      throw new BadRequestException('Product is not pending moderation');
+    }
+    if (dto.action === 'reject' && !dto.rejectionReason?.trim()) {
+      throw new BadRequestException(
+        'rejectionReason is required when rejecting',
+      );
+    }
+
+    if (dto.action === 'approve') {
+      await this.prisma.product.update({
+        where: { id },
+        data: {
+          status: ProductStatus.ACTIVE,
+          moderationRejectionReason: null,
+          moderationRejectedAt: null,
+          moderationRejectedById: null,
+        },
+      });
+      return this.findById(id);
+    }
+
+    await this.prisma.product.update({
+      where: { id },
+      data: {
+        status: ProductStatus.INACTIVE,
+        moderationRejectionReason: dto.rejectionReason?.trim() ?? null,
+        moderationRejectedAt: new Date(),
+        moderationRejectedById: userId,
+      },
+    });
+
+    const title =
+      resolveTranslation(product.title as Record<string, string>, null) ?? '';
+    const imageUrl = product.images?.[0]?.file?.url ?? null;
+    const price =
+      typeof product.price === 'object' &&
+      product.price &&
+      'toNumber' in product.price
+        ? (product.price as { toNumber: () => number }).toNumber()
+        : Number(product.price);
+    try {
+      await this.conversationService.notifyProductModerationRejected(
+        product.sellerId,
+        {
+          id: product.id,
+          title: title || undefined,
+          imageUrl,
+          price,
+          currency: product.currency,
+        },
+        dto.rejectionReason?.trim() ?? 'Not specified',
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to send moderation rejection chat message for product ${id}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+    return this.findById(id);
+  }
+
   async findById(
     id: string,
     incrementViews = false,
@@ -1079,7 +1194,6 @@ export class ProductService {
 
     if (incrementViews) {
       await this.productRepository.incrementViews(id);
-      await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
     }
 
     const result = ProductResponseDto.fromEntity({
@@ -1118,7 +1232,9 @@ export class ProductService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
-    if (product.sellerId !== userId && userRole !== UserRole.ADMIN) {
+    const canUpdateAny =
+      userRole === UserRole.ADMIN || userRole === UserRole.MODERATOR;
+    if (product.sellerId !== userId && !canUpdateAny) {
       throw new ForbiddenException('You can only update your own products');
     }
 
@@ -1219,8 +1335,21 @@ export class ProductService {
     if (dto.quantity !== undefined) {
       updateData.quantity = dto.quantity;
     }
-    if (dto.status !== undefined) {
+    if (dto.status !== undefined && canUpdateAny) {
       updateData.status = dto.status;
+    }
+    const isRejected =
+      product.status === ProductStatus.INACTIVE &&
+      product.moderationRejectedAt != null;
+    if (
+      isRejected &&
+      product.sellerId === userId &&
+      (validatedImageIds !== undefined || Object.keys(updateData).length > 0)
+    ) {
+      updateData.status = ProductStatus.PENDING_MODERATION;
+      updateData.moderationRejectionReason = null;
+      updateData.moderationRejectedAt = null;
+      updateData.moderationRejectedById = null;
     }
     if (dto.isFeatured !== undefined) {
       updateData.isFeatured = dto.isFeatured;
@@ -1311,7 +1440,9 @@ export class ProductService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
-    if (product.sellerId !== userId && userRole !== UserRole.ADMIN) {
+    const canDeleteAny =
+      userRole === UserRole.ADMIN || userRole === UserRole.MODERATOR;
+    if (product.sellerId !== userId && !canDeleteAny) {
       throw new ForbiddenException('You can only delete your own products');
     }
 
@@ -1329,15 +1460,13 @@ export class ProductService {
     }
 
     await this.productRepository.softDelete(id, userId);
-
-    await this.cacheService.invalidateEntity(this.CACHE_PREFIX, id);
   }
 
   private generateSlug(title: string): string {
     const baseSlug = title
       .toLowerCase()
       .trim()
-      .replace(/[^\w\s-]/g, '')
+      .replace(/[^\p{L}\p{N}\s_-]/gu, '')
       .replace(/[\s_-]+/g, '-')
       .replace(/^-+|-+$/g, '');
 

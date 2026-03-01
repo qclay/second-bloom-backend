@@ -19,11 +19,15 @@
       logout: 'Logout',
       tab_products: 'Products',
       tab_auctions: 'Auctions',
+      tab_orders: 'Orders',
       tab_chat: 'Chat',
       tab_notifications: 'Notifications',
       search_products: 'Search products...',
       create_product: '+ Create Product',
       no_products: 'No products found. Create one to get started!',
+      empty_oh: 'Oh, empty...',
+      empty_add_nothing: 'It seems you haven\'t added anything yet. But it\'s never too late to start!',
+      add_bouquet: 'Add bouquet',
       product_title: 'Title',
       product_description: 'Description',
       product_price: 'Price',
@@ -32,7 +36,11 @@
       product_condition: 'Condition',
       product_size: 'Size',
       product_tags: 'Tags (comma-separated)',
-      product_region: 'Region / City',
+      product_region: 'Region',
+      product_city: 'City',
+      product_district: 'District',
+      product_images: 'Product images',
+      product_images_hint: 'Upload up to 10 images. They will be attached to the product.',
       product_create_auction: 'Create with auction',
       auction_start_price: 'Start price',
       auction_duration: 'Duration (hours)',
@@ -45,6 +53,23 @@
       refresh: 'Refresh',
       loading: 'Loading...',
       no_auctions: 'No auctions found.',
+      no_orders: 'No orders found.',
+      order_number: 'Order #',
+      order_create_and_chat: 'Create order & open chat',
+      order_status: 'Status',
+      order_amount: 'Amount',
+      order_buyer: 'Buyer',
+      order_seller: 'Seller',
+      order_update_status: 'Change status',
+      order_reject: 'Reject order',
+      order_customer_details: 'Customer details',
+      order_status_pending: 'Pending',
+      order_status_confirmed: 'Confirmed',
+      order_status_processing: 'Processing',
+      order_status_shipped: 'In delivery',
+      order_status_delivered: 'Delivered',
+      order_status_cancelled: 'Cancelled',
+      buy_product: 'Buy product',
       all: 'All',
       active: 'Active',
       ended: 'Ended',
@@ -64,6 +89,8 @@
       new_chat: 'New Chat',
       start_chat_with_user: 'Start a chat with a user',
       search_by_name: 'Search by name or phone...',
+      search_messages: 'Search messages...',
+      search_no_results: 'No messages found.',
       first_message_optional: 'First message (optional)',
       type_message: 'Type a message...',
       send: 'Send',
@@ -72,6 +99,10 @@
       no_conversations: 'No conversations yet. Start a new chat!',
       select_conversation: 'Select a conversation or start a new chat.',
       someone_typing: 'Someone is typing...',
+      chat_role_seller: 'Seller',
+      chat_role_consumer: 'Consumer',
+      order_chat_label: 'Order',
+      open_chat: 'Open chat',
       tab_notifications_title: 'Notifications',
       mark_all_read: 'Mark all read',
       unread: 'Unread',
@@ -79,6 +110,19 @@
       views: 'views',
       auction_ended: 'Auction Ended',
       auction_active: 'Auction Active',
+      sale_status_available: 'Available',
+      sale_status_on_auction: 'On auction',
+      sale_status_awaiting_delivery: 'Awaiting delivery',
+      sale_status_sold: 'Sold',
+      tab_my_products: 'My products',
+      sale_phase_all: 'All',
+      sale_phase_in_auction: 'In auction',
+      sale_phase_in_delivery: 'In delivery',
+      sale_phase_sold: 'Sold',
+      top_bids: 'Top bids',
+      my_bid: 'My bid',
+      leading: 'Leading',
+      min_bid_hint: 'Minimum {amount}',
       product_details: 'Product Details',
       auction_info: 'Auction Info',
       bid_increment: 'Bid Increment',
@@ -119,6 +163,8 @@
       minutes_ago: '{n}m ago',
       hours_ago: '{n}h ago',
       days_ago: '{n}d ago',
+      feature_not_available: 'This feature is not available.',
+      rate_limit_exceeded: 'Too many requests. Please try again in a moment.',
     },
     uz: {
       login_title: 'Second Bloom',
@@ -139,6 +185,9 @@
       search_products: 'Mahsulot qidirish...',
       create_product: '+ Mahsulot yaratish',
       no_products: 'Mahsulotlar topilmadi. Boshlash uchun yarating!',
+      empty_oh: 'Oy, bo\'sh...',
+      empty_add_nothing: 'Siz hali hech narsa qo\'shmagan ko\'rinasiz. Lekin boshlash uchun hech qachon kech emas!',
+      add_bouquet: 'Buket qo\'shish',
       product_title: 'Sarlavha',
       product_description: 'Tavsif',
       product_price: 'Narx',
@@ -147,7 +196,11 @@
       product_condition: 'Holat',
       product_size: 'O\'lcham',
       product_tags: 'Teglar (vergul bilan)',
-      product_region: 'Viloyat / Shahar',
+      product_region: 'Viloyat',
+      product_city: 'Shahar',
+      product_district: 'Tuman',
+      product_images: 'Mahsulot rasmlari',
+      product_images_hint: 'Maksimal 10 rasm yuklang. Ular mahsulotga biriktiriladi.',
       product_create_auction: 'Auktsion bilan yaratish',
       auction_start_price: 'Boshlang\'ich narx',
       auction_duration: 'Davomiylik (soat)',
@@ -160,6 +213,23 @@
       refresh: 'Yangilash',
       loading: 'Yuklanmoqda...',
       no_auctions: 'Auktsionlar topilmadi.',
+      no_orders: 'Buyurtmalar topilmadi.',
+      order_number: 'Buyurtma #',
+      order_create_and_chat: 'Buyurtma yaratish va chat',
+      order_status: 'Holat',
+      order_amount: 'Summa',
+      order_buyer: 'Xaridor',
+      order_seller: 'Sotuvchi',
+      order_update_status: 'Holatni o\'zgartirish',
+      order_reject: 'Buyurtmani rad etish',
+      order_customer_details: 'Mijoz ma\'lumotlari',
+      order_status_pending: 'Kutilmoqda',
+      order_status_confirmed: 'Tasdiqlandi',
+      order_status_processing: 'Qayta ishlanmoqda',
+      order_status_shipped: 'Yetkazilmoqda',
+      order_status_delivered: 'Yetkazildi',
+      order_status_cancelled: 'Bekor qilindi',
+      buy_product: 'Mahsulotni sotib olish',
       all: 'Hammasi',
       active: 'Faol',
       ended: 'Tugagan',
@@ -179,6 +249,8 @@
       new_chat: 'Yangi chat',
       start_chat_with_user: 'Foydalanuvchi bilan suhbat boshlash',
       search_by_name: 'Ism yoki telefon bo\'yicha qidiring...',
+      search_messages: 'Xabarlarni qidirish...',
+      search_no_results: 'Xabar topilmadi.',
       first_message_optional: 'Birinchi xabar (ixtiyoriy)',
       type_message: 'Xabar yozing...',
       send: 'Yuborish',
@@ -187,12 +259,29 @@
       no_conversations: 'Hali suhbatlar yo\'q. Yangi chat boshlang!',
       select_conversation: 'Suhbat tanlang yoki yangi chat boshlang.',
       someone_typing: 'Kimdir yozmoqda...',
+      chat_role_seller: 'Sotuvchi',
+      chat_role_consumer: 'Xaridor',
+      order_chat_label: 'Buyurtma',
+      open_chat: 'Chatni ochish',
       mark_all_read: 'Hammasini o\'qilgan deb belgilash',
       unread: 'O\'qilmagan',
       no_notifications: 'Hali bildirishnomalar yo\'q.',
       views: 'ko\'rishlar',
       auction_ended: 'Auktsion tugadi',
       auction_active: 'Auktsion faol',
+      sale_status_available: 'Mavjud',
+      sale_status_on_auction: 'Auktsionda',
+      sale_status_awaiting_delivery: 'Yetkazilish kutilmoqda',
+      sale_status_sold: 'Sotilgan',
+      tab_my_products: 'Mening mahsulotlarim',
+      sale_phase_all: 'Barchasi',
+      sale_phase_in_auction: 'Auktsionda',
+      sale_phase_in_delivery: 'Yetkazilishda',
+      sale_phase_sold: 'Sotilgan',
+      top_bids: 'Eng yaxshi takliflar',
+      my_bid: 'Mening taklifim',
+      leading: 'Yetakchi',
+      min_bid_hint: 'Minimum {amount}',
       product_details: 'Mahsulot tafsilotlari',
       auction_info: 'Auktsion ma\'lumotlari',
       bid_increment: 'Taklif qadami',
@@ -233,6 +322,8 @@
       minutes_ago: '{n} daqiqa oldin',
       hours_ago: '{n} soat oldin',
       days_ago: '{n} kun oldin',
+      feature_not_available: 'Bu funksiya mavjud emas.',
+      rate_limit_exceeded: 'Juda ko\'p so\'rovlar. Bir ozdan keyin urinib ko\'ring.',
     },
     ru: {
       login_title: 'Second Bloom',
@@ -253,6 +344,9 @@
       search_products: 'Поиск товаров...',
       create_product: '+ Создать товар',
       no_products: 'Товары не найдены. Создайте первый!',
+      empty_oh: 'Ой, пусто...',
+      empty_add_nothing: 'Похоже, Вы еще ничего не добавили. Но никогда не поздно начать!',
+      add_bouquet: 'Добавить букет',
       product_title: 'Название',
       product_description: 'Описание',
       product_price: 'Цена',
@@ -261,7 +355,11 @@
       product_condition: 'Состояние',
       product_size: 'Размер',
       product_tags: 'Теги (через запятую)',
-      product_region: 'Регион / Город',
+      product_region: 'Регион',
+      product_city: 'Город',
+      product_district: 'Район',
+      product_images: 'Изображения товара',
+      product_images_hint: 'Загрузите до 10 изображений. Они будут прикреплены к товару.',
       product_create_auction: 'Создать с аукционом',
       auction_start_price: 'Стартовая цена',
       auction_duration: 'Длительность (часы)',
@@ -274,6 +372,23 @@
       refresh: 'Обновить',
       loading: 'Загрузка...',
       no_auctions: 'Аукционы не найдены.',
+      no_orders: 'Заказы не найдены.',
+      order_number: 'Заказ #',
+      order_create_and_chat: 'Создать заказ и открыть чат',
+      order_status: 'Статус',
+      order_amount: 'Сумма',
+      order_buyer: 'Покупатель',
+      order_seller: 'Продавец',
+      order_update_status: 'Изменить статус',
+      order_reject: 'Сделать отказ',
+      order_customer_details: 'Данные заказчика',
+      order_status_pending: 'Ожидает',
+      order_status_confirmed: 'Подтверждён',
+      order_status_processing: 'В обработке',
+      order_status_shipped: 'В процессе доставки',
+      order_status_delivered: 'Доставлен',
+      order_status_cancelled: 'Отменён',
+      buy_product: 'Купить товар',
       all: 'Все',
       active: 'Активные',
       ended: 'Завершённые',
@@ -293,6 +408,8 @@
       new_chat: 'Новый чат',
       start_chat_with_user: 'Начать чат с пользователем',
       search_by_name: 'Поиск по имени или телефону...',
+      search_messages: 'Поиск сообщений...',
+      search_no_results: 'Сообщения не найдены.',
       first_message_optional: 'Первое сообщение (необязательно)',
       type_message: 'Введите сообщение...',
       send: 'Отправить',
@@ -301,12 +418,29 @@
       no_conversations: 'Бесед пока нет. Начните новый чат!',
       select_conversation: 'Выберите беседу или начните новый чат.',
       someone_typing: 'Кто-то печатает...',
+      chat_role_seller: 'Продавец',
+      chat_role_consumer: 'Покупатель',
+      order_chat_label: 'Заказ',
+      open_chat: 'Открыть чат',
       mark_all_read: 'Прочитать все',
       unread: 'Непрочитанные',
       no_notifications: 'Уведомлений пока нет.',
       views: 'просмотры',
       auction_ended: 'Аукцион завершён',
       auction_active: 'Аукцион активен',
+      sale_status_available: 'Доступен',
+      sale_status_on_auction: 'На аукционе',
+      sale_status_awaiting_delivery: 'Ожидает доставки',
+      sale_status_sold: 'Продан',
+      tab_my_products: 'Мои товары',
+      sale_phase_all: 'Все',
+      sale_phase_in_auction: 'На аукционе',
+      sale_phase_in_delivery: 'В доставке',
+      sale_phase_sold: 'Проданные',
+      top_bids: 'Топовые ставки',
+      my_bid: 'Моя ставка',
+      leading: 'Лидирует',
+      min_bid_hint: 'Минимум {amount}',
       product_details: 'Детали товара',
       auction_info: 'Информация об аукционе',
       bid_increment: 'Шаг ставки',
@@ -347,6 +481,8 @@
       minutes_ago: '{n} мин. назад',
       hours_ago: '{n} ч. назад',
       days_ago: '{n} д. назад',
+      feature_not_available: 'Эта функция недоступна.',
+      rate_limit_exceeded: 'Слишком много запросов. Попробуйте через некоторое время.',
     },
   };
 
@@ -367,7 +503,7 @@
 
   let accessToken = localStorage.getItem('sb_access_token');
   let currentUser = JSON.parse(localStorage.getItem('sb_user') || 'null');
-  let chatSocket = null;
+  let conversationSocket = null;
   let auctionSocket = null;
   let currentTab = 'products';
 
@@ -375,6 +511,9 @@
   let productsCache = [];
   let productsTotalPages = 1;
   let currentProductDetail = null;
+  let productsMyProducts = false;
+  let productsSalePhase = 'all';
+  let productCounts = { all: 0, inAuction: 0, sold: 0, inDelivery: 0 };
   let categoriesCache = [];
   let conditionsCache = [];
   let sizesCache = [];
@@ -384,6 +523,7 @@
   let auctionsTotalPages = 1;
   let currentAuctionId = null;
   let currentAuctionCreatorId = null;
+  let currentAuctionEnded = false;
   let auctionTimerInterval = null;
   let auctionBidsView = 'all';
 
@@ -414,13 +554,17 @@
   }
 
   function formatDate(iso) {
-    if (!iso) return '--';
-    return new Date(iso).toLocaleString();
+    if (iso === undefined || iso === null) return '--';
+    const date = (typeof iso === 'string' || typeof iso === 'number') ? new Date(iso) : (iso instanceof Date ? iso : new Date(iso));
+    if (!(date instanceof Date) || typeof date.getTime !== 'function' || isNaN(date.getTime())) return '--';
+    return date.toLocaleString();
   }
 
   function timeAgo(iso) {
     if (!iso) return '';
-    const diff = Date.now() - new Date(iso).getTime();
+    const d = iso instanceof Date ? iso : new Date(iso);
+    if (typeof d.getTime !== 'function' || isNaN(d.getTime())) return '';
+    const diff = Date.now() - d.getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return t('just_now');
     if (mins < 60) return t('minutes_ago').replace('{n}', mins);
@@ -431,8 +575,10 @@
   }
 
   function timeLeft(endTime) {
-    if (!endTime) return '--';
-    const diff = new Date(endTime).getTime() - Date.now();
+    if (endTime === undefined || endTime === null) return '--';
+    const date = (typeof endTime === 'string' || typeof endTime === 'number') ? new Date(endTime) : (endTime instanceof Date ? endTime : new Date(endTime));
+    if (!(date instanceof Date) || typeof date.getTime !== 'function' || isNaN(date.getTime())) return '--';
+    const diff = date.getTime() - Date.now();
     if (diff <= 0) return t('ended');
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
@@ -442,59 +588,35 @@
     return `${s}s`;
   }
 
-  let eventLogCount = 0;
-
-  function logSocketEvent(source, eventName, detail) {
-    eventLogCount++;
-    const countEl = $('event-log-count');
-    if (countEl) countEl.textContent = eventLogCount;
-
-    const list = $('event-log-list');
-    if (!list) return;
-
-    const now = new Date();
-    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    const item = document.createElement('div');
-    item.className = 'event-log-item';
-    item.innerHTML =
-      `<span class="elog-time">${time}</span>` +
-      `<span class="elog-source ${source}">${source}</span>` +
-      `<span class="elog-event">${escapeHtml(eventName)}</span>` +
-      `<span class="elog-detail">${escapeHtml(detail || '')}</span>`;
-    list.prepend(item);
-
-    while (list.children.length > 200) list.lastChild.remove();
-
-    console.log(`[WS:${source}] ${eventName}`, detail);
+  function saleStatusLabel(saleStatus) {
+    const key = {
+      available: 'sale_status_available',
+      onAuction: 'sale_status_on_auction',
+      awaitingDelivery: 'sale_status_awaiting_delivery',
+      sold: 'sale_status_sold',
+    }[saleStatus || ''];
+    return key ? t(key) : (saleStatus || '');
   }
 
-  function initEventLogPanel() {
-    const header = $('event-log-header');
-    const panel = $('event-log-panel');
-    const toggleBtn = $('btn-toggle-log');
-    const clearBtn = $('btn-clear-log');
-
-    if (header) {
-      header.addEventListener('click', (e) => {
-        if (e.target.closest('#btn-clear-log') || e.target.closest('#btn-toggle-log')) return;
-        panel.classList.toggle('collapsed');
-        toggleBtn.textContent = panel.classList.contains('collapsed') ? 'Expand' : 'Collapse';
-      });
-    }
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        panel.classList.toggle('collapsed');
-        toggleBtn.textContent = panel.classList.contains('collapsed') ? 'Expand' : 'Collapse';
-      });
-    }
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        $('event-log-list').innerHTML = '';
-        eventLogCount = 0;
-        $('event-log-count').textContent = '0';
-      });
-    }
+  function getBidRowHtml(b, currency, opts) {
+    const bidder = b.bidder || {};
+    const firstName = (bidder.firstName || '').trim();
+    const lastName = (bidder.lastName || '').trim();
+    const name = [firstName, lastName].filter(Boolean).join(' ') || bidder.phoneNumber || t('someone');
+    const avatarUrl = bidder.avatarUrl && bidder.avatarUrl.trim() ? bidder.avatarUrl.trim() : '';
+    const avatarHtml = avatarUrl
+      ? '<img class="auction-bid-avatar" src="' + escapeHtml(avatarUrl) + '" alt="" />'
+      : '<span class="auction-bid-avatar-placeholder">' + (name.charAt(0) || '?').toUpperCase() + '</span>';
+    const showWinner = opts && opts.showWinnerBadge;
+    const showLeading = (opts && opts.showLeadingBadge) || b.isWinning;
+    let badge = '';
+    if (showWinner) badge = '<span class="auction-bid-leading auction-bid-winner">' + t('winner') + '</span>';
+    else if (showLeading) badge = '<span class="auction-bid-leading">' + t('leading') + '</span>';
+    const isHighlight = showWinner || showLeading;
+    const rowClass = (opts && opts.rowClass) ? ' ' + opts.rowClass : '';
+    return '<div class="auction-bid-row' + rowClass + (isHighlight ? ' is-leading' : '') + '">' +
+      '<div class="auction-bid-user">' + avatarHtml + '<div class="auction-bid-info"><span class="auction-bid-name">' + escapeHtml(name) + '</span>' + badge + '</div></div>' +
+      '<div class="auction-bid-amount">' + formatPrice(b.amount, currency || 'UZS') + '</div></div>';
   }
 
   function showToast(message, type = 'info') {
@@ -528,6 +650,11 @@
       if (!res.ok) {
         const err = raw?.error || raw;
         const message = typeof err === 'object' && err?.message ? err.message : (raw?.message || res.statusText);
+        const retryAfter = res.headers.get('Retry-After');
+        if (res.status === 429) {
+          const msg = retryAfter ? `${message} (Retry after ${retryAfter}s)` : message;
+          throw new Error(msg);
+        }
         throw new Error(message);
       }
       return raw?.data !== undefined ? raw.data : raw;
@@ -547,7 +674,7 @@
       : '';
     $('user-display-name').textContent = name;
     switchTab('products');
-    connectChatSocket();
+    connectConversationSocket();
     loadNotificationCount();
   }
 
@@ -598,7 +725,7 @@
     currentUser = null;
     localStorage.removeItem('sb_access_token');
     localStorage.removeItem('sb_user');
-    if (chatSocket) { chatSocket.disconnect(); chatSocket = null; }
+    if (conversationSocket) { conversationSocket.disconnect(); conversationSocket = null; }
     if (auctionSocket) { auctionSocket.disconnect(); auctionSocket = null; }
     currentConversationId = null;
     currentAuctionId = null;
@@ -623,7 +750,8 @@
     });
     if (tab === 'products') loadProducts();
     else if (tab === 'auctions') loadAuctions();
-    else if (tab === 'chat') { loadConversations(); connectChatSocket(); }
+    else if (tab === 'orders') loadOrders();
+    else if (tab === 'chat') { loadConversations(); connectConversationSocket(); }
     else if (tab === 'notifications') loadNotifications();
   }
 
@@ -635,6 +763,10 @@
 
     const params = new URLSearchParams({ page: String(productsPage), limit: '12' });
     if (search) params.set('search', search);
+    if (productsMyProducts && currentUser?.id) {
+      params.set('sellerId', currentUser.id);
+      if (productsSalePhase && productsSalePhase !== 'all') params.set('salePhase', productsSalePhase);
+    }
 
     api(`/products?${params}`)
       .then((res) => {
@@ -644,6 +776,7 @@
         productsTotalPages = res.meta?.totalPages || 1;
         renderProducts(productsCache);
         updateProductsPagination();
+        if (productsMyProducts && currentUser?.id) loadProductCounts();
       })
       .catch((err) => {
         hide($('products-loading'));
@@ -664,24 +797,54 @@
       card.className = 'card';
       const statusClass = p.status === 'ACTIVE' ? 'status-active' : p.status === 'INACTIVE' ? 'status-inactive' : 'status-ended';
       const hasAuction = p.activeAuction;
+      const saleStatus = p.saleStatus || 'available';
+      const saleStatusClass = { available: 'status-active', onAuction: 'status-pending', awaitingDelivery: 'status-pending', sold: 'status-ended' }[saleStatus] || '';
       const tags = (p.tags || []).map((tg) => `<span class="tag">${escapeHtml(tg)}</span>`).join('');
+      const isAuctionActive = hasAuction && hasAuction.status === 'ACTIVE' && new Date(hasAuction.endTime) > new Date();
+      const imgUrl = (p.images && p.images[0]) ? p.images[0].url : '';
+      let dateStr = '';
+      if (p.createdAt) {
+        const createdDate = (typeof p.createdAt === 'string' || typeof p.createdAt === 'number') ? new Date(p.createdAt) : (p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt));
+        if (createdDate instanceof Date && !isNaN(createdDate.getTime())) {
+          dateStr = createdDate.toLocaleDateString(currentLang === 'ru' ? 'ru-RU' : currentLang === 'uz' ? 'uz-UZ' : 'en-US', { day: 'numeric', month: 'long' });
+        }
+      }
+      const bidCount = (hasAuction && hasAuction.totalBids) ? hasAuction.totalBids : 0;
       card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
-          <span class="card-status ${statusClass}">${escapeHtml(p.status || 'ACTIVE')}</span>
-          ${hasAuction ? '<span class="card-status status-pending">Auction</span>' : ''}
+        <div class="card-with-image">
+          ${imgUrl ? `<img class="card-image" src="${escapeHtml(imgUrl)}" alt="" />` : '<div class="card-image" style="display:flex;align-items:center;justify-content:center;color:#5c6470;font-size:.75rem">—</div>'}
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.35rem;flex-wrap:wrap;gap:.35rem">
+              <span class="card-status ${saleStatusClass}">${escapeHtml(saleStatusLabel(saleStatus))}</span>
+              ${hasAuction ? '<span class="card-status status-pending">Auction</span>' : ''}
+            </div>
+            <h3 class="card-title">${escapeHtml(p.title)}</h3>
+            ${dateStr ? `<div class="card-meta">${escapeHtml(dateStr)}</div>` : ''}
+            <div class="card-price">${formatPrice(hasAuction ? p.activeAuction.currentPrice : p.price, p.currency)}</div>
+            ${hasAuction ? `<div style="font-size:.8rem;color:#eab308;margin-top:.25rem">${isAuctionActive ? timeLeft(p.activeAuction.endTime) : t('ended')}${bidCount > 0 ? ' · ' + bidCount + ' ' + t('bids') : ''}</div>` : ''}
+            <div class="card-tags">${tags}</div>
+          </div>
         </div>
-        <h3 class="card-title">${escapeHtml(p.title)}</h3>
-        <div class="card-meta">
-          <span>${escapeHtml(resolveLabel(p.category || {}, 'name'))}</span>
-          <span>${p.views || 0} ${t('views')}</span>
-        </div>
-        <div class="card-price">${formatPrice(hasAuction ? p.activeAuction.currentPrice : p.price, p.currency)}</div>
-        ${hasAuction ? `<div style="font-size:.8rem;color:#eab308;margin-top:.35rem">${t('time_left')}: ${timeLeft(p.activeAuction.endTime)}</div>` : ''}
-        <div class="card-tags">${tags}</div>
       `;
       card.addEventListener('click', () => showProductDetail(p.id));
       grid.appendChild(card);
     });
+  }
+
+  function loadProductCounts() {
+    api('/products/counts')
+      .then((counts) => {
+        productCounts = counts || { all: 0, inAuction: 0, sold: 0, inDelivery: 0 };
+        const allEl = $('sale-phase-count-all');
+        const auctionEl = $('sale-phase-count-in_auction');
+        const deliveryEl = $('sale-phase-count-in_delivery');
+        const soldEl = $('sale-phase-count-sold');
+        if (allEl) allEl.textContent = productCounts.all;
+        if (auctionEl) auctionEl.textContent = productCounts.inAuction;
+        if (deliveryEl) deliveryEl.textContent = productCounts.inDelivery;
+        if (soldEl) soldEl.textContent = productCounts.sold;
+      })
+      .catch(() => {});
   }
 
   function updateProductsPagination() {
@@ -708,30 +871,37 @@
         if (hasAuction) {
           const a = p.activeAuction;
           const aStatusClass = a.status === 'ACTIVE' ? 'status-active' : 'status-ended';
+          const isAuctionActive = a.status === 'ACTIVE' && new Date(a.endTime) > new Date();
+          const isAuctionEnded = a.status !== 'ACTIVE';
           auctionHtml = `
             <div class="detail-section">
               <h4>${t('auction_info')}</h4>
               <div class="detail-row"><span class="detail-label">Status</span><span class="card-status ${aStatusClass}">${a.status}</span></div>
               <div class="detail-row"><span class="detail-label">${t('current_price')}</span><span class="detail-value" style="color:#22c55e;font-size:1.2rem">${formatPrice(a.currentPrice, p.currency)}</span></div>
-              <div class="detail-row"><span class="detail-label">${t('start_price')}</span><span class="detail-value">${formatPrice(a.startPrice, p.currency)}</span></div>
-              <div class="detail-row"><span class="detail-label">${t('time_left')}</span><span class="detail-value auction-timer ${a.status !== 'ACTIVE' ? 'ended' : ''}">${a.status === 'ACTIVE' ? timeLeft(a.endTime) : t('ended')}</span></div>
+              <div class="detail-row"><span class="detail-label">${t('time_left')}</span><span class="detail-value auction-timer ${!isAuctionActive ? 'ended' : ''}">${isAuctionActive ? timeLeft(a.endTime) : t('ended')}</span></div>
               <div class="detail-row"><span class="detail-label">${t('total_bids')}</span><span class="detail-value">${a.totalBids || 0}</span></div>
-              <div class="detail-row"><span class="detail-label">${t('bid_increment')}</span><span class="detail-value">${formatPrice(a.bidIncrement, p.currency)}</span></div>
-              <div class="detail-row"><span class="detail-label">${t('auto_extend')}</span><span class="detail-value">${a.autoExtend ? t('yes') : t('no')}</span></div>
-              ${a.status === 'ACTIVE' ? `<div style="margin-top:1rem"><button class="btn primary" onclick="window._goToAuction('${a.id}')">${t('place_bid')} &rarr;</button></div>` : ''}
+              <div class="detail-auction-bids-section">
+                <h4 class="detail-subheading">${t('top_bids')}</h4>
+                <div id="product-detail-auction-bids" class="detail-auction-bids" data-auction-id="${a.id}" data-currency="${escapeHtml(p.currency || 'UZS')}" data-ended="${isAuctionEnded ? '1' : '0'}">${t('loading')}</div>
+              </div>
+              ${isAuctionActive ? `<div style="margin-top:1rem"><button class="btn primary" onclick="window._openAuctionModal('${a.id}', window._currentProductDetail)">${t('place_bid')} &rarr;</button></div>` : ''}
             </div>
           `;
         }
 
+        const saleStatus = p.saleStatus || 'available';
+        const saleStatusClass = { available: 'status-active', onAuction: 'status-pending', awaitingDelivery: 'status-pending', sold: 'status-ended' }[saleStatus] || '';
         $('product-detail-content').innerHTML = `
           <div class="detail-content">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem">
               <div>
                 <h2 class="detail-title">${escapeHtml(p.title)}</h2>
                 <span class="card-status ${statusClass}">${p.status}</span>
+                <span class="card-status ${saleStatusClass}" style="margin-left:.35rem">${saleStatusLabel(saleStatus)}</span>
               </div>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap">
                 ${p.sellerId && p.sellerId !== currentUser?.id ? `<button class="btn primary small" onclick="window._startChatWithProduct(window._currentProductDetail)">Contact seller</button>` : ''}
+                ${p.sellerId && p.sellerId !== currentUser?.id && !hasAuction ? `<button class="btn success small" id="btn-buy-product">${t('buy_product')}</button>` : ''}
                 <button class="btn primary small" onclick="window._editProduct()">${t('edit')}</button>
                 <button class="btn danger small" onclick="window._deleteProduct('${p.id}')">${t('delete')}</button>
               </div>
@@ -751,16 +921,183 @@
             ${auctionHtml}
           </div>
         `;
+        const buyBtn = $('btn-buy-product');
+        if (buyBtn) {
+          buyBtn.addEventListener('click', () => {
+            const prod = currentProductDetail || p;
+            if (!prod || prod.sellerId === currentUser?.id) return;
+            buyBtn.disabled = true;
+            const amount = Number(prod.price) || 0;
+            api('/orders', { method: 'POST', body: JSON.stringify({ productId: prod.id, amount }) })
+              .then((order) => {
+                showToast(t('buy_product') + ' ✓', 'success');
+                switchTab('chat');
+                window._openChatForOrder(order.id);
+              })
+              .catch((err) => { showToast(err.message || 'Failed to create order', 'error'); })
+              .finally(() => { buyBtn.disabled = false; });
+          });
+        }
+        if (hasAuction && p.activeAuction?.status === 'ACTIVE') startAuctionTimer(p.activeAuction);
+        if (hasAuction) {
+          connectAuctionSocket(p.activeAuction.id);
+          const a = p.activeAuction;
+          const currency = p.currency || 'UZS';
+          const isEnded = a.status !== 'ACTIVE';
+          const container = $('product-detail-auction-bids');
+          if (container) {
+            api('/bids/auction/' + a.id + '?view=top&limit=20').then((res) => {
+              const list = Array.isArray(res?.data) ? res.data : [];
+              const sorted = [...list].sort((x, y) => Number(y.amount) - Number(x.amount));
+              const top = sorted.slice(0, 10);
+              if (container.getAttribute('data-auction-id') !== a.id) return;
+              if (top.length === 0) {
+                container.innerHTML = '<p class="auction-modal-hint">' + t('no_bids') + '</p>';
+              } else {
+                container.innerHTML = top.map((b, i) => {
+                  const showWinner = isEnded && i === 0;
+                  const showLeading = !isEnded && (b.isWinning || i === 0);
+                  return getBidRowHtml(b, currency, { showWinnerBadge: showWinner, showLeadingBadge: showLeading });
+                }).join('');
+              }
+            }).catch(() => {
+              if (container.getAttribute('data-auction-id') === a.id) container.innerHTML = '<p class="auction-modal-hint">' + t('no_bids') + '</p>';
+            });
+          }
+        }
       })
       .catch((err) => {
         $('product-detail-content').innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
       });
   }
 
+  window._refreshProductDetailAuctionBids = function (auctionId) {
+    const container = $('product-detail-auction-bids');
+    if (!container || container.getAttribute('data-auction-id') !== auctionId) return;
+    const currency = currentProductDetail?.currency || 'UZS';
+    const isEnded = currentProductDetail?.activeAuction?.status !== 'ACTIVE';
+    api('/bids/auction/' + auctionId + '?view=top&limit=20').then((res) => {
+      const list = Array.isArray(res?.data) ? res.data : [];
+      const sorted = [...list].sort((x, y) => Number(y.amount) - Number(x.amount));
+      const top = sorted.slice(0, 10);
+      if (container.getAttribute('data-auction-id') !== auctionId) return;
+      if (top.length === 0) container.innerHTML = '<p class="auction-modal-hint">' + t('no_bids') + '</p>';
+      else container.innerHTML = top.map((b, i) => {
+        const showWinner = isEnded && i === 0;
+        const showLeading = !isEnded && (b.isWinning || i === 0);
+        return getBidRowHtml(b, currency, { showWinnerBadge: showWinner, showLeadingBadge: showLeading });
+      }).join('');
+    }).catch(() => {});
+  };
+
   window._goToAuction = function (auctionId) {
     switchTab('auctions');
     setTimeout(() => showAuctionDetail(auctionId), 100);
   };
+
+  let currentAuctionModalAuctionId = null;
+  let currentAuctionModalProduct = null;
+
+  window._openAuctionModal = function (auctionId, product) {
+    if (!auctionId || !product) return;
+    currentAuctionModalAuctionId = auctionId;
+    currentAuctionModalProduct = product;
+    connectAuctionSocket(auctionId);
+    const overlay = $('auction-modal-overlay');
+    const productEl = $('auction-modal-product');
+    const bidsEl = $('auction-modal-bids');
+    const myBidEl = $('auction-modal-my-bid');
+    const amountInput = $('auction-modal-bid-amount');
+    const minHint = $('auction-modal-min-hint');
+    productEl.innerHTML = escapeHtml(product.title || '') + ' — ' + formatPrice(product.activeAuction?.currentPrice ?? product.price, product.currency);
+    bidsEl.innerHTML = '<div class="loading-state">' + t('loading') + '</div>';
+    myBidEl.innerHTML = '';
+    myBidEl.classList.add('empty');
+    amountInput.value = '';
+    minHint.textContent = '';
+    show(overlay);
+
+    function renderBids(auction, bidsList) {
+      const list = Array.isArray(bidsList) ? bidsList : (bidsList?.data ?? []);
+      const sorted = [...list].sort((x, y) => Number(y.amount) - Number(x.amount));
+      const top = sorted.slice(0, 10);
+      const currency = currentAuctionModalProduct?.currency || 'UZS';
+      const isEnded = auction && auction.status !== 'ACTIVE';
+      bidsEl.innerHTML = top.length === 0
+        ? '<p class="auction-modal-hint">' + t('no_bids') + '</p>'
+        : top.map((b, i) => {
+            const showWinner = isEnded && i === 0;
+            const showLeading = !isEnded && (b.isWinning || i === 0);
+            return getBidRowHtml(b, currency, { showWinnerBadge: showWinner, showLeadingBadge: showLeading, rowClass: 'auction-modal-bid-row' });
+          }).join('');
+      const myBid = list.find((b) => b.bidderId === currentUser?.id);
+      if (myBid && myBidEl) {
+        myBidEl.classList.remove('empty');
+        myBidEl.innerHTML = t('my_bid') + ': ' + formatPrice(myBid.amount, currentAuctionModalProduct?.currency || 'UZS');
+      } else if (myBidEl) {
+        myBidEl.classList.add('empty');
+      }
+      const minAmount = Number(auction.currentPrice) + Number(auction.bidIncrement || 0);
+      if (minHint) minHint.textContent = t('min_bid_hint').replace('{amount}', formatPrice(minAmount, currentAuctionModalProduct?.currency || 'UZS'));
+      if (amountInput) amountInput.placeholder = t('min_bid_hint').replace('{amount}', formatPrice(minAmount, currentAuctionModalProduct?.currency || 'UZS'));
+      window._auctionModalMinAmount = minAmount;
+    }
+
+    Promise.all([
+      api('/auctions/' + auctionId),
+      api('/bids/auction/' + auctionId + '?view=all&limit=50').then((r) => (r && r.data !== undefined ? r.data : r) || []).catch(() => []),
+    ]).then(([auction, bidsData]) => {
+      const bids = Array.isArray(bidsData) ? bidsData : (bidsData?.data ?? []);
+      renderBids(auction, bids);
+      window._auctionModalAuction = auction;
+      window._auctionModalRenderBids = renderBids;
+      if (auction?.status === 'ACTIVE') startAuctionTimer(auction);
+    }).catch((err) => {
+      bidsEl.innerHTML = '<p class="error">' + escapeHtml(err.message) + '</p>';
+      showToast(err.message, 'error');
+    });
+  };
+
+  window._refreshAuctionModalBids = function () {
+    if (!currentAuctionModalAuctionId || !window._auctionModalRenderBids) return;
+    const bidsEl = $('auction-modal-bids');
+    if (!bidsEl) return;
+    Promise.all([
+      api('/auctions/' + currentAuctionModalAuctionId),
+      api('/bids/auction/' + currentAuctionModalAuctionId + '?view=all&limit=50').then((r) => (r && r.data !== undefined ? r.data : r) || []).catch(() => []),
+    ]).then(([auction, bids]) => {
+      if (currentAuctionModalAuctionId !== auction?.id) return;
+      window._auctionModalRenderBids(auction, bids);
+    });
+  };
+
+  function closeAuctionModal() {
+    currentAuctionModalAuctionId = null;
+    currentAuctionModalProduct = null;
+    const modalTimerEl = $('auction-modal-timer');
+    if (modalTimerEl) modalTimerEl.textContent = '';
+    hide($('auction-modal-overlay'));
+  }
+
+  $('auction-modal-close')?.addEventListener('click', closeAuctionModal);
+  $('auction-modal-overlay')?.addEventListener('click', (e) => { if (e.target.id === 'auction-modal-overlay') closeAuctionModal(); });
+  $('auction-modal-place-bid')?.addEventListener('click', () => {
+    const amount = parseFloat($('auction-modal-bid-amount').value);
+    const minAmount = window._auctionModalMinAmount;
+    if (!currentAuctionModalAuctionId || !currentUser) return;
+    if (isNaN(amount) || amount < (minAmount || 0)) {
+      showToast(t('enter_valid_bid'), 'error');
+      return;
+    }
+    $('auction-modal-place-bid').disabled = true;
+    api('/bids', { method: 'POST', body: JSON.stringify({ auctionId: currentAuctionModalAuctionId, amount }) })
+      .then(() => {
+        showToast(t('bid_placed'), 'success');
+        window._openAuctionModal(currentAuctionModalAuctionId, currentAuctionModalProduct);
+      })
+      .catch((err) => { showToast(err.message, 'error'); })
+      .finally(() => { $('auction-modal-place-bid').disabled = false; });
+  });
 
   window._deleteProduct = function (id) {
     if (!confirm(t('confirm_delete'))) return;
@@ -769,8 +1106,25 @@
       .catch((err) => showToast(err.message, 'error'));
   };
 
-  function hideProductDetail() { hide($('product-detail-view')); show($('products-list-view')); currentProductDetail = null; }
-  function showProductCreateForm() { hide($('products-list-view')); show($('product-create-view')); loadFormDropdowns(); }
+  function hideProductDetail() {
+    hide($('product-detail-view'));
+    show($('products-list-view'));
+    currentProductDetail = null;
+    clearInterval(auctionTimerInterval);
+    auctionTimerInterval = null;
+    currentAuctionEndTime = null;
+  }
+  function showProductCreateForm() {
+    hide($('products-list-view'));
+    show($('product-create-view'));
+    loadFormDropdowns();
+    pcUploadedImages = [];
+    renderProductCreateImagePreviews();
+    setProductCreateLocationCityPlaceholder(true);
+    setProductCreateLocationDistrictPlaceholder(true);
+    const pin = $('pc-images');
+    if (pin) pin.value = '';
+  }
   function hideProductCreateForm() { hide($('product-create-view')); show($('products-list-view')); }
 
   window._editProduct = function () {
@@ -856,15 +1210,15 @@
     const region = $('pe-region').value.trim() || undefined;
     const city = $('pe-city').value.trim() || undefined;
 
-    if (!title || !categoryId || !conditionId || !sizeId) { showToast(t('fill_required_fields'), 'error'); return; }
+    if (!categoryId || !conditionId || !sizeId) { showToast(t('fill_required_fields'), 'error'); return; }
 
     const body = {
-      title: { en: title },
       categoryId,
       conditionId,
       sizeId,
       currency,
     };
+    if (title) body.title = { en: title };
     if (description) body.description = { en: description };
     if (price !== undefined) body.price = price;
     if (tags.length > 0) body.tags = tags;
@@ -884,6 +1238,9 @@
       .catch((err) => showToast(err.message, 'error'));
   }
 
+  let pcUploadedImages = [];
+  const MAX_PRODUCT_IMAGES = 10;
+
   function loadFormDropdowns() {
     if (categoriesCache.length === 0) {
       api('/categories?limit=100').then((res) => { categoriesCache = res.data || res || []; fillSelect('pc-category', categoriesCache, 'id', 'name'); }).catch(() => {});
@@ -894,6 +1251,48 @@
     if (sizesCache.length === 0) {
       api('/sizes?limit=100').then((res) => { sizesCache = res.data || res || []; fillSelect('pc-size', sizesCache, 'id', 'name'); }).catch(() => {});
     } else { fillSelect('pc-size', sizesCache, 'id', 'name'); }
+    api('/locations/regions').then((res) => {
+      const list = Array.isArray(res) ? res : (res?.data || []) || [];
+      fillSelect('pc-region', list, 'id', 'name');
+    }).catch(() => { fillSelect('pc-region', [], 'id', 'name'); });
+  }
+
+  function setProductCreateLocationCityPlaceholder(disabled) {
+    const sel = $('pc-city');
+    sel.innerHTML = '<option value="">' + (disabled ? '-- Select region first --' : '-- Select --') + '</option>';
+    sel.disabled = !!disabled;
+  }
+
+  function setProductCreateLocationDistrictPlaceholder(disabled) {
+    const sel = $('pc-district');
+    sel.innerHTML = '<option value="">' + (disabled ? '-- Select city first --' : '-- Select --') + '</option>';
+    sel.disabled = !!disabled;
+  }
+
+  function renderProductCreateImagePreviews() {
+    const container = $('pc-image-previews');
+    if (!container) return;
+    container.innerHTML = '';
+    pcUploadedImages.forEach((item, index) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'image-preview-item';
+      wrap.innerHTML = '<img src="' + escapeHtml(item.url || '') + '" alt="" /><button type="button" class="btn-remove-preview" data-index="' + index + '" aria-label="Remove">&times;</button>';
+      wrap.querySelector('.btn-remove-preview').addEventListener('click', () => {
+        pcUploadedImages.splice(index, 1);
+        renderProductCreateImagePreviews();
+      });
+      container.appendChild(wrap);
+    });
+  }
+
+  async function uploadProductImage(file) {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await api('/files/upload', { method: 'POST', body: form });
+    const id = res?.id || res;
+    const url = res?.url || '';
+    if (id) pcUploadedImages.push({ id, url });
+    return id;
   }
 
   function resolveLabel(item, labelKey) {
@@ -919,24 +1318,27 @@
     const conditionId = $('pc-condition').value;
     const sizeId = $('pc-size').value;
     const tags = $('pc-tags').value.split(',').map((s) => s.trim()).filter(Boolean);
-    const region = $('pc-region').value.trim() || undefined;
-    const city = $('pc-city').value.trim() || undefined;
+    const regionId = $('pc-region').value || undefined;
+    const cityId = $('pc-city').value || undefined;
+    const districtId = $('pc-district').value || undefined;
     const createAuction = $('pc-create-auction').checked;
 
-    if (!title || !categoryId || !conditionId || !sizeId) { showToast(t('fill_required_fields'), 'error'); return; }
+    if (!categoryId || !conditionId || !sizeId) { showToast(t('fill_required_fields'), 'error'); return; }
 
     const body = {
-      title: { en: title },
       categoryId,
       conditionId,
       sizeId,
       currency,
     };
+    if (title) body.title = { en: title };
     if (description) body.description = { en: description };
     if (price) body.price = price;
     if (tags.length > 0) body.tags = tags;
-    if (region) body.region = region;
-    if (city) body.city = city;
+    if (regionId) body.regionId = regionId;
+    if (cityId) body.cityId = cityId;
+    if (districtId) body.districtId = districtId;
+    if (pcUploadedImages.length > 0) body.imageIds = pcUploadedImages.map((x) => x.id);
 
     if (createAuction) {
       body.createAuction = true;
@@ -947,7 +1349,14 @@
     }
 
     api('/products', { method: 'POST', body: JSON.stringify(body) })
-      .then(() => { showToast(t('product_created'), 'success'); hideProductCreateForm(); $('product-create-form').reset(); loadProducts(); })
+      .then(() => {
+        showToast(t('product_created'), 'success');
+        hideProductCreateForm();
+        $('product-create-form').reset();
+        pcUploadedImages = [];
+        renderProductCreateImagePreviews();
+        loadProducts();
+      })
       .catch((err) => showToast(err.message, 'error'));
   }
 
@@ -1004,8 +1413,10 @@
 
   function renderAuctionDetail(a) {
     currentAuctionCreatorId = a.creatorId || null;
+    currentAuctionEnded = a.status !== 'ACTIVE';
     const isActive = a.status === 'ACTIVE';
     const statusClass = isActive ? 'status-active' : 'status-ended';
+    const isWinner = currentUser?.id && a.winnerId && currentUser.id === a.winnerId;
     $('auction-detail-content').innerHTML = `
       <div class="auction-hero">
         <div class="auction-info-card">
@@ -1026,6 +1437,7 @@
           <div class="detail-row"><span class="detail-label">${t('auto_extend')}</span><span class="detail-value">${a.autoExtend ? `${t('yes')} (${a.extendMinutes}min)` : t('no')}</span></div>
           ${a.winner ? `<div class="detail-row"><span class="detail-label">${t('winner')}</span><span class="detail-value" style="color:#22c55e">${escapeHtml([a.winner.firstName, a.winner.lastName].filter(Boolean).join(' ') || a.winner.phoneNumber || a.winnerId)}</span></div>` : ''}
           ${isActive ? `<div class="bid-form" id="bid-form"><input type="number" id="bid-amount-input" placeholder="${t('bid_amount')}" step="0.01" /><button class="btn success" id="btn-place-bid">${t('place_bid')}</button></div>` : ''}
+          ${!isActive && isWinner ? `<div style="margin-top:1rem"><button type="button" class="btn primary" id="btn-create-order-open-chat">${t('order_create_and_chat')}</button></div>` : ''}
         </div>
         <div class="auction-info-card">
           <h4 style="margin:0 0 .75rem;color:#8b98a5;text-transform:uppercase;font-size:.85rem">${t('product_details')}</h4>
@@ -1045,6 +1457,19 @@
       <div id="auction-section-content" class="auction-info-card"><div class="loading-state">${t('loading')}</div></div>`;
     const bidBtn = $('btn-place-bid');
     if (bidBtn) bidBtn.addEventListener('click', () => placeBid(a.id));
+    const createOrderBtn = $('btn-create-order-open-chat');
+    if (createOrderBtn) createOrderBtn.addEventListener('click', () => {
+      createOrderBtn.disabled = true;
+      const amount = Number(a.currentPrice) || 0;
+      api('/orders', { method: 'POST', body: JSON.stringify({ productId: a.productId, auctionId: a.id, amount }) })
+        .then((order) => {
+          showToast(t('order_create_and_chat') + ' ✓', 'success');
+          switchTab('chat');
+          window._openChatForOrder(order.id);
+        })
+        .catch((err) => { showToast(err.message || 'Failed to create order', 'error'); createOrderBtn.disabled = false; })
+        .then(() => { if (createOrderBtn && !createOrderBtn.disabled) createOrderBtn.disabled = false; });
+    });
     document.querySelectorAll('.section-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.section-tab').forEach((t) => t.classList.remove('active'));
@@ -1056,17 +1481,26 @@
     loadAuctionSection(a.id, 'bids');
   }
 
+  let currentAuctionEndTime = null;
+
   function startAuctionTimer(auction) {
     clearInterval(auctionTimerInterval);
-    if (auction.status !== 'ACTIVE') return;
-    auctionTimerInterval = setInterval(() => {
+    if (!auction || auction.status !== 'ACTIVE' || !auction.endTime) return;
+    const raw = auction.endTime;
+    const endTime = (typeof raw === 'string' || typeof raw === 'number') ? new Date(raw) : (raw instanceof Date ? raw : new Date(raw));
+    if (!(endTime instanceof Date) || typeof endTime.getTime !== 'function' || isNaN(endTime.getTime())) return;
+    currentAuctionEndTime = endTime;
+    function tick() {
+      const left = timeLeft(currentAuctionEndTime);
+      const text = `${t('time_left')}: ${left}`;
       const timerEl = $('auction-timer');
-      if (timerEl) {
-        const left = timeLeft(auction.endTime);
-        timerEl.textContent = `${t('time_left')}: ${left}`;
-        if (left === t('ended')) { timerEl.classList.add('ended'); clearInterval(auctionTimerInterval); }
-      }
-    }, 1000);
+      if (timerEl) { timerEl.textContent = text; timerEl.classList.toggle('ended', left === t('ended')); }
+      const modalTimerEl = $('auction-modal-timer');
+      if (modalTimerEl) { modalTimerEl.textContent = text; modalTimerEl.classList.toggle('ended', left === t('ended')); }
+      if (left === t('ended')) { clearInterval(auctionTimerInterval); currentAuctionEndTime = null; }
+    }
+    tick();
+    auctionTimerInterval = setInterval(tick, 1000);
   }
 
   function loadAuctionSection(auctionId, section) {
@@ -1087,7 +1521,7 @@
           });
         } else if (viewTabsEl) viewTabsEl.innerHTML = '';
         const feed = $('bid-feed');
-        (Array.isArray(bids) ? bids : []).forEach((b) => { feed.appendChild(createBidItem(b, { showOwnerRemove: isAuctionOwner, showMarkRead: isAuctionOwner, showRestore: isAuctionOwner })); });
+        (Array.isArray(bids) ? bids : []).forEach((b) => { feed.appendChild(createBidItem(b, { showOwnerRemove: isAuctionOwner, showMarkRead: isAuctionOwner, showRestore: isAuctionOwner, showWinnerLabel: currentAuctionEnded })); });
       }).catch((err) => { container.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`; });
     } else if (section === 'leaderboard') {
       api(`/auctions/${auctionId}/leaderboard?limit=20`).then((res) => {
@@ -1115,7 +1549,7 @@
   }
 
   function createBidItem(bid, opts = {}) {
-    const { showRetract = false, showOwnerRemove = false, showMarkRead = false, showRestore = false } = typeof opts === 'boolean' ? { showRetract: opts } : opts;
+    const { showRetract = false, showOwnerRemove = false, showMarkRead = false, showRestore = false, showWinnerLabel = false } = typeof opts === 'boolean' ? { showRetract: opts } : opts;
     const div = document.createElement('div');
     div.className = `bid-item ${bid.isWinning ? 'winning' : ''} ${bid.isRetracted ? 'retracted' : ''} ${bid.isNew ? 'is-new' : ''}`;
     const userName = bid.bidder ? ([bid.bidder.firstName, bid.bidder.lastName].filter(Boolean).join(' ') || bid.bidder.phoneNumber || 'User') : 'User';
@@ -1127,7 +1561,8 @@
         ? `<span class="bid-status-tag rejected">${t('rejected')}</span>`
         : '<span class="bid-status-tag retracted">Retracted</span>')
       : '';
-    const winTag = bid.isWinning ? `<span class="bid-status-tag winning">${t('winning')}</span>` : '';
+    const winLabel = showWinnerLabel && bid.isWinning ? t('winner') : t('winning');
+    const winTag = bid.isWinning ? `<span class="bid-status-tag winning">${winLabel}</span>` : '';
     const newTag = bid.isNew ? '<span class="bid-status-tag new">New</span>' : '';
     let actionBtn = '';
     if (!bid.isRetracted) {
@@ -1217,6 +1652,7 @@
     }
     currentAuctionId = null;
     currentAuctionCreatorId = null;
+    currentAuctionEnded = false;
   }
 
   function connectAuctionSocket(auctionId) {
@@ -1231,29 +1667,35 @@
     });
 
     auctionSocket.on('connect', () => {
-      logSocketEvent('auction', 'connect', `Socket ID: ${auctionSocket.id}`);
       updateAuctionSocketStatus('connected');
       auctionSocket.emit('join_auction', { auctionId }, (response) => {
-        if (response?.success) logSocketEvent('auction', 'join_auction', `Joined room for auction ${auctionId}`);
-        else { logSocketEvent('auction', 'join_auction', `FAILED: ${response?.error || 'Unknown error'}`); showToast(t('failed_join_auction') + ': ' + (response?.error || ''), 'error'); }
+        if (!response?.success) showToast(t('failed_join_auction') + ': ' + (response?.error || ''), 'error');
       });
     });
-    auctionSocket.on('disconnect', (reason) => { logSocketEvent('auction', 'disconnect', reason); updateAuctionSocketStatus('disconnected'); });
-    auctionSocket.on('connect_error', (err) => { logSocketEvent('auction', 'connect_error', err.message); updateAuctionSocketStatus('disconnected'); });
-    auctionSocket.on('connected', (data) => { logSocketEvent('auction', 'connected', `Server confirmed. User: ${data?.userId || 'unknown'}`); updateAuctionSocketStatus('connected'); });
+    auctionSocket.on('disconnect', () => { updateAuctionSocketStatus('disconnected'); });
+    auctionSocket.on('connect_error', () => { updateAuctionSocketStatus('disconnected'); });
+    auctionSocket.on('connected', () => { updateAuctionSocketStatus('connected'); });
 
     auctionSocket.on('new_bid', (data) => {
       const bidderName = data.bid?.bidder ? ([data.bid.bidder.firstName, data.bid.bidder.lastName].filter(Boolean).join(' ') || data.bid.bidder.phoneNumber || t('someone')) : t('someone');
-      logSocketEvent('auction', 'new_bid', `${bidderName} bid ${formatPrice(data.bid?.amount)} on auction ${data.auctionId}`);
       showToast(t('new_bid_by').replace('{name}', bidderName).replace('{amount}', formatPrice(data.bid?.amount)), 'info');
       const priceEl = $('auction-current-price');
       if (priceEl && data.bid) priceEl.textContent = formatPrice(data.bid.amount);
       const feed = $('bid-feed');
       if (feed && data.bid) feed.prepend(createBidItem(data.bid));
+      if (currentAuctionModalAuctionId === data.auctionId) window._refreshAuctionModalBids();
+      if (currentProductDetail?.activeAuction?.id === data.auctionId) window._refreshProductDetailAuctionBids(data.auctionId);
     });
-    auctionSocket.on('outbid', (data) => { logSocketEvent('auction', 'outbid', `You were outbid on auction ${data.auctionId}! New bid: ${formatPrice(data.bid?.amount)}`); showToast(t('you_have_been_outbid'), 'error'); });
+    auctionSocket.on('bid_replaced', (data) => {
+      showToast(t('new_bid_by').replace('{name}', data.newBid?.bidder ? ([data.newBid.bidder.firstName, data.newBid.bidder.lastName].filter(Boolean).join(' ') || data.newBid.bidder.phoneNumber || t('someone')) : t('someone')).replace('{amount}', formatPrice(data.newBid?.amount)), 'info');
+      const priceEl = $('auction-current-price');
+      if (priceEl && data.newBid) priceEl.textContent = formatPrice(data.newBid.amount);
+      if (currentAuctionId === data.auctionId) loadAuctionSection(currentAuctionId, 'bids');
+      if (currentAuctionModalAuctionId === data.auctionId) window._refreshAuctionModalBids();
+      if (currentProductDetail?.activeAuction?.id === data.auctionId) window._refreshProductDetailAuctionBids(data.auctionId);
+    });
+    auctionSocket.on('outbid', () => { showToast(t('you_have_been_outbid'), 'error'); });
     auctionSocket.on('bid_rejected', (data) => {
-      logSocketEvent('auction', 'bid_rejected', `Bid ${data.bid?.id} rejected on auction ${data.auctionId}`);
       const isMine = data.bid?.bidderId === currentUser?.id;
       if (isMine) {
         showToast(t('bid_removed'), 'error');
@@ -1265,11 +1707,11 @@
         loadAuctionSection(currentAuctionId, activeSection?.dataset?.section || 'bids');
       }
     });
-    auctionSocket.on('auction_updated', (data) => { logSocketEvent('auction', 'auction_updated', `Auction ${data.auctionId} updated. Price: ${formatPrice(data.auction?.currentPrice)}`); showToast(t('auction_updated_price').replace('{amount}', formatPrice(data.auction?.currentPrice)), 'info'); if (data.auction) { const priceEl = $('auction-current-price'); if (priceEl) priceEl.textContent = formatPrice(data.auction.currentPrice); } });
-    auctionSocket.on('auction_ended', (data) => { logSocketEvent('auction', 'auction_ended', `Auction ${data.auctionId} ended! Winner: ${data.winnerId || 'none'}`); showToast(t('auction_ended'), 'info'); clearInterval(auctionTimerInterval); const timerEl = $('auction-timer'); if (timerEl) { timerEl.textContent = t('auction_ended'); timerEl.classList.add('ended'); } });
-    auctionSocket.on('auction_extended', (data) => { logSocketEvent('auction', 'auction_extended', `Auction ${data.auctionId} extended to ${formatDate(data.newEndTime)}. Reason: ${data.reason || ''}`); showToast(t('auction_extended_to').replace('{time}', formatDate(data.newEndTime)), 'info'); if (data.newEndTime) { const timerEl = $('auction-timer'); if (timerEl) timerEl.textContent = `${t('time_left')}: ${timeLeft(data.newEndTime)}`; } });
+    auctionSocket.on('auction_updated', (data) => { showToast(t('auction_updated_price').replace('{amount}', formatPrice(data.auction?.currentPrice)), 'info'); if (data.auction) { const priceEl = $('auction-current-price'); if (priceEl) priceEl.textContent = formatPrice(data.auction.currentPrice); } });
+    auctionSocket.on('auction_ended', (data) => { showToast(t('auction_ended'), 'info'); clearInterval(auctionTimerInterval); auctionTimerInterval = null; currentAuctionEndTime = null; const timerEl = $('auction-timer'); if (timerEl) { timerEl.textContent = t('auction_ended'); timerEl.classList.add('ended'); } const modalTimerEl = $('auction-modal-timer'); if (modalTimerEl) { modalTimerEl.textContent = t('auction_ended'); modalTimerEl.classList.add('ended'); } });
+    auctionSocket.on('auction_extended', (data) => { showToast(t('auction_extended_to').replace('{time}', formatDate(data.newEndTime)), 'info'); if (data.newEndTime) startAuctionTimer({ status: 'ACTIVE', endTime: data.newEndTime }); });
     auctionSocket.on('ping', () => { if (auctionSocket?.connected) auctionSocket.emit('pong', { timestamp: Date.now() }); });
-    auctionSocket.on('error', (err) => { logSocketEvent('auction', 'error', err?.message || String(err)); showToast(t('socket_error') + ': ' + (err?.message || err), 'error'); });
+    auctionSocket.on('error', (err) => { showToast(t('socket_error') + ': ' + (err?.message || err), 'error'); });
   }
 
   function updateAuctionSocketStatus(status) {
@@ -1279,7 +1721,7 @@
     el.className = 'ws-status ' + (status === 'connected' ? 'connected' : 'disconnected');
   }
 
-  const CHAT_EVENTS = {
+  const CONVERSATION_EVENTS = {
     JOIN_CONVERSATION: 'join_conversation', LEAVE_CONVERSATION: 'leave_conversation',
     SEND_MESSAGE: 'send_message', TYPING_START: 'typing_start', TYPING_STOP: 'typing_stop',
     MARK_READ: 'mark_read', CONNECTED: 'connected', NEW_MESSAGE: 'new_message',
@@ -1288,36 +1730,33 @@
     DELETE_MESSAGE: 'delete_message', EDIT_MESSAGE: 'edit_message',
   };
 
-  function connectChatSocket() {
-    if (chatSocket?.connected) return;
+  function connectConversationSocket() {
+    if (conversationSocket?.connected) return;
     if (!accessToken) return;
     const base = API_BASE.replace(/\/$/, '');
-    chatSocket = window.io(`${base}/chat`, { auth: { token: accessToken }, transports: ['websocket', 'polling'] });
+    conversationSocket = window.io(`${base}/conversation`, { auth: { token: accessToken }, transports: ['websocket', 'polling'] });
 
-    chatSocket.on('connect', () => { logSocketEvent('chat', 'connect', `Socket ID: ${chatSocket.id}`); updateWsStatus('connected'); if (currentTab === 'chat') loadConversations(); });
-    chatSocket.on('disconnect', (reason) => { logSocketEvent('chat', 'disconnect', reason); updateWsStatus('disconnected'); });
-    chatSocket.on('connect_error', (err) => { logSocketEvent('chat', 'connect_error', err.message); updateWsStatus('disconnected'); });
-    chatSocket.on(CHAT_EVENTS.CONNECTED, (data) => { logSocketEvent('chat', 'connected', `User: ${data?.userId || 'unknown'}`); updateWsStatus('connected'); requestOnlineStatuses(); });
-    chatSocket.on('user_presence', (data) => { logSocketEvent('chat', 'user_presence', `${data.userId} is ${data.isOnline ? 'online' : 'offline'}`); if (data.isOnline) onlineUsers.add(data.userId); else onlineUsers.delete(data.userId); updatePresenceUI(); });
+    conversationSocket.on('connect', () => { updateWsStatus('connected'); if (currentTab === 'chat') loadConversations(); });
+    conversationSocket.on('disconnect', () => { updateWsStatus('disconnected'); });
+    conversationSocket.on('connect_error', () => { updateWsStatus('disconnected'); });
+    conversationSocket.on(CONVERSATION_EVENTS.CONNECTED, () => { updateWsStatus('connected'); requestOnlineStatuses(); });
+    conversationSocket.on('user_presence', (data) => { if (data.isOnline) onlineUsers.add(data.userId); else onlineUsers.delete(data.userId); updatePresenceUI(); });
 
-    chatSocket.on(CHAT_EVENTS.NEW_MESSAGE, (message) => {
+    conversationSocket.on(CONVERSATION_EVENTS.NEW_MESSAGE, (message) => {
       const senderName = message.sender ? ([message.sender.firstName, message.sender.lastName].filter(Boolean).join(' ') || message.sender.phoneNumber || '') : '';
       const preview = (message.content || '').slice(0, 50);
-      logSocketEvent('chat', 'new_message', `From ${senderName}: "${preview}"`);
       showToast(t('new_message_from').replace('{name}', senderName).replace('{text}', preview), 'info');
       if (message.conversationId === currentConversationId) appendMessage(message);
       if (currentTab === 'chat') loadConversations();
       loadNotificationCount();
     });
 
-    chatSocket.on(CHAT_EVENTS.MESSAGE_DELETED, (data) => {
-      logSocketEvent('chat', 'message_deleted', `Message ${data.messageId}`);
+    conversationSocket.on(CONVERSATION_EVENTS.MESSAGE_DELETED, (data) => {
       showToast(t('message_deleted'), 'info');
       if (data.conversationId === currentConversationId) { const el = document.querySelector(`[data-message-id="${data.messageId}"]`); if (el) el.remove(); }
     });
 
-    chatSocket.on(CHAT_EVENTS.MESSAGE_EDITED, (message) => {
-      logSocketEvent('chat', 'message_edited', `Message ${message.id}: "${(message.content || '').slice(0, 50)}"`);
+    conversationSocket.on(CONVERSATION_EVENTS.MESSAGE_EDITED, (message) => {
       showToast(t('message_edited'), 'info');
       if (message.conversationId === currentConversationId) {
         const el = document.querySelector(`[data-message-id="${message.id}"]`);
@@ -1325,19 +1764,18 @@
       }
     });
 
-    chatSocket.on(CHAT_EVENTS.USER_TYPING, (data) => { logSocketEvent('chat', 'user_typing', `User ${data.userId} ${data.isTyping ? 'started' : 'stopped'} typing`); if (data.conversationId !== currentConversationId) return; const el = $('typing-indicator'); el.textContent = data.isTyping ? t('someone_typing') : ''; if (data.isTyping) show(el); else hide(el); });
-    chatSocket.on(CHAT_EVENTS.MESSAGES_READ, (data) => { logSocketEvent('chat', 'messages_read', `Conv ${data.conversationId}, ${data.count} messages by ${data.userId}`); });
-    chatSocket.on('ping', () => { chatSocket.emit('pong', { timestamp: Date.now() }); });
+    conversationSocket.on(CONVERSATION_EVENTS.USER_TYPING, (data) => { if (data.conversationId !== currentConversationId) return; const el = $('typing-indicator'); el.textContent = data.isTyping ? t('someone_typing') : ''; if (data.isTyping) show(el); else hide(el); });
+    conversationSocket.on('ping', () => { conversationSocket.emit('pong', { timestamp: Date.now() }); });
   }
 
   function updateWsStatus(status) { const el = $('ws-status'); if (!el) return; el.textContent = status === 'connected' ? 'Live' : 'Offline'; el.className = 'ws-status ' + (status === 'connected' ? 'connected' : 'disconnected'); }
 
   function requestOnlineStatuses() {
-    if (!chatSocket?.connected || conversationsCache.length === 0) return;
+    if (!conversationSocket?.connected || conversationsCache.length === 0) return;
     const userIds = [];
     conversationsCache.forEach((c) => { const other = c.participants?.find((p) => p.userId !== currentUser?.id); if (other) userIds.push(other.userId); });
     if (userIds.length === 0) return;
-    chatSocket.emit('get_online_status', { userIds }, (res) => { if (res?.statuses) { Object.entries(res.statuses).forEach(([uid, isOnline]) => { if (isOnline) onlineUsers.add(uid); else onlineUsers.delete(uid); }); updatePresenceUI(); } });
+    conversationSocket.emit('get_online_status', { userIds }, (res) => { if (res?.statuses) { Object.entries(res.statuses).forEach(([uid, isOnline]) => { if (isOnline) onlineUsers.add(uid); else onlineUsers.delete(uid); }); updatePresenceUI(); } });
   }
 
   function updatePresenceUI() {
@@ -1350,9 +1788,24 @@
 
   function loadConversations() {
     if (!accessToken) return;
-    api('/chat/conversations?page=1&limit=50')
+    api('/conversations?page=1&limit=50')
       .then((res) => { const list = res.data || res || []; conversationsCache = Array.isArray(list) ? list : []; renderConversationList(conversationsCache); requestOnlineStatuses(); })
       .catch((err) => { console.error('Load conversations:', err); conversationsCache = []; renderConversationList([]); });
+  }
+
+  function getConversationDisplayName(c) {
+    const other = c.participants?.find((p) => p.userId !== currentUser?.id);
+    const name = [other?.firstName, other?.lastName].filter(Boolean).join(' ') || other?.username || other?.phoneNumber || 'Chat';
+    if (c.pinnedOrder && (c.seller || c.buyer)) {
+      const role = other?.role === 'seller' ? t('chat_role_seller') : other?.role === 'consumer' ? t('chat_role_consumer') : null;
+      return role ? `${name} (${role})` : name;
+    }
+    return name;
+  }
+
+  function getConversationAvatarUrl(c) {
+    const other = c.participants?.find((p) => p.userId !== currentUser?.id);
+    return other?.avatarUrl && other.avatarUrl.trim() ? other.avatarUrl.trim() : '';
   }
 
   function renderConversationList(conversations) {
@@ -1360,13 +1813,18 @@
     if (conversations.length === 0) { show(emptyEl); return; }
     hide(emptyEl);
     conversations.forEach((c) => {
-      const other = c.participants?.find((p) => p.userId !== currentUser?.id);
-      const name = [other?.firstName, other?.lastName].filter(Boolean).join(' ') || other?.username || other?.phoneNumber || 'Chat';
+      const name = getConversationDisplayName(c);
+      const avatarUrl = getConversationAvatarUrl(c);
+      const avatarHtml = avatarUrl
+        ? '<img class="conv-avatar" src="' + escapeHtml(avatarUrl) + '" alt="" />'
+        : '<span class="conv-avatar-placeholder">' + (name.charAt(0) || '?').toUpperCase() + '</span>';
       const preview = c.lastMessage?.content ? (c.lastMessage.content.slice(0, 40) + (c.lastMessage.content.length > 40 ? '...' : '')) : 'No messages yet';
       const unread = c.unreadCount || 0;
+      const other = c.participants?.find((p) => p.userId !== currentUser?.id);
       const isOnline = other && onlineUsers.has(other.userId);
+      const orderLabel = c.pinnedOrder ? ` · ${t('order_chat_label')} #${escapeHtml(c.pinnedOrder.orderNumber || c.pinnedOrder.id?.slice(0, 8) || '')}` : '';
       const li = document.createElement('li'); li.dataset.conversationId = c.id;
-      li.innerHTML = `<div class="conv-row">${isOnline ? '<span class="online-dot"></span>' : ''}<strong>${escapeHtml(name)}</strong>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div><div class="conv-preview">${escapeHtml(preview)}</div>`;
+      li.innerHTML = `<div class="conv-row"><div class="conv-avatar-wrap">${avatarHtml}</div>${isOnline ? '<span class="online-dot"></span>' : ''}<div class="conv-row-main"><strong>${escapeHtml(name)}</strong>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div></div><div class="conv-preview">${escapeHtml(preview)}</div>${orderLabel ? `<div class="conv-order-label">${orderLabel}</div>` : ''}`;
       li.addEventListener('click', () => selectConversation(c.id));
       if (c.id === currentConversationId) li.classList.add('active');
       listEl.appendChild(li);
@@ -1374,26 +1832,38 @@
   }
 
   function selectConversation(conversationId) {
-    if (currentConversationId && chatSocket?.connected) chatSocket.emit(CHAT_EVENTS.LEAVE_CONVERSATION, { conversationId: currentConversationId });
+    if (currentConversationId && conversationSocket?.connected) conversationSocket.emit(CONVERSATION_EVENTS.LEAVE_CONVERSATION, { conversationId: currentConversationId });
     currentConversationId = conversationId;
     document.querySelectorAll('.conversation-list li').forEach((li) => { li.classList.toggle('active', li.dataset.conversationId === conversationId); });
     hide($('no-conversation')); show($('conversation-view'));
-    if (chatSocket?.connected) chatSocket.emit(CHAT_EVENTS.JOIN_CONVERSATION, { conversationId });
+    if (conversationSocket?.connected) conversationSocket.emit(CONVERSATION_EVENTS.JOIN_CONVERSATION, { conversationId });
     const conv = conversationsCache.find((c) => c.id === conversationId);
     const other = conv ? conv.participants?.find((p) => p.userId !== currentUser?.id) : null;
-    const name = other ? [other.firstName, other.lastName].filter(Boolean).join(' ') || other.username || other.phoneNumber : 'Chat';
-    $('conversation-title').textContent = name;
+    let title = other ? [other.firstName, other.lastName].filter(Boolean).join(' ') || other.username || other.phoneNumber : 'Chat';
+    if (conv?.pinnedOrder && (conv.seller || conv.buyer)) {
+      const sellerName = conv.seller ? [conv.seller.firstName, conv.seller.lastName].filter(Boolean).join(' ') || conv.seller.phoneNumber || '' : '';
+      const buyerName = conv.buyer ? [conv.buyer.firstName, conv.buyer.lastName].filter(Boolean).join(' ') || conv.buyer.phoneNumber || '' : '';
+      title = `${t('chat_role_seller')}: ${sellerName || '—'} · ${t('chat_role_consumer')}: ${buyerName || '—'}`;
+    }
+    $('conversation-title').textContent = title;
     const flowerEl = document.getElementById('conversation-flower');
-    if (flowerEl) { flowerEl.textContent = conv.flowerId ? 'About product' : ''; flowerEl.style.display = conv.flowerId ? 'block' : 'none'; }
+    if (flowerEl) {
+      let sub = '';
+      if (conv?.pinnedOrder) sub = `${t('order_chat_label')} #${conv.pinnedOrder.orderNumber || conv.pinnedOrder.id?.slice(0, 8) || ''} · ${conv.pinnedOrder.status || ''}`;
+      else if (conv?.flowerId || conv?.pinnedProduct) sub = 'About product';
+      flowerEl.textContent = sub;
+      flowerEl.style.display = sub ? 'block' : 'none';
+    }
     const statusEl = $('conversation-status');
     if (statusEl && other) { const isOnline = onlineUsers.has(other.userId); statusEl.textContent = isOnline ? t('online') : t('offline'); statusEl.className = 'conversation-status ' + (isOnline ? 'online' : 'offline'); }
+    renderChatOrderCard(conv);
     $('messages-list').innerHTML = '';
-    api(`/chat/conversations/${conversationId}/messages?limit=50`)
+    api(`/conversations/${conversationId}/messages?limit=50`)
       .then((res) => {
         const messages = res.data || res || [];
         (Array.isArray(messages) ? messages : []).forEach((m) => appendMessage(m, { noScroll: true }));
         scrollMessagesToBottom();
-        if (messages.length > 0 && chatSocket?.connected) chatSocket.emit(CHAT_EVENTS.MARK_READ, { conversationId }, () => { loadConversations(); });
+        if (messages.length > 0 && conversationSocket?.connected) conversationSocket.emit(CONVERSATION_EVENTS.MARK_READ, { conversationId }, () => { loadConversations(); });
       })
       .catch((err) => console.error('Load messages:', err));
   }
@@ -1407,8 +1877,13 @@
     bubble.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
     const time = message.createdAt ? new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     const senderName = !isMine && message.sender ? [message.sender.firstName, message.sender.lastName].filter(Boolean).join(' ') || message.sender.phoneNumber || '' : '';
+    const senderAvatarUrl = !isMine && message.sender?.avatarUrl && message.sender.avatarUrl.trim() ? message.sender.avatarUrl.trim() : '';
+    const senderAvatarHtml = senderAvatarUrl
+      ? '<img class="message-sender-avatar" src="' + escapeHtml(senderAvatarUrl) + '" alt="" />'
+      : '<span class="message-sender-avatar-placeholder">' + (senderName.charAt(0) || '?').toUpperCase() + '</span>';
     const edited = message.isEdited ? '<span class="edited-tag"> (edited)</span>' : '';
-    bubble.innerHTML = (senderName ? `<div class="sender-name">${escapeHtml(senderName)}</div>` : '') + `<div class="content">${escapeHtml(message.content || '')}</div>` + `<div class="meta">${edited}${time}</div>`;
+    const contentBlock = (senderName ? `<div class="sender-name">${escapeHtml(senderName)}</div>` : '') + `<div class="content">${escapeHtml(message.content || '')}</div>` + `<div class="meta">${edited}${time}</div>`;
+    bubble.innerHTML = !isMine ? `<div class="message-sender-avatar-wrap">${senderAvatarHtml}</div><div class="message-bubble-body">${contentBlock}</div>` : `<div class="message-bubble-body">${contentBlock}</div>`;
     bubble.dataset.messageId = message.id;
     list.appendChild(bubble);
     if (opts.noScroll !== true) scrollMessagesToBottom();
@@ -1421,17 +1896,52 @@
     const input = $('message-input'); const content = input.value.trim();
     if (!content || !currentConversationId) return;
     input.value = '';
-    if (chatSocket?.connected) {
-      chatSocket.emit(CHAT_EVENTS.TYPING_STOP, { conversationId: currentConversationId });
-      chatSocket.emit(CHAT_EVENTS.SEND_MESSAGE, { conversationId: currentConversationId, content }, (res) => { if (res?.error) showToast(res.error, 'error'); });
+    if (conversationSocket?.connected) {
+      conversationSocket.emit(CONVERSATION_EVENTS.TYPING_STOP, { conversationId: currentConversationId });
+      conversationSocket.emit(CONVERSATION_EVENTS.SEND_MESSAGE, { conversationId: currentConversationId, content }, (res) => { if (res?.error) showToast(res.error, 'error'); });
     }
   }
 
   function onMessageInput() {
-    if (!currentConversationId || !chatSocket?.connected) return;
-    chatSocket.emit(CHAT_EVENTS.TYPING_START, { conversationId: currentConversationId });
+    if (!currentConversationId || !conversationSocket?.connected) return;
+    conversationSocket.emit(CONVERSATION_EVENTS.TYPING_START, { conversationId: currentConversationId });
     clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => { chatSocket.emit(CHAT_EVENTS.TYPING_STOP, { conversationId: currentConversationId }); }, 2000);
+    typingTimeout = setTimeout(() => { conversationSocket.emit(CONVERSATION_EVENTS.TYPING_STOP, { conversationId: currentConversationId }); }, 2000);
+  }
+
+  let messageSearchTimeout = null;
+  function runMessageSearch(q) {
+    const resultsEl = $('chat-search-results');
+    if (!resultsEl) return;
+    const query = (q || '').trim();
+    if (query.length < 2) { resultsEl.classList.add('hidden'); resultsEl.innerHTML = ''; return; }
+    const params = new URLSearchParams({ q: query, limit: '20' });
+    api('/conversations/messages/search?' + params)
+      .then((res) => {
+        const list = res.data || res || [];
+        if (list.length === 0) { resultsEl.innerHTML = '<div class="chat-search-no-results">' + escapeHtml(t('search_no_results')) + '</div>'; show(resultsEl); return; }
+        resultsEl.innerHTML = list.map((item) => {
+          const msg = item.message || item;
+          const convId = msg.conversationId;
+          const title = item.conversationTitle || 'Chat';
+          const snippet = (msg.content || '').slice(0, 80) + ((msg.content || '').length > 80 ? '...' : '');
+          const dateStr = msg.createdAt ? new Date(msg.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '';
+          return '<button type="button" class="chat-search-result-item" data-conversation-id="' + escapeHtml(convId) + '"><span class="chat-search-result-title">' + escapeHtml(title) + '</span><span class="chat-search-result-snippet">' + escapeHtml(snippet) + '</span><span class="chat-search-result-meta">' + escapeHtml(dateStr) + '</span></button>';
+        }).join('');
+        resultsEl.classList.remove('hidden');
+        resultsEl.querySelectorAll('.chat-search-result-item').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const cid = btn.dataset.conversationId;
+            if (cid) { selectConversation(cid); resultsEl.classList.add('hidden'); resultsEl.innerHTML = ''; const input = $('chat-message-search'); if (input) input.value = ''; }
+          });
+        });
+      })
+      .catch(() => { resultsEl.innerHTML = '<div class="chat-search-no-results">' + escapeHtml(t('search_no_results')) + '</div>'; resultsEl.classList.remove('hidden'); });
+  }
+
+  function hideMessageSearchResults() {
+    const resultsEl = $('chat-search-results');
+    if (resultsEl) { resultsEl.classList.add('hidden'); }
   }
 
   function onNewChat() {
@@ -1445,20 +1955,24 @@
     listEl.innerHTML = `<div class="user-list-loading">${t('loading')}</div>`;
     const params = new URLSearchParams({ page: '1', limit: '50' });
     if (search) params.set('search', search);
-    api(`/chat/users?${params}`)
+    api(`/conversations/users?${params}`)
       .then((res) => {
         const users = res.data || res || []; listEl.innerHTML = '';
         if (users.length === 0) { listEl.innerHTML = '<div class="user-list-empty">No users found.</div>'; return; }
         users.forEach((u) => {
           const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.phoneNumber || u.id;
+          const avatarUrl = u.avatarUrl && u.avatarUrl.trim() ? u.avatarUrl.trim() : '';
+          const avatarHtml = avatarUrl
+            ? '<img class="user-list-avatar" src="' + escapeHtml(avatarUrl) + '" alt="" />'
+            : '<span class="user-list-avatar-placeholder">' + (name.charAt(0) || '?').toUpperCase() + '</span>';
           const item = document.createElement('button'); item.type = 'button'; item.className = 'user-list-item';
-          item.innerHTML = `<strong>${escapeHtml(name)}</strong><span class="user-list-meta">${escapeHtml(u.phoneNumber || '')}</span>`;
+          item.innerHTML = `<span class="user-list-avatar-wrap">${avatarHtml}</span><span class="user-list-item-text"><strong>${escapeHtml(name)}</strong><span class="user-list-meta">${escapeHtml(u.phoneNumber || '')}</span></span>`;
           item.dataset.userId = u.id;
           item.addEventListener('click', () => onCreateConversationWithUser(u.id));
           listEl.appendChild(item);
         });
       })
-      .catch((err) => { listEl.innerHTML = `<div class="user-list-error">${escapeHtml(err.message)}</div>`; });
+      .catch(() => { listEl.innerHTML = '<div class="user-list-error">' + escapeHtml(t('feature_not_available') || 'This feature is not available.') + '</div>'; });
   }
 
   function onCreateConversationWithUser(otherUserId) {
@@ -1469,9 +1983,9 @@
     pendingChatProductId = null;
     pendingChatOtherUserId = null;
     $('user-list').innerHTML = `<div class="user-list-loading">Starting chat...</div>`;
-    api('/chat/conversations', { method: 'POST', body: JSON.stringify(body) })
+    api('/conversations', { method: 'POST', body: JSON.stringify(body) })
       .then((conv) => { if (!conv || !conv.id) throw new Error('No conversation returned'); hide($('new-chat-form')); loadConversations(); selectConversation(conv.id); })
-      .catch((err) => { showToast(err.message, 'error'); loadUserList($('new-chat-search').value.trim()); });
+      .catch((err) => { showToast(err.message && err.message.includes('Not Found') ? (t('feature_not_available') || 'This feature is not available.') : err.message, 'error'); loadUserList($('new-chat-search').value.trim()); });
   }
 
   window._startChatWithProduct = function (product) {
@@ -1485,13 +1999,39 @@
     loadUserList($('new-chat-search').value.trim());
   };
 
+  window._openChatForOrder = function (orderId) {
+    if (!orderId || !accessToken) return;
+    function trySelect() {
+      const conv = conversationsCache.find((c) => c.pinnedOrder?.id === orderId);
+      if (conv) {
+        switchTab('chat');
+        selectConversation(conv.id);
+        return true;
+      }
+      return false;
+    }
+    if (trySelect()) return;
+    api('/conversations?page=1&limit=100')
+      .then((res) => {
+        const list = res.data || res || [];
+        conversationsCache = Array.isArray(list) ? list : [];
+        if (trySelect()) return;
+        showToast(t('no_conversations') || 'No chat found for this order.', 'info');
+        switchTab('chat');
+        loadConversations();
+      })
+      .catch(() => {
+        showToast('Could not load conversations', 'error');
+      });
+  };
+
   function loadNotifications() {
     hide($('notifications-empty')); show($('notifications-loading')); $('notifications-list').innerHTML = '';
     const params = new URLSearchParams({ page: '1', limit: '50', sortOrder: 'desc' });
     if (notifFilter === 'unread') params.set('isRead', 'false');
     api(`/notifications?${params}`)
       .then((res) => { hide($('notifications-loading')); notificationsCache = res.data || res || []; renderNotifications(Array.isArray(notificationsCache) ? notificationsCache : []); })
-      .catch((err) => { hide($('notifications-loading')); showToast(err.message, 'error'); renderNotifications([]); });
+      .catch(() => { hide($('notifications-loading')); notificationsCache = []; renderNotifications([]); });
   }
 
   function loadNotificationCount() {
@@ -1508,6 +2048,8 @@
       const iconType = getNotifIconType(n.type);
       const iconSvg = getNotifIconSvg(n.type);
       const typeBadgeLabel = getNotifTypeLabel(n.type);
+      const orderId = n.orderId || n.metadata?.orderId || n.data?.orderId;
+      const showOpenChat = orderId && (n.type || '').includes('ORDER');
       const div = document.createElement('div');
       div.className = `notif-item ${n.isRead ? '' : 'unread'}`;
       div.style.animationDelay = `${i * 0.04}s`;
@@ -1525,10 +2067,17 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               ${timeAgo(n.createdAt)}
             </span>
+            ${showOpenChat ? `<button type="button" class="notif-open-chat-btn">${escapeHtml(t('open_chat'))}</button>` : ''}
             <span class="notif-unread-dot"></span>
           </div>
         </div>`;
-      div.addEventListener('click', () => markNotificationRead(n.id));
+      div.addEventListener('click', (e) => {
+        if (e.target.closest('.notif-open-chat-btn')) {
+          e.stopPropagation();
+          window._openChatForOrder(orderId);
+        }
+        markNotificationRead(n.id);
+      });
       list.appendChild(div);
     });
   }
@@ -1603,12 +2152,96 @@
     let productSearchTimeout = null;
     $('product-search-input').addEventListener('input', () => { clearTimeout(productSearchTimeout); productSearchTimeout = setTimeout(() => { productsPage = 1; loadProducts(); }, 400); });
     $('btn-create-product').addEventListener('click', showProductCreateForm);
+    $('btn-empty-add-bouquet')?.addEventListener('click', showProductCreateForm);
     $('btn-cancel-create-product').addEventListener('click', hideProductCreateForm);
     $('product-create-form').addEventListener('submit', onCreateProduct);
     $('product-edit-form').addEventListener('submit', onUpdateProduct);
     $('pc-create-auction').addEventListener('change', (e) => { const fields = $('auction-fields'); if (e.target.checked) show(fields); else hide(fields); });
+
+    const regionSel = $('pc-region');
+    const citySel = $('pc-city');
+    const districtSel = $('pc-district');
+    if (regionSel) {
+      regionSel.addEventListener('change', () => {
+        const regionId = regionSel.value;
+        setProductCreateLocationDistrictPlaceholder(true);
+        if (!regionId) {
+          setProductCreateLocationCityPlaceholder(true);
+          return;
+        }
+        api('/locations/cities?regionId=' + encodeURIComponent(regionId))
+          .then((res) => {
+            const list = Array.isArray(res) ? res : (res?.data || []) || [];
+            fillSelect('pc-city', list, 'id', 'name');
+            citySel.disabled = false;
+            setProductCreateLocationDistrictPlaceholder(true);
+          })
+          .catch(() => setProductCreateLocationCityPlaceholder(true));
+      });
+    }
+    if (citySel) {
+      citySel.addEventListener('change', () => {
+        const cityId = citySel.value;
+        if (!cityId) {
+          setProductCreateLocationDistrictPlaceholder(true);
+          return;
+        }
+        api('/locations/districts?cityId=' + encodeURIComponent(cityId))
+          .then((res) => {
+            const list = Array.isArray(res) ? res : (res?.data || []) || [];
+            fillSelect('pc-district', list, 'id', 'name');
+            districtSel.disabled = false;
+          })
+          .catch(() => setProductCreateLocationDistrictPlaceholder(true));
+      });
+    }
+    const pcImagesInput = $('pc-images');
+    if (pcImagesInput) {
+      pcImagesInput.addEventListener('change', async (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        const remaining = MAX_PRODUCT_IMAGES - pcUploadedImages.length;
+        if (remaining <= 0) {
+          showToast(t('product_images_hint') || 'Max 10 images.', 'info');
+          e.target.value = '';
+          return;
+        }
+        const toUpload = Array.from(files).slice(0, remaining);
+        e.target.value = '';
+        for (const file of toUpload) {
+          try {
+            await uploadProductImage(file);
+          } catch (err) {
+            const msg = err.message || '';
+            showToast(msg.includes('Too many') || msg.includes('429') ? t('rate_limit_exceeded') : (msg || 'Upload failed'), 'error');
+          }
+        }
+        renderProductCreateImagePreviews();
+      });
+    }
     $('products-prev').addEventListener('click', () => { productsPage--; loadProducts(); });
     $('products-next').addEventListener('click', () => { productsPage++; loadProducts(); });
+
+    $('products-my-products').addEventListener('change', (e) => {
+      productsMyProducts = e.target.checked;
+      const bar = $('products-sale-phase-bar');
+      if (bar) (productsMyProducts ? show : hide)(bar);
+      productsPage = 1;
+      loadProducts();
+    });
+
+    const salePhaseBar = $('products-sale-phase-bar');
+    if (salePhaseBar) {
+      salePhaseBar.addEventListener('click', (e) => {
+        const btn = e.target.closest('.filter-btn[data-sale-phase]');
+        if (!btn) return;
+        salePhaseBar.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        productsSalePhase = btn.dataset.salePhase || 'all';
+        productsPage = 1;
+        loadProducts();
+      });
+    }
 
     document.querySelectorAll('#product-detail-view .btn-back').forEach((btn) => { btn.addEventListener('click', hideProductDetail); });
     document.querySelectorAll('#product-create-view .btn-back').forEach((btn) => { btn.addEventListener('click', hideProductCreateForm); });
@@ -1625,6 +2258,13 @@
     $('btn-cancel-new-chat').addEventListener('click', () => hide($('new-chat-form')));
     let userListSearchTimeout = null;
     $('new-chat-search').addEventListener('input', () => { clearTimeout(userListSearchTimeout); userListSearchTimeout = setTimeout(() => { loadUserList($('new-chat-search').value.trim()); }, 300); });
+    const chatSearchInput = $('chat-message-search');
+    if (chatSearchInput) {
+      chatSearchInput.addEventListener('input', () => { clearTimeout(messageSearchTimeout); messageSearchTimeout = setTimeout(() => runMessageSearch(chatSearchInput.value), 300); });
+      chatSearchInput.addEventListener('focus', () => { if ((chatSearchInput.value || '').trim().length >= 2) runMessageSearch(chatSearchInput.value); });
+      chatSearchInput.addEventListener('blur', () => { setTimeout(hideMessageSearchResults, 200); });
+    }
+    document.addEventListener('click', (e) => { if ($('chat-search-results') && !$('chat-search-results').classList.contains('hidden') && !e.target.closest('.chat-search-wrap')) hideMessageSearchResults(); });
     $('message-form').addEventListener('submit', onSendMessage);
     $('message-input').addEventListener('input', onMessageInput)
 
@@ -1632,7 +2272,6 @@
     $('btn-refresh-notifications').addEventListener('click', loadNotifications);
     document.querySelectorAll('.filter-btn').forEach((btn) => { btn.addEventListener('click', () => { document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active')); btn.classList.add('active'); notifFilter = btn.dataset.filter; loadNotifications(); }); });
 
-    initEventLogPanel();
 
     if (accessToken && currentUser) showApp();
     else showLogin();

@@ -1,4 +1,5 @@
 import { Review } from '@prisma/client';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class ReviewResponseDto {
   id!: string;
@@ -12,10 +13,10 @@ export class ReviewResponseDto {
   isVerified!: boolean;
   isReported!: boolean;
   reportReason!: string | null;
-  reportedAt!: Date | null;
+  reportedAt!: string | null;
   helpfulCount!: number;
-  createdAt!: Date;
-  updatedAt!: Date;
+  createdAt!: string;
+  updatedAt!: string;
   reviewer?: {
     id: string;
     firstName: string | null;
@@ -91,10 +92,10 @@ export class ReviewResponseDto {
       isVerified: review.isVerified,
       isReported: review.isReported,
       reportReason: review.reportReason,
-      reportedAt: review.reportedAt,
+      reportedAt: toISOString(review.reportedAt),
       helpfulCount: review.helpfulCount,
-      createdAt: review.createdAt,
-      updatedAt: review.updatedAt,
+      createdAt: toISOString(review.createdAt) ?? '',
+      updatedAt: toISOString(review.updatedAt) ?? '',
       reviewer: review.reviewer
         ? {
             id: review.reviewer.id,

@@ -1,5 +1,6 @@
 import { Size } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class SizeResponseDto {
   @ApiProperty({ description: 'Size ID. Use as sizeId in product.' })
@@ -14,11 +15,11 @@ export class SizeResponseDto {
   @ApiProperty({ nullable: true, description: 'Creator user ID.' })
   createdById!: string | null;
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  updatedAt!: string;
 
   static fromEntity(size: Size): SizeResponseDto {
     return {
@@ -26,8 +27,8 @@ export class SizeResponseDto {
       name: size.name as unknown as string,
       slug: size.slug,
       createdById: size.createdById,
-      createdAt: size.createdAt,
-      updatedAt: size.updatedAt,
+      createdAt: toISOString(size.createdAt) ?? '',
+      updatedAt: toISOString(size.updatedAt) ?? '',
     };
   }
 }

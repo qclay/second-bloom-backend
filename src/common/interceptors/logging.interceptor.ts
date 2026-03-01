@@ -10,6 +10,12 @@ import { tap } from 'rxjs/operators';
 import { Request } from 'express';
 import { WinstonLogger, WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
+type LoggerWithMeta = WinstonLogger & {
+  log: (msg: string, meta?: object) => void;
+  warn: (msg: string, meta?: object) => void;
+  error: (msg: string, meta?: object) => void;
+};
+
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   private readonly slowRequestThreshold: number;
@@ -33,14 +39,13 @@ export class LoggingInterceptor implements NestInterceptor {
     const userId = (request as Request & { user?: { id: string } }).user?.id;
 
     if (this.isDevelopment) {
-      const meta = {
+      (this.logger as LoggerWithMeta).log('Incoming request', {
         context: 'LoggingInterceptor',
         requestId,
         userId,
-      };
-      this.logger.log(
-        `Incoming request - ${method} ${url} ${JSON.stringify(meta)}`,
-      );
+        method,
+        url,
+      });
     }
 
     return next.handle().pipe(
@@ -59,13 +64,9 @@ export class LoggingInterceptor implements NestInterceptor {
           };
 
           if (isSlow) {
-            this.logger.warn(
-              `Slow endpoint - ${method} ${url} took ${responseTime}ms ${JSON.stringify(meta)}`,
-            );
+            (this.logger as LoggerWithMeta).warn('Slow endpoint', meta);
           } else if (this.isDevelopment) {
-            this.logger.log(
-              `Request completed - ${method} ${url} in ${responseTime}ms ${JSON.stringify(meta)}`,
-            );
+            (this.logger as LoggerWithMeta).log('Request completed', meta);
           }
         },
         error: (error: Error) => {
@@ -80,9 +81,10 @@ export class LoggingInterceptor implements NestInterceptor {
             stack: error.stack,
           };
 
-          this.logger.error(
-            `Request failed - ${method} ${url}: ${error.message} ${JSON.stringify(meta)}`,
-          );
+          (this.logger as LoggerWithMeta).error('Request failed', {
+            ...meta,
+            errorMessage: error.message,
+          });
         },
       }),
     );

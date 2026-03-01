@@ -28,4 +28,3 @@ export class ProductCountsResponseDto {
   })
   inDelivery!: number;
 }
-

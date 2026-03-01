@@ -407,8 +407,11 @@ model Product {
   conditionId          String?
   sizeId               String?
   quantity             Int               @default(1)
-  status               ProductStatus     @default(ACTIVE)
+  status               ProductStatus     @default(PENDING_MODERATION)
   isFeatured           Boolean           @default(false)
+  moderationRejectionReason String?
+  moderationRejectedAt     DateTime?
+  moderationRejectedById   String?
   views                Int               @default(0)
   countryId            String?
   regionId             String?
@@ -545,7 +548,8 @@ model User {
   gender                 String?                 
   language               String?                 @default("ru")
   username               String?                 @unique
-  auctionBannedUntil     DateTime?               
+  auctionBannedUntil     DateTime?
+  isAdministrationChat   Boolean                 @default(false)
   createdAuctions        Auction[]               @relation("AuctionCreator")
   wonAuctions            Auction[]               @relation("AuctionWinner")
   bids                   Bid[]
@@ -777,6 +781,7 @@ enum PaymentStatus {
 enum ProductStatus {
   ACTIVE
   INACTIVE
+  PENDING_MODERATION
 }
 
 enum ProductType {

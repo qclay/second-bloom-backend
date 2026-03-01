@@ -158,7 +158,6 @@ async function main() {
     { name: tr('Termiz', 'Термез', 'Termiz'), regionId: surxondaryoRegion.id },
     { name: tr('Urgench', 'Ургенч', 'Urganch'), regionId: xorazmRegion.id },
     { name: tr('Nukus', 'Нукус', 'Nukus'), regionId: karakalpakstanRegion.id },
-    // Tashkent Region cities
     {
       name: tr('Nurafshon', 'Нурафшон', 'Nurafshon'),
       regionId: tashkentRegion.id,
@@ -183,7 +182,6 @@ async function main() {
       name: tr('Doʻstobod', 'Дўстобод', "Do'stobod"),
       regionId: tashkentRegion.id,
     },
-    // Samarqand Region district towns (as cities)
     {
       name: tr('Bulungʻur', 'Булунғур', "Bulung'ur"),
       regionId: samarqandRegion.id,
@@ -253,9 +251,11 @@ async function main() {
   );
 
   console.log('👥 Seeding users...');
+  const phoneCountryCode = '+998';
   const admin = await prisma.user.create({
     data: {
-      phoneNumber: '+998901234567',
+      phoneCountryCode,
+      phoneNumber: '901234567',
       firstName: 'Admin',
       lastName: 'User',
       email: 'admin@secondbloom.uz',
@@ -272,7 +272,8 @@ async function main() {
 
   const moderator = await prisma.user.create({
     data: {
-      phoneNumber: '+998901234568',
+      phoneCountryCode,
+      phoneNumber: '901234568',
       firstName: 'Moderator',
       lastName: 'User',
       email: 'moderator@secondbloom.uz',
@@ -287,10 +288,26 @@ async function main() {
     },
   });
 
+  const administrationChatUser = await prisma.user.create({
+    data: {
+      phoneCountryCode,
+      phoneNumber: '904440041',
+      firstName: 'SECOND BLOOM',
+      lastName: 'Administration',
+      role: 'ADMIN',
+      isAdministrationChat: true,
+      isVerified: true,
+      isActive: true,
+      balance: 0,
+      publicationCredits: 0,
+    },
+  });
+
   const sellers = await Promise.all([
     prisma.user.create({
       data: {
-        phoneNumber: '+998901234569',
+        phoneCountryCode,
+        phoneNumber: '901234569',
         firstName: 'Ali',
         lastName: 'Karimov',
         email: 'ali.karimov@example.com',
@@ -308,7 +325,8 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        phoneNumber: '+998901234570',
+        phoneCountryCode,
+        phoneNumber: '901234570',
         firstName: 'Dilshod',
         lastName: 'Rakhimov',
         email: 'dilshod.rakhimov@example.com',
@@ -326,7 +344,8 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        phoneNumber: '+998901234571',
+        phoneCountryCode,
+        phoneNumber: '901234571',
         firstName: 'Malika',
         lastName: 'Toshmatova',
         email: 'malika.toshmatova@example.com',
@@ -347,7 +366,8 @@ async function main() {
   const buyers = await Promise.all([
     prisma.user.create({
       data: {
-        phoneNumber: '+998901234572',
+        phoneCountryCode,
+        phoneNumber: '901234572',
         firstName: 'Bobur',
         lastName: 'Ismoilov',
         email: 'bobur.ismoilov@example.com',
@@ -363,7 +383,8 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        phoneNumber: '+998901234573',
+        phoneCountryCode,
+        phoneNumber: '901234573',
         firstName: 'Gulnora',
         lastName: 'Saidova',
         email: 'gulnora.saidova@example.com',
@@ -379,7 +400,8 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        phoneNumber: '+998901234574',
+        phoneCountryCode,
+        phoneNumber: '901234574',
         firstName: 'Javohir',
         lastName: 'Nurmatov',
         email: 'javohir.nurmatov@example.com',
@@ -395,8 +417,14 @@ async function main() {
     }),
   ]);
 
-  const allUsers = [admin, moderator, ...sellers, ...buyers];
-  console.log(`✅ Created ${allUsers.length} users`);
+  const allUsers = [
+    admin,
+    moderator,
+    administrationChatUser,
+    ...sellers,
+    ...buyers,
+  ];
+  console.log(`✅ Created ${allUsers.length} users (incl. administration chat)`);
 
   console.log('📁 Seeding categories...');
   const flowersCategory = await prisma.category.create({

@@ -1,4 +1,5 @@
 import { File } from '@prisma/client';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class FileResponseDto {
   id!: string;
@@ -16,8 +17,8 @@ export class FileResponseDto {
   uploadedById!: string | null;
   isPublic!: boolean;
   metadata!: Record<string, unknown> | null;
-  createdAt!: Date;
-  updatedAt!: Date;
+  createdAt!: string;
+  updatedAt!: string;
 
   static fromEntity(file: File): FileResponseDto {
     return {
@@ -36,8 +37,8 @@ export class FileResponseDto {
       uploadedById: file.uploadedById,
       isPublic: file.isPublic,
       metadata: file.metadata as Record<string, unknown> | null,
-      createdAt: file.createdAt,
-      updatedAt: file.updatedAt,
+      createdAt: toISOString(file.createdAt) ?? '',
+      updatedAt: toISOString(file.updatedAt) ?? '',
     };
   }
 }

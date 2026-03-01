@@ -26,9 +26,9 @@ export class PaymentResponseDto {
   @ApiProperty({ nullable: true })
   invoiceUrl!: string | null;
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  updatedAt!: string;
 }

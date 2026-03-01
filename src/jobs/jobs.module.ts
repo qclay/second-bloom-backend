@@ -4,10 +4,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuctionModule } from '../modules/auction/auction.module';
 import { AuthModule } from '../modules/auth/auth.module';
+import { ConversationModule } from '../modules/conversation/conversation.module';
 import { EndExpiredAuctionsProcessor } from './auction/end-expired-auctions.processor';
 import { EndExpiredAuctionsScheduler } from './auction/end-expired-auctions.scheduler';
 import { CleanExpiredOtpsProcessor } from './auth/clean-expired-otps.processor';
 import { CleanExpiredOtpsScheduler } from './auth/clean-expired-otps.scheduler';
+import { DeactivateOrderConversationsScheduler } from './conversation/deactivate-order-conversations.scheduler';
 
 @Module({
   imports: [
@@ -53,12 +55,14 @@ import { CleanExpiredOtpsScheduler } from './auth/clean-expired-otps.scheduler';
     }),
     AuctionModule,
     AuthModule,
+    ConversationModule,
   ],
   providers: [
     EndExpiredAuctionsProcessor,
     EndExpiredAuctionsScheduler,
     CleanExpiredOtpsProcessor,
     CleanExpiredOtpsScheduler,
+    DeactivateOrderConversationsScheduler,
   ],
   exports: [BullModule],
 })

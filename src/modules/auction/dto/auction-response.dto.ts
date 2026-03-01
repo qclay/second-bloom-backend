@@ -1,6 +1,7 @@
-import { Auction } from '@prisma/client';
+import { Auction, AuctionStatus } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductNestedDto } from '../../product/dto/product-nested.dto';
+import { toISOString } from '../../../common/utils/date.util';
 
 export class AuctionResponseDto {
   @ApiProperty()
@@ -24,16 +25,20 @@ export class AuctionResponseDto {
   @ApiProperty()
   minBidAmount!: number;
 
-  @ApiProperty()
-  startTime!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  startTime!: string;
 
-  @ApiProperty()
-  endTime!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  endTime!: string;
 
   @ApiProperty()
   durationHours!: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: AuctionStatus,
+    description: 'Auction status',
+    example: 'ACTIVE',
+  })
   status!: string;
 
   @ApiProperty({ nullable: true })
@@ -54,17 +59,17 @@ export class AuctionResponseDto {
   @ApiProperty()
   version!: number;
 
-  @ApiProperty({ nullable: true })
-  lastBidAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  lastBidAt!: string | null;
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
+  updatedAt!: string;
 
-  @ApiProperty({ nullable: true })
-  deletedAt!: Date | null;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  deletedAt!: string | null;
 
   @ApiProperty({ type: () => ProductNestedDto, required: false })
   product?: ProductNestedDto;
@@ -116,8 +121,8 @@ export class AuctionResponseDto {
       currentPrice: Number(auction.currentPrice),
       bidIncrement: Number(auction.bidIncrement),
       minBidAmount: Number(auction.minBidAmount),
-      startTime: auction.startTime,
-      endTime: auction.endTime,
+      startTime: toISOString(auction.startTime) ?? '',
+      endTime: toISOString(auction.endTime) ?? '',
       durationHours: auction.durationHours,
       status: auction.status,
       winnerId: auction.winnerId,
@@ -126,10 +131,10 @@ export class AuctionResponseDto {
       views: auction.views,
       totalBids: auction.totalBids,
       version: auction.version,
-      lastBidAt: auction.lastBidAt,
-      createdAt: auction.createdAt,
-      updatedAt: auction.updatedAt,
-      deletedAt: auction.deletedAt,
+      lastBidAt: toISOString(auction.lastBidAt),
+      createdAt: toISOString(auction.createdAt) ?? '',
+      updatedAt: toISOString(auction.updatedAt) ?? '',
+      deletedAt: toISOString(auction.deletedAt),
       product: auction.product
         ? {
             id: auction.product.id,
