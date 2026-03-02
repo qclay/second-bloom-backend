@@ -4,6 +4,7 @@ import { AuctionController } from './auction.controller';
 import { AuctionRepository } from './repositories/auction.repository';
 import { AuctionGateway } from './gateways/auction.gateway';
 import { ProductModule } from '../product/product.module';
+import { BidModule } from '../bid/bid.module';
 import { NotificationModule } from '../notification/notification.module';
 import { JwtModule } from '@nestjs/jwt';
 import {
@@ -14,6 +15,7 @@ import {
 @Module({
   imports: [
     forwardRef(() => ProductModule),
+    forwardRef(() => BidModule),
     NotificationModule,
     JwtModule.registerAsync({
       imports: [NestConfigModule],

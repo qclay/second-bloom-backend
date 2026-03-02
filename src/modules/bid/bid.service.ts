@@ -730,6 +730,36 @@ export class BidService {
     return this.findById(id);
   }
 
+  async getAuctionBidCounts(auctionId: string): Promise<{
+    all: number;
+    new: number;
+    top: number;
+    rejected: number;
+  }> {
+    const auction = await this.auctionRepository.findById(auctionId);
+    if (!auction || auction.deletedAt) {
+      throw new NotFoundException('Auction not found');
+    }
+    const base = { auctionId, deletedAt: null };
+    const [all, newCount, top, rejected] = await Promise.all([
+      this.prisma.bid.count({ where: base }),
+      this.prisma.bid.count({
+        where: {
+          ...base,
+          readByOwnerAt: null,
+          rejectedAt: null,
+        },
+      }),
+      this.prisma.bid.count({
+        where: { ...base, isWinning: true },
+      }),
+      this.prisma.bid.count({
+        where: { ...base, rejectedAt: { not: null } },
+      }),
+    ]);
+    return { all, new: newCount, top, rejected };
+  }
+
   async getAuctionBids(
     auctionId: string,
     query: BidQueryDto & { view?: 'all' | 'new' | 'top' | 'rejected' },
@@ -757,7 +787,7 @@ export class BidService {
     const orderBy: Prisma.BidOrderByWithRelationInput =
       view === 'top' ? { amount: 'desc' } : { createdAt: 'desc' };
 
-    const [bids, total] = await Promise.all([
+    const [bids, total, counts] = await Promise.all([
       this.bidRepository.findMany({
         where,
         skip,
@@ -776,6 +806,7 @@ export class BidService {
         },
       }),
       this.prisma.bid.count({ where }),
+      this.getAuctionBidCounts(auctionId),
     ]);
 
     return {
@@ -786,6 +817,7 @@ export class BidService {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+        counts,
       },
     };
   }

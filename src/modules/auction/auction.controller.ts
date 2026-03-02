@@ -13,6 +13,7 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { AuctionService } from './auction.service';
+import { BidService } from '../bid/bid.service';
 import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { AuctionQueryDto } from './dto/auction-query.dto';
@@ -36,11 +37,15 @@ import {
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
 import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
+import { AuctionBidCountsResponseDto } from '../bid/dto/auction-bid-counts-response.dto';
 
 @ApiTags('Auctions')
 @Controller('auctions')
 export class AuctionController {
-  constructor(private readonly auctionService: AuctionService) {}
+  constructor(
+    private readonly auctionService: AuctionService,
+    private readonly bidService: BidService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -85,6 +90,30 @@ export class AuctionController {
   )
   async findAll(@Query() query: AuctionQueryDto) {
     return await this.auctionService.findAll(query);
+  }
+
+  @Get(':id/bids/counts')
+  @Public()
+  @ApiOperation({
+    summary: 'Get bid counts by section for an auction',
+    description:
+      'Returns counts for tabs: all (total), new (unread by owner), top (leading bid), rejected. REST: auction → bids → counts.',
+  })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Bid counts per section',
+    type: AuctionBidCountsResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Auction not found',
+    type: ApiErrorResponseDto,
+  })
+  async getAuctionBidCounts(
+    @Param('id') id: string,
+  ): Promise<AuctionBidCountsResponseDto> {
+    return await this.bidService.getAuctionBidCounts(id);
   }
 
   @Get(':id/participants')

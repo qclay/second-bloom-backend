@@ -87,7 +87,7 @@ export class BidController {
   @ApiOperation({
     summary: 'Get bids for an auction',
     description:
-      'List of bids for an auction. view: all (last on top), new (unread by owner), top (highest first), rejected (owner-rejected). Owner can use view=new and PATCH :id/read or PATCH auction/:auctionId/read-all to mark as read.',
+      'List of bids for an auction. Query: view=all|new|top|rejected. Response includes meta.counts. For counts only use GET /auctions/:auctionId/bids/counts. Owner can use PATCH :id/read or PATCH auction/:auctionId/read-all to mark as read.',
   })
   @ApiParam({
     name: 'auctionId',
