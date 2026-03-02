@@ -9,6 +9,7 @@ import {
 import { AuctionRepository } from './repositories/auction.repository';
 import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
+import { ChooseWinnerDto } from './dto/choose-winner.dto';
 import { AuctionQueryDto } from './dto/auction-query.dto';
 import { AuctionResponseDto } from './dto/auction-response.dto';
 import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
@@ -416,6 +417,92 @@ export class AuctionService {
     }
 
     await this.auctionRepository.softDelete(id, userId);
+  }
+
+  async chooseWinner(
+    id: string,
+    dto: ChooseWinnerDto,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<AuctionResponseDto> {
+    const auction = await this.auctionRepository.findById(id);
+
+    if (!auction || auction.deletedAt) {
+      throw new NotFoundException(`Auction with ID ${id} not found`);
+    }
+
+    if (auction.creatorId !== userId && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'You can only set winner for your own auctions',
+      );
+    }
+
+    if (auction.status !== 'ENDED') {
+      throw new BadRequestException(
+        'Winner can only be set or changed for ended auctions',
+      );
+    }
+
+    const winnerId = dto.winnerId ?? null;
+
+    if (winnerId) {
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: winnerId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        throw new BadRequestException(`User ${winnerId} not found`);
+      }
+
+      const winnerBidCount = await this.prisma.bid.count({
+        where: {
+          auctionId: id,
+          bidderId: winnerId,
+          deletedAt: null,
+        },
+      });
+      if (winnerBidCount === 0) {
+        throw new BadRequestException(
+          'Chosen winner must have at least one bid on this auction',
+        );
+      }
+    }
+
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.bid.updateMany({
+        where: { auctionId: id },
+        data: { isWinning: false },
+      });
+
+      if (winnerId) {
+        const winningBid = await tx.bid.findFirst({
+          where: {
+            auctionId: id,
+            bidderId: winnerId,
+            deletedAt: null,
+          },
+          orderBy: { amount: 'desc' },
+          select: { id: true },
+        });
+        if (winningBid) {
+          await tx.bid.update({
+            where: { id: winningBid.id },
+            data: { isWinning: true },
+          });
+        }
+      }
+
+      await tx.auction.update({
+        where: { id },
+        data: { winnerId },
+      });
+    });
+
+    this.logger.log(
+      `Auction ${id} winner set to ${winnerId ?? 'none'} by user ${userId}`,
+    );
+
+    return this.findById(id);
   }
 
   async extendAuctionIfNeeded(auctionId: string): Promise<boolean> {

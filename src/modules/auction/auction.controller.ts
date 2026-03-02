@@ -16,6 +16,7 @@ import { AuctionService } from './auction.service';
 import { BidService } from '../bid/bid.service';
 import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
+import { ChooseWinnerDto } from './dto/choose-winner.dto';
 import { AuctionQueryDto } from './dto/auction-query.dto';
 import { AuctionResponseDto } from './dto/auction-response.dto';
 import { ParticipantsResponseDto } from './dto/participant-response.dto';
@@ -222,6 +223,31 @@ export class AuctionController {
     @Query('incrementViews') incrementViews?: string,
   ): Promise<AuctionResponseDto> {
     return await this.auctionService.findById(id, incrementViews === 'true');
+  }
+
+  @Patch(':id/winner')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new SanitizePipe())
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Choose auction winner',
+    description:
+      'Set or clear the winner for an ended auction. Only auction owner or admin. Winner must have at least one bid on this auction. Send { "winnerId": "user-uuid" } or { "winnerId": null } to clear.',
+  })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Auction with updated winner',
+    type: AuctionResponseDto,
+  })
+  @ApiCommonErrorResponses({ conflict: false })
+  async chooseWinner(
+    @Param('id') id: string,
+    @Body() dto: ChooseWinnerDto,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ): Promise<AuctionResponseDto> {
+    return await this.auctionService.chooseWinner(id, dto, userId, role);
   }
 
   @Patch(':id')
