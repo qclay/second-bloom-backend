@@ -7,6 +7,7 @@ import {
   UseGuards,
   Req,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -26,6 +27,7 @@ import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { WebhookPayloadDto } from './dto/webhook-payload.dto';
 import { PaymentResponseDto } from './dto/payment-response.dto';
+import { PaymentHistoryQueryDto } from './dto/payment-history-query.dto';
 import { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
 
 @ApiTags('Paying for Publications posts')
@@ -97,15 +99,43 @@ export class PaymentController {
   @Get('history')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user payment history' })
+  @ApiOperation({
+    summary: 'Get user payment history (paginated)',
+    description:
+      'Returns paginated payment history. Use query params page and limit.',
+  })
   @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({
     status: 200,
-    description: 'Payment history retrieved',
-    type: [PaymentResponseDto],
+    description: 'Paginated payment history (data + meta)',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/PaymentResponseDto' },
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            total: { type: 'number' },
+            page: { type: 'number' },
+            limit: { type: 'number' },
+            totalPages: { type: 'number' },
+            hasNextPage: { type: 'boolean' },
+            hasPreviousPage: { type: 'boolean' },
+          },
+        },
+      },
+    },
   })
-  async getPaymentHistory(@Req() req: AuthenticatedRequest) {
-    return this.paymentService.getUserPayments(req.user.id);
+  async getPaymentHistory(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: PaymentHistoryQueryDto,
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    return this.paymentService.getUserPayments(req.user.id, page, limit);
   }
 
   @Get(':id')

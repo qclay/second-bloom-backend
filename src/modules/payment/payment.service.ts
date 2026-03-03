@@ -17,6 +17,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { WebhookPayloadDto } from './dto/webhook-payload.dto';
 import { SignatureVerifier } from './utils/signature-verifier';
 import { PaymentWithRelations } from './interfaces/payment-with-relations.interface';
+import { PaymentGateway } from './gateways/payment.gateway';
 
 @Injectable()
 export class PaymentService {
@@ -28,15 +29,13 @@ export class PaymentService {
     private readonly prisma: PrismaService,
     private readonly paymentRepository: PaymentRepository,
     private readonly configService: ConfigService,
+    private readonly paymentGateway: PaymentGateway,
   ) {
-    this.paymentSecretKey = this.configService.get<string>(
-      'PAYMENT_SECRET_KEY',
-      '394feb34-91f5-4305-9c01-1dfe2bfe15ec',
-    );
-    this.paymentApiUrl = this.configService.get<string>(
-      'PAYMENT_API_URL',
-      'https://backend.secondbloom.uz/api/payment',
-    );
+    this.paymentSecretKey =
+      this.configService.get<string>('PAYMENT_SECRET_KEY') ?? '';
+    this.paymentApiUrl =
+      this.configService.get<string>('PAYMENT_API_URL') ??
+      'https://payment.secondbloom.uz/api/payment';
   }
 
   async createInvoice(userId: string, dto: CreatePaymentDto) {
@@ -96,10 +95,10 @@ export class PaymentService {
     return {
       paymentId: payment.id,
       invoiceUrl,
-      amount: totalAmount,
+      amount: Number(totalAmount),
       quantity,
       paymentType,
-      ...(pricePerPost && { pricePerPost }),
+      ...(pricePerPost && { pricePerPost: Number(pricePerPost) }),
     };
   }
 
@@ -119,76 +118,50 @@ export class PaymentService {
       `Webhook received: invoice_id=${payload.invoice_id}, status=${payload.status}, amount=${payload.amount}`,
     );
 
-    let payment = await this.paymentRepository.findByInvoiceId(
-      payload.invoice_id,
-    );
+    const webhookAmount = new Prisma.Decimal(payload.amount);
+    const whereConditions: Prisma.PaymentWhereInput[] = [];
 
-    if (!payment) {
-      this.logger.warn(
-        `Payment not found by invoice_id: ${payload.invoice_id}. Attempting fallback matching.`,
-      );
-
-      const webhookAmount = new Prisma.Decimal(payload.amount);
-      const whereConditions: Prisma.PaymentWhereInput[] = [];
-
-      if (payload.meta_data?.user_id) {
-        whereConditions.push({
-          userId: payload.meta_data.user_id,
-          status: PaymentStatus.PENDING,
-          gatewayOrderId: null,
-          amount: webhookAmount,
-        });
-
-        whereConditions.push({
-          userId: payload.meta_data.user_id,
-          status: PaymentStatus.PENDING,
-          gatewayOrderId: null,
-        });
-      }
-
+    if (payload.meta_data?.user_id) {
       whereConditions.push({
+        userId: payload.meta_data.user_id,
         status: PaymentStatus.PENDING,
-        gatewayOrderId: null,
         amount: webhookAmount,
       });
 
-      let recentPayment = null;
+      whereConditions.push({
+        userId: payload.meta_data.user_id,
+        status: PaymentStatus.PENDING,
+      });
+    }
 
-      for (const condition of whereConditions) {
-        recentPayment = await this.prisma.payment.findFirst({
-          where: condition,
-          orderBy: { createdAt: 'desc' },
-        });
+    whereConditions.push({
+      status: PaymentStatus.PENDING,
+      amount: webhookAmount,
+    });
 
-        if (recentPayment) {
-          this.logger.log(
-            `Found pending payment ${recentPayment.id} for user ${recentPayment.userId}, amount: ${recentPayment.amount.toString()}. Matching with invoice_id ${payload.invoice_id}.`,
-          );
-          break;
-        }
-      }
+    let payment: PaymentWithRelations | null = null;
 
-      if (recentPayment) {
-        await this.paymentRepository.update(recentPayment.id, {
-          gatewayOrderId: payload.invoice_id.toString(),
-          gatewayTransactionId: payload.invoice_id.toString(),
-        });
-        payment = await this.paymentRepository.findByInvoiceId(
-          payload.invoice_id,
-        );
+    for (const condition of whereConditions) {
+      payment = (await this.prisma.payment.findFirst({
+        where: condition,
+        orderBy: { createdAt: 'desc' },
+      })) as unknown as PaymentWithRelations | null;
+
+      if (payment) {
         this.logger.log(
-          `Payment ${recentPayment.id} matched with invoice_id ${payload.invoice_id}`,
+          `Found pending payment ${payment.id} for user ${payment.userId}, amount: ${payment.amount.toString()}. Matching with invoice_id ${payload.invoice_id}.`,
         );
+        break;
       }
+    }
 
-      if (!payment) {
-        this.logger.error(
-          `Payment not found for invoice_id: ${payload.invoice_id}, amount: ${payload.amount}. Available meta_data: ${JSON.stringify(payload.meta_data)}`,
-        );
-        throw new NotFoundException(
-          `Payment not found for invoice_id: ${payload.invoice_id}. Please ensure payment was created before webhook arrives.`,
-        );
-      }
+    if (!payment) {
+      this.logger.error(
+        `Payment not found for invoice_id: ${payload.invoice_id}, amount: ${payload.amount}. Available meta_data: ${JSON.stringify(payload.meta_data)}`,
+      );
+      throw new NotFoundException(
+        `Payment not found for invoice_id: ${payload.invoice_id}. Please ensure payment was created before webhook arrives.`,
+      );
     }
 
     if (payload.status === 'success') {
@@ -209,14 +182,13 @@ export class PaymentService {
       return { success: true, message: 'Payment already processed' };
     }
 
-    return await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.payment.update({
         where: { id: payment.id },
         data: {
           status: PaymentStatus.COMPLETED,
           paidAt: new Date(),
           webhookData: JSON.parse(JSON.stringify(payload)),
-          gatewayOrderId: payload.invoice_id.toString(),
           gatewayTransactionId: payload.invoice_id.toString(),
         },
       });
@@ -248,10 +220,23 @@ export class PaymentService {
         success: true,
         message: 'Payment completed successfully',
         ...(payment.paymentType === PaymentType.TOP_UP
-          ? { balanceAdded: payment.amount }
+          ? { balanceAdded: Number(payment.amount) }
           : { creditsAdded: payment.quantity }),
       };
     });
+
+    this.paymentGateway.notifyPaymentSuccess(payment.userId, {
+      paymentId: payment.id,
+      amount: Number(payment.amount),
+      paymentType: payment.paymentType,
+      quantity: payment.quantity,
+      ...(payment.paymentType === PaymentType.TOP_UP
+        ? { balanceAdded: Number(payment.amount) }
+        : { creditsAdded: payment.quantity }),
+      timestamp: new Date().toISOString(),
+    });
+
+    return result;
   }
 
   private async handleFailedPayment(
@@ -268,8 +253,53 @@ export class PaymentService {
     return { success: true, message: 'Payment marked as failed' };
   }
 
-  async getUserPayments(userId: string) {
-    return this.paymentRepository.findByUserId(userId);
+  private serializePayment(payment: PaymentWithRelations) {
+    const rest = { ...payment };
+    delete (rest as Record<string, unknown>).gatewayTransactionId;
+
+    return {
+      ...rest,
+      amount: Number(payment.amount),
+      createdAt: payment.createdAt.toISOString(),
+      updatedAt: payment.updatedAt.toISOString(),
+      paidAt: payment.paidAt ? payment.paidAt.toISOString() : null,
+    };
+  }
+
+  async getUserPayments(
+    userId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    data: ReturnType<PaymentService['serializePayment']>[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }> {
+    const maxLimit = Math.min(limit, 100);
+    const skip = (page - 1) * maxLimit;
+
+    const [payments, total] = await Promise.all([
+      this.paymentRepository.findByUserId(userId, { skip, take: maxLimit }),
+      this.paymentRepository.countByUserId(userId),
+    ]);
+
+    return {
+      data: payments.map((payment) => this.serializePayment(payment)),
+      meta: {
+        total,
+        page,
+        limit: maxLimit,
+        totalPages: Math.ceil(total / maxLimit),
+        hasNextPage: page * maxLimit < total,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
 
   async getPaymentById(paymentId: string) {
@@ -277,6 +307,23 @@ export class PaymentService {
     if (!payment) {
       throw new NotFoundException('Payment not found');
     }
-    return payment;
+    return this.serializePayment(payment);
+  }
+
+  async expireStalePendingPayments(maxAgeHours = 24): Promise<number> {
+    const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+    const result = await this.prisma.payment.updateMany({
+      where: {
+        status: PaymentStatus.PENDING,
+        createdAt: { lt: cutoff },
+      },
+      data: { status: PaymentStatus.EXPIRED },
+    });
+    if (result.count > 0) {
+      this.logger.log(
+        `Expired ${result.count} stale PENDING payment(s) (older than ${maxAgeHours}h)`,
+      );
+    }
+    return result.count;
   }
 }

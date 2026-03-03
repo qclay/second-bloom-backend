@@ -67,7 +67,10 @@ export class BidResponseDto {
       isWinning: bid.isWinning,
       isRetracted: bid.isRetracted,
       readByOwnerAt: toISOString(bid.readByOwnerAt),
-      isNew: bid.readByOwnerAt == null && bid.rejectedAt == null,
+      isNew:
+        bid.readByOwnerAt == null &&
+        bid.rejectedAt == null &&
+        bid.isRetracted === false,
       rejectedAt: toISOString(bid.rejectedAt),
       rejectedBy: bid.rejectedBy ?? null,
       ipAddress: bid.ipAddress,

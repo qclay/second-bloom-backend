@@ -5,11 +5,13 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuctionModule } from '../modules/auction/auction.module';
 import { AuthModule } from '../modules/auth/auth.module';
 import { ConversationModule } from '../modules/conversation/conversation.module';
+import { PaymentModule } from '../modules/payment/payment.module';
 import { EndExpiredAuctionsProcessor } from './auction/end-expired-auctions.processor';
 import { EndExpiredAuctionsScheduler } from './auction/end-expired-auctions.scheduler';
 import { CleanExpiredOtpsProcessor } from './auth/clean-expired-otps.processor';
 import { CleanExpiredOtpsScheduler } from './auth/clean-expired-otps.scheduler';
 import { DeactivateOrderConversationsScheduler } from './conversation/deactivate-order-conversations.scheduler';
+import { ExpirePendingPaymentsScheduler } from './payment/expire-pending-payments.scheduler';
 
 @Module({
   imports: [
@@ -56,6 +58,7 @@ import { DeactivateOrderConversationsScheduler } from './conversation/deactivate
     AuctionModule,
     AuthModule,
     ConversationModule,
+    PaymentModule,
   ],
   providers: [
     EndExpiredAuctionsProcessor,
@@ -63,6 +66,7 @@ import { DeactivateOrderConversationsScheduler } from './conversation/deactivate
     CleanExpiredOtpsProcessor,
     CleanExpiredOtpsScheduler,
     DeactivateOrderConversationsScheduler,
+    ExpirePendingPaymentsScheduler,
   ],
   exports: [BullModule],
 })

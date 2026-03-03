@@ -15,6 +15,10 @@ export class EndExpiredAuctionsScheduler {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async scheduleEndExpiredAuctions(): Promise<void> {
+    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
+    if (nodeEnv !== 'production') {
+      return;
+    }
     const enabled = this.configService.get<string>(
       'AUCTION_END_CRON_ENABLED',
       'true',

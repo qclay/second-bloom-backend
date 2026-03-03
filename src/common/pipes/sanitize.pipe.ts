@@ -3,7 +3,8 @@ import { sanitize } from 'class-sanitizer';
 
 @Injectable()
 export class SanitizePipe implements PipeTransform {
-  transform(value: unknown, _metadata: ArgumentMetadata): unknown {
+  transform(value: unknown, metadata: ArgumentMetadata): unknown {
+    void metadata;
     if (typeof value === 'object' && value !== null) {
       sanitize(value);
     }

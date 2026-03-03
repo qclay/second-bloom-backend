@@ -1,6 +1,3 @@
-/**
- * Serialize a date to ISO string for API responses. Returns null for null/undefined.
- */
 export function toISOString(
   value: Date | string | null | undefined,
 ): string | null {

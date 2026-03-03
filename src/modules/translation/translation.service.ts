@@ -149,7 +149,8 @@ JSON response:`;
         missingLocales,
       );
 
-      const { [sourceLocale]: _, ...newTranslations } = translations;
+      const { [sourceLocale]: _omit, ...newTranslations } = translations;
+      void _omit;
 
       return {
         ...translationObject,

@@ -748,6 +748,7 @@ export class BidService {
           ...base,
           readByOwnerAt: null,
           rejectedAt: null,
+          isRetracted: false,
         },
       }),
       this.prisma.bid.count({
@@ -777,7 +778,12 @@ export class BidService {
 
     const where: Prisma.BidWhereInput =
       view === 'new'
-        ? { auctionId, readByOwnerAt: null, rejectedAt: null }
+        ? {
+            auctionId,
+            readByOwnerAt: null,
+            rejectedAt: null,
+            isRetracted: false,
+          }
         : view === 'rejected'
           ? { auctionId, rejectedAt: { not: null } }
           : view === 'top'
@@ -860,6 +866,7 @@ export class BidService {
         auctionId,
         readByOwnerAt: null,
         rejectedAt: null,
+        isRetracted: false,
       },
       data: { readByOwnerAt: new Date() },
     });

@@ -139,9 +139,17 @@
       rejected: 'Rejected',
       winning: 'Winning',
       live: 'LIVE',
+      bids_all: 'All',
+      bids_new: 'New',
+      bids_top: 'Top',
+      bids_rejected: 'Rejected',
       product_created: 'Product created successfully!',
+      product_created_pending_moderation: 'Product created. It is now pending moderation and will be visible after approval.',
       product_updated: 'Product updated successfully!',
       product_deleted: 'Product deleted.',
+      product_status_active: 'Active',
+      product_status_inactive: 'Inactive',
+      product_status_pending_moderation: 'Pending moderation',
       edit_product: 'Edit Product',
       existing_images: 'Current images (kept on save)',
       error_occurred: 'An error occurred',
@@ -165,6 +173,14 @@
       days_ago: '{n}d ago',
       feature_not_available: 'This feature is not available.',
       rate_limit_exceeded: 'Too many requests. Please try again in a moment.',
+      balance_title: 'Your balance',
+      balance_publications: 'publications',
+      balance_top_up: 'Top up',
+      transactions_title: 'Transactions',
+      transactions_empty: 'No transactions yet',
+      transaction_top_up: 'Balance top-up',
+      transaction_publication: '{n} publication(s)',
+      payment_success: 'Payment completed successfully',
     },
     uz: {
       login_title: 'Second Bloom',
@@ -298,9 +314,17 @@
       rejected: 'Rad etilgan',
       winning: 'Yetakchi',
       live: 'JONLI',
+      bids_all: 'Barcha',
+      bids_new: 'Yangi',
+      bids_top: 'Top',
+      bids_rejected: 'Rad etilgan',
       product_created: 'Mahsulot muvaffaqiyatli yaratildi!',
+      product_created_pending_moderation: 'Mahsulot yaratildi. Moderatsiyada. Tasdiqlangandan keyin ko\'rinadi.',
       product_updated: 'Mahsulot muvaffaqiyatli yangilandi!',
       product_deleted: 'Mahsulot o\'chirildi.',
+      product_status_active: 'Faol',
+      product_status_inactive: 'Nofaol',
+      product_status_pending_moderation: 'Moderatsiyada',
       edit_product: 'Mahsulotni tahrirlash',
       existing_images: 'Joriy rasmlar (saqlashda saqlanadi)',
       error_occurred: 'Xatolik yuz berdi',
@@ -324,6 +348,14 @@
       days_ago: '{n} kun oldin',
       feature_not_available: 'Bu funksiya mavjud emas.',
       rate_limit_exceeded: 'Juda ko\'p so\'rovlar. Bir ozdan keyin urinib ko\'ring.',
+      balance_title: 'Balansingiz',
+      balance_publications: 'publikatsiyalar',
+      balance_top_up: 'Balansni to\'ldirish',
+      transactions_title: 'Tranzaksiyalar',
+      transactions_empty: 'Hali tranzaksiyalar yo\'q',
+      transaction_top_up: 'Balans to\'ldirish',
+      transaction_publication: '{n} publikatsiya',
+      payment_success: 'To\'lov muvaffaqiyatli yakunlandi',
     },
     ru: {
       login_title: 'Second Bloom',
@@ -457,9 +489,17 @@
       rejected: 'Отклонена',
       winning: 'Лидирует',
       live: 'LIVE',
+      bids_all: 'Все заявки',
+      bids_new: 'Новые',
+      bids_top: 'Топовые',
+      bids_rejected: 'Отклонённые',
       product_created: 'Товар успешно создан!',
+      product_created_pending_moderation: 'Товар создан. Ожидает модерации и будет виден после одобрения.',
       product_updated: 'Товар успешно обновлён!',
       product_deleted: 'Товар удалён.',
+      product_status_active: 'Активен',
+      product_status_inactive: 'Неактивен',
+      product_status_pending_moderation: 'На модерации',
       edit_product: 'Редактировать товар',
       existing_images: 'Текущие изображения (сохраняются при сохранении)',
       error_occurred: 'Произошла ошибка',
@@ -483,6 +523,14 @@
       days_ago: '{n} д. назад',
       feature_not_available: 'Эта функция недоступна.',
       rate_limit_exceeded: 'Слишком много запросов. Попробуйте через некоторое время.',
+      balance_title: 'Ваш баланс',
+      balance_publications: 'публикации',
+      balance_top_up: 'Пополнить баланс',
+      transactions_title: 'Транзакции',
+      transactions_empty: 'Транзакций пока нет',
+      transaction_top_up: 'Пополнение баланса',
+      transaction_publication: '{n} публикация(ий)',
+      payment_success: 'Оплата прошла успешно',
     },
   };
 
@@ -505,6 +553,7 @@
   let currentUser = JSON.parse(localStorage.getItem('sb_user') || 'null');
   let conversationSocket = null;
   let auctionSocket = null;
+  let paymentSocket = null;
   let currentTab = 'products';
 
   let productsPage = 1;
@@ -596,6 +645,15 @@
       sold: 'sale_status_sold',
     }[saleStatus || ''];
     return key ? t(key) : (saleStatus || '');
+  }
+
+  function productStatusLabel(status) {
+    const key = {
+      ACTIVE: 'product_status_active',
+      INACTIVE: 'product_status_inactive',
+      PENDING_MODERATION: 'product_status_pending_moderation',
+    }[status || ''];
+    return key ? t(key) : (status || '');
   }
 
   function getBidRowHtml(b, currency, opts) {
@@ -726,6 +784,7 @@
     localStorage.removeItem('sb_access_token');
     localStorage.removeItem('sb_user');
     if (conversationSocket) { conversationSocket.disconnect(); conversationSocket = null; }
+    if (paymentSocket) { paymentSocket.disconnect(); paymentSocket = null; }
     if (auctionSocket) { auctionSocket.disconnect(); auctionSocket = null; }
     currentConversationId = null;
     currentAuctionId = null;
@@ -750,7 +809,7 @@
     });
     if (tab === 'products') loadProducts();
     else if (tab === 'auctions') loadAuctions();
-    else if (tab === 'orders') loadOrders();
+    else if (tab === 'orders') { loadOrders(); connectPaymentSocket(); }
     else if (tab === 'chat') { loadConversations(); connectConversationSocket(); }
     else if (tab === 'notifications') loadNotifications();
   }
@@ -795,10 +854,11 @@
     products.forEach((p) => {
       const card = document.createElement('div');
       card.className = 'card';
-      const statusClass = p.status === 'ACTIVE' ? 'status-active' : p.status === 'INACTIVE' ? 'status-inactive' : 'status-ended';
+      const statusClass = p.status === 'ACTIVE' ? 'status-active' : p.status === 'INACTIVE' ? 'status-inactive' : p.status === 'PENDING_MODERATION' ? 'status-pending' : 'status-ended';
       const hasAuction = p.activeAuction;
       const saleStatus = p.saleStatus || 'available';
       const saleStatusClass = { available: 'status-active', onAuction: 'status-pending', awaitingDelivery: 'status-pending', sold: 'status-ended' }[saleStatus] || '';
+      const showProductStatusBadge = p.status === 'PENDING_MODERATION';
       const tags = (p.tags || []).map((tg) => `<span class="tag">${escapeHtml(tg)}</span>`).join('');
       const isAuctionActive = hasAuction && hasAuction.status === 'ACTIVE' && new Date(hasAuction.endTime) > new Date();
       const imgUrl = (p.images && p.images[0]) ? p.images[0].url : '';
@@ -815,8 +875,8 @@
           ${imgUrl ? `<img class="card-image" src="${escapeHtml(imgUrl)}" alt="" />` : '<div class="card-image" style="display:flex;align-items:center;justify-content:center;color:#5c6470;font-size:.75rem">—</div>'}
           <div class="card-body">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.35rem;flex-wrap:wrap;gap:.35rem">
-              <span class="card-status ${saleStatusClass}">${escapeHtml(saleStatusLabel(saleStatus))}</span>
-              ${hasAuction ? '<span class="card-status status-pending">Auction</span>' : ''}
+              ${showProductStatusBadge ? `<span class="card-status status-pending">${escapeHtml(productStatusLabel(p.status))}</span>` : `<span class="card-status ${saleStatusClass}">${escapeHtml(saleStatusLabel(saleStatus))}</span>`}
+              ${hasAuction && !showProductStatusBadge ? '<span class="card-status status-pending">Auction</span>' : ''}
             </div>
             <h3 class="card-title">${escapeHtml(p.title)}</h3>
             ${dateStr ? `<div class="card-meta">${escapeHtml(dateStr)}</div>` : ''}
@@ -829,6 +889,131 @@
       card.addEventListener('click', () => showProductDetail(p.id));
       grid.appendChild(card);
     });
+  }
+
+  function renderBalanceAndPayments(user, payments) {
+    const balanceEl = $('balance-amount');
+    const creditsCountEl = $('balance-credits-count');
+    if (balanceEl && creditsCountEl) {
+      const balance = Number(user?.balance ?? 0);
+      const credits = user?.publicationCredits ?? 0;
+      balanceEl.textContent = formatPrice(balance, 'UZS');
+      creditsCountEl.textContent = String(credits);
+    }
+
+    const listEl = $('payment-history-list');
+    const emptyEl = $('payment-history-empty');
+    if (!listEl || !emptyEl) return;
+    listEl.innerHTML = '';
+    const items = Array.isArray(payments) ? payments : payments?.data || [];
+    if (!items.length) {
+      show(emptyEl);
+      return;
+    }
+    hide(emptyEl);
+
+    items.forEach((p) => {
+      const div = document.createElement('div');
+      div.className = 'payment-item';
+      const isTopUp = p.paymentType === 'TOP_UP';
+      const amountNum = Number(p.amount ?? 0);
+      const created = p.createdAt ? new Date(p.createdAt) : null;
+      const dateStr =
+        created && !isNaN(created.getTime())
+          ? created.toLocaleString()
+          : '';
+      const title = isTopUp
+        ? t('transaction_top_up')
+        : t('transaction_publication').replace(
+            '{n}',
+            String(p.quantity ?? 1),
+          );
+      const amountText =
+        (isTopUp ? '+' : '-') + formatPrice(amountNum, 'UZS');
+
+      div.innerHTML = `
+        <div class="payment-left">
+          <div class="payment-title">${escapeHtml(title)}</div>
+          <div class="payment-meta">${escapeHtml(dateStr || '')}</div>
+        </div>
+        <div class="payment-amount ${
+          isTopUp ? 'positive' : 'negative'
+        }">${amountText}</div>
+      `;
+      listEl.appendChild(div);
+    });
+  }
+
+  function loadOrders() {
+    const status = $('orders-status-filter')?.value || '';
+    const ordersList = $('orders-list');
+    const ordersEmpty = $('orders-empty');
+    const ordersLoading = $('orders-loading');
+    if (ordersLoading) show(ordersLoading);
+    if (ordersEmpty) hide(ordersEmpty);
+    if (ordersList) ordersList.innerHTML = '';
+
+    const params = new URLSearchParams({ page: '1', limit: '20' });
+    if (status) params.set('status', status);
+
+    Promise.all([
+      api('/users/profile').catch(() => currentUser),
+      api('/payments/history?page=1&limit=50').catch(() => ({ data: [] })),
+      api(`/orders?${params.toString()}`).catch(() => ({ data: [] })),
+    ])
+      .then(([user, payments, ordersRes]) => {
+        if (user && user.id) {
+          currentUser = user;
+          localStorage.setItem('sb_user', JSON.stringify(user));
+        }
+        const paymentList = Array.isArray(payments) ? payments : payments?.data || [];
+        renderBalanceAndPayments(currentUser, paymentList);
+
+        const orders = Array.isArray(ordersRes)
+          ? ordersRes
+          : ordersRes?.data || [];
+        if (!ordersList || !ordersEmpty) return;
+        if (!orders.length) {
+          show(ordersEmpty);
+          return;
+        }
+        hide(ordersEmpty);
+        orders.forEach((o) => {
+          const div = document.createElement('div');
+          div.className = 'card';
+          const dateStr = o.createdAt
+            ? new Date(o.createdAt).toLocaleString()
+            : '';
+          div.innerHTML = `
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+                <span class="card-status">${escapeHtml(
+                  String(o.status || ''),
+                )}</span>
+                <span class="card-status">${escapeHtml(
+                  String(o.paymentStatus || ''),
+                )}</span>
+              </div>
+              <div class="card-meta">${escapeHtml(
+                String(o.orderNumber || o.id || ''),
+              )}</div>
+              <div class="card-price">${formatPrice(
+                Number(o.amount ?? 0),
+                'UZS',
+              )}</div>
+              <div class="card-meta">${escapeHtml(dateStr || '')}</div>
+            </div>
+          `;
+          ordersList.appendChild(div);
+        });
+      })
+      .catch((err) => {
+        showToast(err.message, 'error');
+        if (ordersEmpty) show(ordersEmpty);
+      })
+      .finally(() => {
+        if (ordersLoading) hide(ordersLoading);
+      });
   }
 
   function loadProductCounts() {
@@ -864,7 +1049,7 @@
         currentProductDetail = p;
         window._currentProductDetail = p;
         const hasAuction = p.activeAuction;
-        const statusClass = p.status === 'ACTIVE' ? 'status-active' : 'status-inactive';
+        const statusClass = p.status === 'ACTIVE' ? 'status-active' : p.status === 'PENDING_MODERATION' ? 'status-pending' : 'status-inactive';
         const tags = (p.tags || []).map((tg) => `<span class="tag">${escapeHtml(tg)}</span>`).join('');
 
         let auctionHtml = '';
@@ -896,8 +1081,8 @@
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem">
               <div>
                 <h2 class="detail-title">${escapeHtml(p.title)}</h2>
-                <span class="card-status ${statusClass}">${p.status}</span>
-                <span class="card-status ${saleStatusClass}" style="margin-left:.35rem">${saleStatusLabel(saleStatus)}</span>
+                <span class="card-status ${statusClass}">${escapeHtml(productStatusLabel(p.status))}</span>
+                ${p.status !== 'PENDING_MODERATION' ? `<span class="card-status ${saleStatusClass}" style="margin-left:.35rem">${saleStatusLabel(saleStatus)}</span>` : ''}
               </div>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap">
                 ${p.sellerId && p.sellerId !== currentUser?.id ? `<button class="btn primary small" onclick="window._startChatWithProduct(window._currentProductDetail)">Contact seller</button>` : ''}
@@ -1349,13 +1534,17 @@
     }
 
     api('/products', { method: 'POST', body: JSON.stringify(body) })
-      .then(() => {
-        showToast(t('product_created'), 'success');
+      .then((product) => {
+        const isPending = product && product.status === 'PENDING_MODERATION';
+        showToast(isPending ? t('product_created_pending_moderation') : t('product_created'), 'success');
         hideProductCreateForm();
         $('product-create-form').reset();
         pcUploadedImages = [];
         renderProductCreateImagePreviews();
         loadProducts();
+        if (product && product.id && isPending) {
+          setTimeout(() => showProductDetail(product.id), 300);
+        }
       })
       .catch((err) => showToast(err.message, 'error'));
   }
@@ -1509,20 +1698,88 @@
     const isAuctionOwner = currentUser?.id && currentAuctionCreatorId && currentUser.id === currentAuctionCreatorId;
     if (section === 'bids') {
       const viewParam = auctionBidsView || 'all';
-      api(`/bids/auction/${auctionId}?limit=50&view=${viewParam}`).then((res) => {
-        const bids = res.data || res || [];
-        if (bids.length === 0) { container.innerHTML = `<div class="empty-state">${t('no_bids')}</div>`; return; }
-        container.innerHTML = '<div class="bid-view-tabs" id="bid-view-tabs"></div><div class="bid-feed" id="bid-feed"></div>';
-        const viewTabsEl = $('bid-view-tabs');
-        if (viewTabsEl && isAuctionOwner) {
-          viewTabsEl.innerHTML = `<button type="button" class="section-tab ${auctionBidsView === 'all' ? 'active' : ''}" data-bid-view="all">All</button><button type="button" class="section-tab ${auctionBidsView === 'new' ? 'active' : ''}" data-bid-view="new">New</button><button type="button" class="section-tab ${auctionBidsView === 'top' ? 'active' : ''}" data-bid-view="top">Top</button><button type="button" class="section-tab ${auctionBidsView === 'rejected' ? 'active' : ''}" data-bid-view="rejected">${t('rejected')}</button>`;
-          viewTabsEl.querySelectorAll('button').forEach((btn) => {
-            btn.addEventListener('click', () => { auctionBidsView = btn.dataset.bidView; document.querySelectorAll('#bid-view-tabs .section-tab').forEach((t) => t.classList.toggle('active', t.dataset.bidView === auctionBidsView)); loadAuctionSection(auctionId, 'bids'); });
+      const countsPromise = isAuctionOwner
+        ? api(`/auctions/${auctionId}/bids/counts`).catch(() => null)
+        : Promise.resolve(null);
+
+      Promise.all([
+        api(`/bids/auction/${auctionId}?limit=50&view=${viewParam}`),
+        countsPromise,
+      ])
+        .then(([bidsRes, counts]) => {
+          const bids = Array.isArray(bidsRes)
+            ? bidsRes
+            : (bidsRes && bidsRes.data) || bidsRes || [];
+
+          if (bids.length === 0) {
+            container.innerHTML = `<div class="empty-state">${t('no_bids')}</div>`;
+            return;
+          }
+
+          const allCount = counts?.all ?? bids.length;
+          const newCount = counts?.new ?? 0;
+          const topCount = counts?.top ?? 0;
+          const rejectedCount = counts?.rejected ?? 0;
+
+          container.innerHTML =
+            '<div class="bid-view-tabs" id="bid-view-tabs"></div><div class="bid-feed" id="bid-feed"></div>';
+          const viewTabsEl = $('bid-view-tabs');
+          if (viewTabsEl && isAuctionOwner) {
+            viewTabsEl.innerHTML = `
+            <button type="button" class="section-tab ${
+              auctionBidsView === 'all' ? 'active' : ''
+            }" data-bid-view="all">
+              ${escapeHtml(t('bids_all'))} <span class="badge-count">${allCount}</span>
+            </button>
+            <button type="button" class="section-tab ${
+              auctionBidsView === 'new' ? 'active' : ''
+            }" data-bid-view="new">
+              ${escapeHtml(t('bids_new'))} <span class="badge-count">${newCount}</span>
+            </button>
+            <button type="button" class="section-tab ${
+              auctionBidsView === 'top' ? 'active' : ''
+            }" data-bid-view="top">
+              ${escapeHtml(t('bids_top'))} <span class="badge-count">${topCount}</span>
+            </button>
+            <button type="button" class="section-tab ${
+              auctionBidsView === 'rejected' ? 'active' : ''
+            }" data-bid-view="rejected">
+              ${escapeHtml(t('bids_rejected'))} <span class="badge-count">${rejectedCount}</span>
+            </button>
+          `;
+            viewTabsEl.querySelectorAll('button').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                auctionBidsView = btn.dataset.bidView;
+                document
+                  .querySelectorAll('#bid-view-tabs .section-tab')
+                  .forEach((t) =>
+                    t.classList.toggle(
+                      'active',
+                      t.dataset.bidView === auctionBidsView,
+                    ),
+                  );
+                loadAuctionSection(auctionId, 'bids');
+              });
+            });
+          } else if (viewTabsEl) viewTabsEl.innerHTML = '';
+
+          const feed = $('bid-feed');
+          (Array.isArray(bids) ? bids : []).forEach((b) => {
+            feed.appendChild(
+              createBidItem(b, {
+                showOwnerRemove: isAuctionOwner,
+                showMarkRead: isAuctionOwner,
+                showRestore: isAuctionOwner,
+                showWinnerLabel: currentAuctionEnded,
+              }),
+            );
           });
-        } else if (viewTabsEl) viewTabsEl.innerHTML = '';
-        const feed = $('bid-feed');
-        (Array.isArray(bids) ? bids : []).forEach((b) => { feed.appendChild(createBidItem(b, { showOwnerRemove: isAuctionOwner, showMarkRead: isAuctionOwner, showRestore: isAuctionOwner, showWinnerLabel: currentAuctionEnded })); });
-      }).catch((err) => { container.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`; });
+        })
+        .catch((err) => {
+          container.innerHTML = `<div class="error">${escapeHtml(
+            err.message,
+          )}</div>`;
+        });
     } else if (section === 'leaderboard') {
       api(`/auctions/${auctionId}/leaderboard?limit=20`).then((res) => {
         const entries = res.leaderboard || res.data || res || [];
@@ -1766,6 +2023,23 @@
 
     conversationSocket.on(CONVERSATION_EVENTS.USER_TYPING, (data) => { if (data.conversationId !== currentConversationId) return; const el = $('typing-indicator'); el.textContent = data.isTyping ? t('someone_typing') : ''; if (data.isTyping) show(el); else hide(el); });
     conversationSocket.on('ping', () => { conversationSocket.emit('pong', { timestamp: Date.now() }); });
+  }
+
+  function connectPaymentSocket() {
+    if (paymentSocket?.connected) return;
+    if (!accessToken) return;
+    const base = API_BASE.replace(/\/$/, '');
+    paymentSocket = window.io(base + '/payment', { auth: { token: accessToken }, transports: ['websocket', 'polling'] });
+    paymentSocket.on('connect', () => {});
+    paymentSocket.on('disconnect', () => {});
+    paymentSocket.on('connect_error', () => {});
+    paymentSocket.on('payment_success', (data) => {
+      showToast(t('payment_success') + (data.amount ? ' — ' + formatPrice(data.amount, 'UZS') : ''), 'success');
+      if (currentTab === 'orders') loadOrders();
+      if (currentUser?.id) {
+        api('/users/profile').then((user) => { if (user?.id) { currentUser = user; localStorage.setItem('sb_user', JSON.stringify(user)); } }).catch(() => {});
+      }
+    });
   }
 
   function updateWsStatus(status) { const el = $('ws-status'); if (!el) return; el.textContent = status === 'connected' ? 'Live' : 'Offline'; el.className = 'ws-status ' + (status === 'connected' ? 'connected' : 'disconnected'); }
@@ -2272,6 +2546,52 @@
     $('btn-refresh-notifications').addEventListener('click', loadNotifications);
     document.querySelectorAll('.filter-btn').forEach((btn) => { btn.addEventListener('click', () => { document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active')); btn.classList.add('active'); notifFilter = btn.dataset.filter; loadNotifications(); }); });
 
+    const topUpBtn = $('btn-top-up');
+    if (topUpBtn) {
+      topUpBtn.addEventListener('click', () => {
+        if (!currentUser || !accessToken) {
+          showToast(t('feature_not_available'), 'error');
+          return;
+        }
+        const raw = window.prompt(t('balance_top_up') + ' — ' + (currentLang === 'ru' ? 'Введите сумму (UZS)' : currentLang === 'uz' ? 'Summani kiriting (UZS)' : 'Enter amount (UZS)'), '30000');
+        if (raw == null || raw.trim() === '') return;
+        const amount = parseInt(raw.trim(), 10);
+        if (isNaN(amount) || amount < 1000) {
+          showToast(currentLang === 'ru' ? 'Минимум 1000 UZS' : currentLang === 'uz' ? 'Minimum 1000 UZS' : 'Minimum 1000 UZS', 'error');
+          return;
+        }
+        topUpBtn.disabled = true;
+        api('/payments', {
+          method: 'POST',
+          body: JSON.stringify({ paymentType: 'TOP_UP', amount }),
+        })
+          .then((res) => {
+            const data = res?.data !== undefined ? res.data : res;
+            const paymentId = data?.paymentId || data?.id;
+            const invoiceUrl = data?.invoiceUrl || '';
+            const amountSent = data?.amount ?? amount;
+            if (invoiceUrl && paymentId) {
+              const url = invoiceUrl.includes('?') ? invoiceUrl + '&paymentId=' + encodeURIComponent(paymentId) + '&amount=' + amountSent : invoiceUrl + '?paymentId=' + encodeURIComponent(paymentId) + '&amount=' + amountSent;
+              window.open(url, '_blank', 'noopener,noreferrer');
+              showToast(t('balance_top_up') + ' — ' + (currentLang === 'ru' ? 'Откройте вкладку для оплаты' : currentLang === 'uz' ? 'To\'lov uchun yangi tab ochildi' : 'New tab opened for payment'), 'info');
+            } else {
+              showToast(t('balance_top_up') + ' ✓', 'success');
+            }
+            loadOrders();
+          })
+          .catch((err) => showToast(err.message || 'Payment failed', 'error'))
+          .finally(() => { topUpBtn.disabled = false; });
+      });
+    }
+
+    const refreshOrdersBtn = $('btn-refresh-orders');
+    if (refreshOrdersBtn) refreshOrdersBtn.addEventListener('click', loadOrders);
+    const ordersPrev = $('orders-prev');
+    if (ordersPrev) ordersPrev.addEventListener('click', () => { ordersPage = (ordersPage || 1) - 1; loadOrders(); });
+    const ordersNext = $('orders-next');
+    if (ordersNext) ordersNext.addEventListener('click', () => { ordersPage = (ordersPage || 1) + 1; loadOrders(); });
+    const ordersFilter = $('orders-status-filter');
+    if (ordersFilter) ordersFilter.addEventListener('change', () => loadOrders());
 
     if (accessToken && currentUser) showApp();
     else showLogin();

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PaymentStatus, PaymentGateway } from '@prisma/client';
+import { PaymentStatus, PaymentGateway, PaymentType } from '@prisma/client';
 
 export class PaymentResponseDto {
   @ApiProperty()
@@ -14,14 +14,14 @@ export class PaymentResponseDto {
   @ApiProperty()
   amount!: number;
 
+  @ApiProperty({ enum: PaymentType })
+  paymentType!: PaymentType;
+
   @ApiProperty({ enum: PaymentStatus })
   status!: PaymentStatus;
 
   @ApiProperty({ enum: PaymentGateway, nullable: true })
   gateway!: PaymentGateway | null;
-
-  @ApiProperty({ nullable: true })
-  transactionId!: string | null;
 
   @ApiProperty({ nullable: true })
   invoiceUrl!: string | null;

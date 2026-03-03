@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Payment } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { IPaymentRepository } from '../interfaces/payment-repository.interface';
+import {
+  IPaymentRepository,
+  PaymentFindByUserIdOptions,
+} from '../interfaces/payment-repository.interface';
 import {
   CreatePaymentData,
   UpdatePaymentData,
@@ -33,48 +36,21 @@ export class PaymentRepository implements IPaymentRepository {
     });
   }
 
-  findByTransactionId(
-    transactionId: string,
-  ): Promise<PaymentWithRelations | null> {
-    return this.prisma.payment.findUnique({
-      where: { transactionId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            phoneNumber: true,
-            firstName: true,
-            lastName: true,
-            publicationCredits: true,
-          },
-        },
-      },
-    });
-  }
-
-  findByInvoiceId(invoiceId: number): Promise<PaymentWithRelations | null> {
-    return this.prisma.payment.findFirst({
-      where: {
-        gatewayOrderId: invoiceId.toString(),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            phoneNumber: true,
-            firstName: true,
-            lastName: true,
-            publicationCredits: true,
-          },
-        },
-      },
-    });
-  }
-
-  findByUserId(userId: string): Promise<PaymentWithRelations[]> {
+  findByUserId(
+    userId: string,
+    options?: PaymentFindByUserIdOptions,
+  ): Promise<PaymentWithRelations[]> {
     return this.prisma.payment.findMany({
       where: { userId, isActive: true },
       orderBy: { createdAt: 'desc' },
+      ...(options?.skip !== undefined && { skip: options.skip }),
+      ...(options?.take !== undefined && { take: options.take }),
+    });
+  }
+
+  countByUserId(userId: string): Promise<number> {
+    return this.prisma.payment.count({
+      where: { userId, isActive: true },
     });
   }
 

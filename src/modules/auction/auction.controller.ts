@@ -225,6 +225,29 @@ export class AuctionController {
     return await this.auctionService.findById(id, incrementViews === 'true');
   }
 
+  @Post(':id/close')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Close auction early',
+    description:
+      'End an active auction before its end time. Only auction creator or admin. Current leading bidder becomes the winner. Participants are notified and WebSocket event is emitted.',
+  })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Auction ended (status ENDED, winner set if any bids)',
+    type: AuctionResponseDto,
+  })
+  @ApiCommonErrorResponses({ conflict: false })
+  async closeAuction(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ): Promise<AuctionResponseDto> {
+    return await this.auctionService.closeAuction(id, userId, role);
+  }
+
   @Patch(':id/winner')
   @UseGuards(JwtAuthGuard)
   @UsePipes(new SanitizePipe())

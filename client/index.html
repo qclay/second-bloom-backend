@@ -321,13 +321,37 @@
                 <button type="button" id="btn-refresh-orders" class="btn secondary small" data-i18n="refresh">Refresh</button>
               </div>
             </div>
-            <div id="orders-list" class="card-list"></div>
-            <div id="orders-empty" class="empty-state hidden" data-i18n="no_orders">No orders found</div>
-            <div id="orders-loading" class="loading-state hidden" data-i18n="loading">Loading...</div>
-            <div class="pagination">
-              <button type="button" id="orders-prev" class="btn secondary small" disabled>&laquo; Prev</button>
-              <span id="orders-page-info">Page 1</span>
-              <button type="button" id="orders-next" class="btn secondary small" disabled>Next &raquo;</button>
+
+            <div id="balance-card" class="card">
+              <div class="balance-header">
+                <div>
+                  <div class="balance-title" data-i18n="balance_title">Your balance</div>
+                  <div class="balance-amount" id="balance-amount">0 UZS</div>
+                  <div class="balance-credits">
+                    <span id="balance-credits-count">0</span>
+                    <span data-i18n="balance_publications">publications</span>
+                  </div>
+                </div>
+                <button type="button" id="btn-top-up" class="btn primary small" data-i18n="balance_top_up">Top up</button>
+              </div>
+            </div>
+
+            <div id="payment-history-card" class="card">
+              <h3 class="section-title" data-i18n="transactions_title">Transactions</h3>
+              <div id="payment-history-list" class="card-list"></div>
+              <div id="payment-history-empty" class="empty-state hidden" data-i18n="transactions_empty">No transactions yet</div>
+            </div>
+
+            <div class="panel-subsection">
+              <h3 class="section-title" data-i18n="tab_orders">Orders</h3>
+              <div id="orders-list" class="card-list"></div>
+              <div id="orders-empty" class="empty-state hidden" data-i18n="no_orders">No orders found</div>
+              <div id="orders-loading" class="loading-state hidden" data-i18n="loading">Loading...</div>
+              <div class="pagination">
+                <button type="button" id="orders-prev" class="btn secondary small" disabled>&laquo; Prev</button>
+                <span id="orders-page-info">Page 1</span>
+                <button type="button" id="orders-next" class="btn secondary small" disabled>Next &raquo;</button>
+              </div>
             </div>
           </div>
           <div id="order-detail-view" class="detail-view hidden">

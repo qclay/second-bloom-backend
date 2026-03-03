@@ -14,9 +14,6 @@ export interface CreatePaymentData {
   method: PaymentMethod;
   gateway?: PaymentGateway;
   status: PaymentStatus;
-  transactionId?: string;
-  gatewayTransactionId?: string;
-  gatewayOrderId?: string;
 }
 
 export interface UpdatePaymentData {
@@ -24,6 +21,4 @@ export interface UpdatePaymentData {
   paidAt?: Date;
   webhookData?: Prisma.InputJsonValue;
   gatewayTransactionId?: string;
-  gatewayOrderId?: string;
-  transactionId?: string;
 }

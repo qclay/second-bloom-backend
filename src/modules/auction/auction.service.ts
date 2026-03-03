@@ -16,6 +16,7 @@ import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { NotificationService } from '../notification/notification.service';
+import { AuctionGateway } from './gateways/auction.gateway';
 import {
   isTranslationRecord,
   resolveTranslation,
@@ -30,6 +31,7 @@ export class AuctionService {
     private readonly productRepository: ProductRepository,
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly auctionGateway: AuctionGateway,
   ) {}
 
   async createAuction(
@@ -503,6 +505,127 @@ export class AuctionService {
     );
 
     return this.findById(id);
+  }
+
+  async closeAuction(
+    auctionId: string,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<AuctionResponseDto> {
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+      select: {
+        id: true,
+        status: true,
+        creatorId: true,
+        productId: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!auction || auction.deletedAt) {
+      throw new NotFoundException(`Auction with ID ${auctionId} not found`);
+    }
+
+    if (auction.status !== 'ACTIVE') {
+      throw new BadRequestException(
+        'Only active auctions can be closed early. Auction status: ' +
+          auction.status,
+      );
+    }
+
+    if (auction.creatorId !== userId && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Only the auction creator or an admin can close the auction',
+      );
+    }
+
+    const winningBid = await this.prisma.bid.findFirst({
+      where: {
+        auctionId,
+        isWinning: true,
+        isRetracted: false,
+      },
+      select: { id: true, bidderId: true },
+    });
+
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.auction.update({
+        where: { id: auctionId },
+        data: {
+          status: 'ENDED',
+          winnerId: winningBid?.bidderId ?? null,
+        },
+      });
+
+      if (winningBid) {
+        await tx.bid.updateMany({
+          where: {
+            auctionId,
+            id: { not: winningBid.id },
+            isWinning: true,
+          },
+          data: { isWinning: false },
+        });
+      }
+    });
+
+    this.logger.log(
+      `Auction ${auctionId} closed early by user ${userId}. Winner: ${winningBid?.bidderId ?? 'none'}`,
+    );
+
+    const participants = await this.prisma.bid.findMany({
+      where: { auctionId, isRetracted: false },
+      select: { bidderId: true },
+      distinct: ['bidderId'],
+    });
+    const product = await this.prisma.product.findUnique({
+      where: { id: auction.productId },
+      select: { title: true },
+    });
+    const productTitleRaw = product?.title ?? null;
+    const productTitle =
+      typeof productTitleRaw === 'string'
+        ? productTitleRaw
+        : isTranslationRecord(productTitleRaw)
+          ? (resolveTranslation(productTitleRaw, 'en') ?? undefined)
+          : undefined;
+    const winnerId = winningBid?.bidderId ?? null;
+
+    try {
+      await Promise.all(
+        participants.map((p) =>
+          this.notificationService.notifyAuctionEndedForParticipant({
+            userId: p.bidderId,
+            auctionId,
+            productId: auction.productId,
+            productTitle,
+            isWinner: winnerId !== null && p.bidderId === winnerId,
+          }),
+        ),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send AUCTION_ENDED notifications for auction ${auctionId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
+
+    const updated = await this.findById(auctionId);
+    try {
+      this.auctionGateway.notifyAuctionEnded(
+        auctionId,
+        updated,
+        updated.winnerId ?? null,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to emit auction_ended WebSocket for auction ${auctionId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
+
+    return updated;
   }
 
   async extendAuctionIfNeeded(auctionId: string): Promise<boolean> {

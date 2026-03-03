@@ -302,9 +302,7 @@ model Payment {
   amount               Decimal         @db.Decimal(10, 2)
   method               PaymentMethod
   gateway              PaymentGateway?
-  transactionId        String?         @unique
   gatewayTransactionId String?
-  gatewayOrderId       String?
   status               PaymentStatus   @default(PENDING)
   paidAt               DateTime?
   webhookData          Json?
@@ -323,9 +321,7 @@ model Payment {
   @@index([paymentType])
   @@index([userId, paymentType])
   @@index([userId, status])
-  @@index([transactionId])
   @@index([gatewayTransactionId])
-  @@index([gatewayOrderId])
   @@index([gateway])
   @@index([status])
   @@index([paidAt])
@@ -773,6 +769,7 @@ enum PaymentGateway {
 
 enum PaymentStatus {
   COMPLETED
+  EXPIRED
   FAILED
   PENDING
   PROCESSING
