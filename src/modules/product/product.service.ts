@@ -937,60 +937,7 @@ export class ProductService {
     };
   }
 
-  async findAllPendingModeration(query: { page?: number; limit?: number }) {
-    const page = query.page ?? 1;
-    const limit = Math.min(query.limit ?? 20, 100);
-    const skip = (page - 1) * limit;
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where: {
-          status: ProductStatus.PENDING_MODERATION,
-          deletedAt: null,
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          category: { select: { id: true, name: true, slug: true } },
-          condition: { select: { id: true, name: true, slug: true } },
-          size: { select: { id: true, name: true, slug: true } },
-          seller: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              phoneNumber: true,
-            },
-          },
-          images: {
-            where: { deletedAt: null, isActive: true },
-            include: { file: { select: { url: true } } },
-            orderBy: { displayOrder: 'asc' },
-          },
-        },
-      }),
-      this.prisma.product.count({
-        where: {
-          status: ProductStatus.PENDING_MODERATION,
-          deletedAt: null,
-        },
-      }),
-    ]);
-    const data = products.map((p) =>
-      ProductResponseDto.fromEntity(
-        p as Parameters<typeof ProductResponseDto.fromEntity>[0],
-      ),
-    );
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
+  // findAllPendingModeration removed – pending moderation listing endpoint was deprecated.
 
   async moderateProduct(
     id: string,

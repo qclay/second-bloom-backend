@@ -11,7 +11,6 @@ import {
   HttpStatus,
   UseGuards,
   UsePipes,
-  ForbiddenException,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -133,28 +132,6 @@ export class ProductController {
   )
   async search(@Body() searchDto: ProductSearchDto) {
     return this.productService.searchProducts(searchDto);
-  }
-
-  @Get('pending-moderation')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'List products pending moderation (Admin/Moderator only)',
-  })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  @ApiCommonErrorResponses({ notFound: false })
-  async getPendingModeration(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @CurrentUser('role') role?: UserRole,
-  ) {
-    if (role !== UserRole.ADMIN && role !== UserRole.MODERATOR) {
-      throw new ForbiddenException(
-        'Only admins and moderators can list pending moderation',
-      );
-    }
-    return this.productService.findAllPendingModeration({ page, limit });
   }
 
   @Patch(':id/moderate')

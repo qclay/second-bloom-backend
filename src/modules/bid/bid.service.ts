@@ -409,7 +409,7 @@ export class BidService {
             : view === 'top'
               ? {
                   auctionId: auctionId ?? undefined,
-                  rejectedAt: null,
+                  isWinning: true,
                 }
               : {
                   auctionId: auctionId ?? undefined,
