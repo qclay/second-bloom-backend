@@ -82,28 +82,6 @@ export class BidController {
     return await this.bidService.getUserBids(userId, query);
   }
 
-  @Get('auction/:auctionId')
-  @Public()
-  @ApiOperation({
-    summary: 'Get bids for an auction',
-    description:
-      'List of bids for an auction. Query: view=all|new|top|rejected. Response includes meta.counts. For counts only use GET /auctions/:auctionId/bids/counts. Owner can use PATCH :id/read or PATCH auction/:auctionId/read-all to mark as read.',
-  })
-  @ApiParam({
-    name: 'auctionId',
-    description: 'Auction UUID (e.g. from product.activeAuction.id)',
-  })
-  @ApiPaginatedResponse(
-    BidResponseDto,
-    'Paginated list of bids for auction (data + meta.pagination + meta.counts)',
-  )
-  async getAuctionBids(
-    @Param('auctionId') auctionId: string,
-    @Query() query: BidQueryDto,
-  ) {
-    return await this.bidService.getAuctionBids(auctionId, query);
-  }
-
   @Patch('auction/:auctionId/read-all')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

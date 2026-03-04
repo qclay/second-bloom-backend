@@ -100,6 +100,9 @@ With the app running:
 
 Product images: use file UUIDs from file upload; on product update, send `imageIds` (array) to set or keep images—see Swagger for details.
 
+**WebSocket (real-time):**  
+Real-time features (auctions, chat, payment notifications) use Socket.IO on three namespaces. See **[docs/WEBSOCKET.md](docs/WEBSOCKET.md)** for connection, authentication, events, and client examples.
+
 ---
 
 ## Health & root

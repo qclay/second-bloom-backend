@@ -185,7 +185,7 @@ export class ProductController {
   @ApiOperation({
     summary: 'Get product by ID',
     description:
-      'Product detail. Includes category, condition, size, seller, images; activeAuction when product has an active auction. Use activeAuction.id for GET /bids/auction/:auctionId.',
+      'Product detail. Includes category, condition, size, seller, images; activeAuction when product has an active auction. Use activeAuction.id for GET /bids?auctionId=:auctionId.',
   })
   @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiQuery({

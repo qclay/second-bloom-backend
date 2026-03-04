@@ -385,40 +385,72 @@ export class BidService {
       isRetracted,
       sortBy = 'createdAt',
       sortOrder = 'desc',
+      view,
     } = query;
     const maxLimit = Math.min(limit, 100);
     const skip = (page - 1) * maxLimit;
 
-    const where: Prisma.BidWhereInput = {};
+    let where: Prisma.BidWhereInput;
 
-    if (auctionId) {
-      where.auctionId = auctionId;
-    }
-
-    if (bidderId) {
-      where.bidderId = bidderId;
-    }
-
-    if (isWinning !== undefined) {
-      where.isWinning = isWinning;
-    }
-
-    if (isRetracted !== undefined) {
-      where.isRetracted = isRetracted;
+    if (view) {
+      where =
+        view === 'new'
+          ? {
+              auctionId: auctionId ?? undefined,
+              readByOwnerAt: null,
+              rejectedAt: null,
+              isRetracted: false,
+            }
+          : view === 'rejected'
+            ? {
+                auctionId: auctionId ?? undefined,
+                rejectedAt: { not: null },
+              }
+            : view === 'top'
+              ? {
+                  auctionId: auctionId ?? undefined,
+                  rejectedAt: null,
+                }
+              : {
+                  auctionId: auctionId ?? undefined,
+                };
     } else {
-      where.isRetracted = false;
+      where = {};
+
+      if (auctionId) {
+        where.auctionId = auctionId;
+      }
+
+      if (bidderId) {
+        where.bidderId = bidderId;
+      }
+
+      if (isWinning !== undefined) {
+        where.isWinning = isWinning;
+      }
+
+      if (isRetracted !== undefined) {
+        where.isRetracted = isRetracted;
+      } else {
+        where.isRetracted = false;
+      }
     }
 
-    const orderBy: Prisma.BidOrderByWithRelationInput = {};
-    if (sortBy === 'amount') {
-      orderBy.amount = sortOrder;
-    } else if (sortBy === 'createdAt') {
-      orderBy.createdAt = sortOrder;
+    let orderBy: Prisma.BidOrderByWithRelationInput;
+    if (view === 'top') {
+      orderBy = { amount: 'desc' };
     } else {
-      orderBy.createdAt = 'desc';
+      orderBy = {};
+      if (sortBy === 'amount') {
+        orderBy.amount = sortOrder;
+      } else if (sortBy === 'createdAt') {
+        orderBy.createdAt = sortOrder;
+      } else {
+        orderBy.createdAt = 'desc';
+      }
     }
 
-    const [bids, total] = await Promise.all([
+    const [bids, total, counts] = await Promise.all([
       this.bidRepository.findMany({
         where,
         skip,
@@ -453,15 +485,18 @@ export class BidService {
         },
       }),
       this.bidRepository.count({ where }),
+      auctionId ? this.getAuctionBidCounts(auctionId) : Promise.resolve(null),
     ]);
 
     return {
       data: bids.map((bid) => BidResponseDto.fromEntity(bid)),
       meta: {
+        ...(view ? { view } : {}),
         total,
         page,
         limit: maxLimit,
         totalPages: Math.ceil(total / maxLimit),
+        ...(counts ? { counts } : {}),
       },
     };
   }
@@ -759,73 +794,6 @@ export class BidService {
       }),
     ]);
     return { all, new: newCount, top, rejected };
-  }
-
-  async getAuctionBids(
-    auctionId: string,
-    query: BidQueryDto & { view?: 'all' | 'new' | 'top' | 'rejected' },
-  ) {
-    const auction = await this.auctionRepository.findById(auctionId);
-
-    if (!auction || auction.deletedAt) {
-      throw new NotFoundException('Auction not found');
-    }
-
-    const view = query.view ?? 'all';
-    const page = query.page ?? 1;
-    const limit = Math.min(query.limit ?? 20, 100);
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.BidWhereInput =
-      view === 'new'
-        ? {
-            auctionId,
-            readByOwnerAt: null,
-            rejectedAt: null,
-            isRetracted: false,
-          }
-        : view === 'rejected'
-          ? { auctionId, rejectedAt: { not: null } }
-          : view === 'top'
-            ? { auctionId, rejectedAt: null }
-            : { auctionId };
-
-    const orderBy: Prisma.BidOrderByWithRelationInput =
-      view === 'top' ? { amount: 'desc' } : { createdAt: 'desc' };
-
-    const [bids, total, counts] = await Promise.all([
-      this.bidRepository.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        include: {
-          bidder: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              phoneNumber: true,
-              avatar: { select: { url: true } },
-            },
-          },
-        },
-      }),
-      this.prisma.bid.count({ where }),
-      this.getAuctionBidCounts(auctionId),
-    ]);
-
-    return {
-      data: bids.map((bid) => BidResponseDto.fromEntity(bid)),
-      meta: {
-        view,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        counts,
-      },
-    };
   }
 
   async markBidAsRead(bidId: string, userId: string): Promise<void> {

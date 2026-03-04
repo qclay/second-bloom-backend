@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const API_BASE = window.TEST_APP_API_BASE || 'http://localhost:3000';
+  const API_BASE = window.TEST_APP_API_BASE || 'https://api.secondbloom.uz';
   const API_PREFIX = '/api/v1';
 
   const TRANSLATIONS = {
@@ -1131,8 +1131,8 @@
           const isEnded = a.status !== 'ACTIVE';
           const container = $('product-detail-auction-bids');
           if (container) {
-            api('/bids/auction/' + a.id + '?view=top&limit=20').then((res) => {
-              const list = Array.isArray(res?.data) ? res.data : [];
+            api(`/bids?auctionId=${a.id}&view=top&limit=20`).then((res) => {
+              const list = Array.isArray(res) ? res : (res?.data ?? []);
               const sorted = [...list].sort((x, y) => Number(y.amount) - Number(x.amount));
               const top = sorted.slice(0, 10);
               if (container.getAttribute('data-auction-id') !== a.id) return;
@@ -1161,8 +1161,8 @@
     if (!container || container.getAttribute('data-auction-id') !== auctionId) return;
     const currency = currentProductDetail?.currency || 'UZS';
     const isEnded = currentProductDetail?.activeAuction?.status !== 'ACTIVE';
-    api('/bids/auction/' + auctionId + '?view=top&limit=20').then((res) => {
-      const list = Array.isArray(res?.data) ? res.data : [];
+    api(`/bids?auctionId=${auctionId}&view=top&limit=20`).then((res) => {
+      const list = Array.isArray(res) ? res : (res?.data ?? []);
       const sorted = [...list].sort((x, y) => Number(y.amount) - Number(x.amount));
       const top = sorted.slice(0, 10);
       if (container.getAttribute('data-auction-id') !== auctionId) return;
@@ -1230,9 +1230,8 @@
 
     Promise.all([
       api('/auctions/' + auctionId),
-      api('/bids/auction/' + auctionId + '?view=all&limit=50').then((r) => (r && r.data !== undefined ? r.data : r) || []).catch(() => []),
-    ]).then(([auction, bidsData]) => {
-      const bids = Array.isArray(bidsData) ? bidsData : (bidsData?.data ?? []);
+      api(`/bids?auctionId=${auctionId}&view=all&limit=50`).catch(() => []),
+    ]).then(([auction, bids]) => {
       renderBids(auction, bids);
       window._auctionModalAuction = auction;
       window._auctionModalRenderBids = renderBids;
@@ -1249,7 +1248,7 @@
     if (!bidsEl) return;
     Promise.all([
       api('/auctions/' + currentAuctionModalAuctionId),
-      api('/bids/auction/' + currentAuctionModalAuctionId + '?view=all&limit=50').then((r) => (r && r.data !== undefined ? r.data : r) || []).catch(() => []),
+      api(`/bids?auctionId=${currentAuctionModalAuctionId}&view=all&limit=50`).catch(() => []),
     ]).then(([auction, bids]) => {
       if (currentAuctionModalAuctionId !== auction?.id) return;
       window._auctionModalRenderBids(auction, bids);
@@ -1551,12 +1550,46 @@
 
   function loadAuctions() {
     const status = $('auction-status-filter').value;
-    hide($('auctions-empty')); show($('auctions-loading')); $('auctions-grid').innerHTML = '';
+    hide($('auctions-empty'));
+    show($('auctions-loading'));
+    $('auctions-grid').innerHTML = '';
     const params = new URLSearchParams({ page: String(auctionsPage), limit: '12' });
     if (status) params.set('status', status);
-    api(`/auctions?${params}`)
-      .then((res) => { hide($('auctions-loading')); const items = res.data || res || []; auctionsCache = Array.isArray(items) ? items : []; auctionsTotalPages = res.meta?.totalPages || 1; renderAuctions(auctionsCache); updateAuctionsPagination(); })
-      .catch((err) => { hide($('auctions-loading')); showToast(err.message, 'error'); auctionsCache = []; renderAuctions([]); });
+    const url = `${API_BASE}${API_PREFIX}/auctions?${params}`;
+    const headers = { 'Content-Type': 'application/json', 'Accept-Language': currentLang || 'en' };
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    fetch(url, { headers })
+      .then((r) => {
+        if (!r.ok) {
+          return r.json().then((err) => {
+            const msg = err?.error?.message || err?.message || r.statusText;
+            return Promise.reject(new Error(msg));
+          });
+        }
+        return r.json();
+      })
+      .then((raw) => {
+        hide($('auctions-loading'));
+        const items = Array.isArray(raw.data) ? raw.data : raw.data ? [raw.data] : [];
+        auctionsCache = items;
+        const pagination = raw.meta?.pagination || raw.meta || {};
+        const totalPagesFromMeta = pagination.totalPages;
+        const totalPagesFallback =
+          pagination.total != null
+            ? Math.ceil(pagination.total / (pagination.limit || 12))
+            : 1;
+        auctionsTotalPages = (totalPagesFromMeta || totalPagesFallback || 1);
+        renderAuctions(auctionsCache);
+        updateAuctionsPagination();
+      })
+      .catch((err) => {
+        hide($('auctions-loading'));
+        showToast(err.message || 'Failed to load auctions', 'error');
+        auctionsCache = [];
+        auctionsTotalPages = 1;
+        renderAuctions([]);
+        updateAuctionsPagination();
+      });
   }
 
   function renderAuctions(auctions) {
@@ -1703,13 +1736,10 @@
         : Promise.resolve(null);
 
       Promise.all([
-        api(`/bids/auction/${auctionId}?limit=50&view=${viewParam}`),
+        api(`/bids?auctionId=${auctionId}&limit=50&view=${viewParam}`),
         countsPromise,
       ])
-        .then(([bidsRes, counts]) => {
-          const bids = Array.isArray(bidsRes)
-            ? bidsRes
-            : (bidsRes && bidsRes.data) || bidsRes || [];
+        .then(([bids, counts]) => {
 
           if (bids.length === 0) {
             container.innerHTML = `<div class="empty-state">${t('no_bids')}</div>`;

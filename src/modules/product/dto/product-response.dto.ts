@@ -173,7 +173,7 @@ export class ProductResponseDto {
   @ApiProperty({
     required: false,
     description:
-      'Active auction (id, endTime, status, currentPrice, totalBids, winner). Use id for GET /bids/auction/:auctionId. winner is set when auction has ended.',
+      'Active auction (id, endTime, status, currentPrice, totalBids, winner). Use id for GET /bids?auctionId=:auctionId. winner is set when auction has ended.',
     example: {
       id: '550e8400-e29b-41d4-a716-446655440040',
       endTime: '2026-01-05T17:15:29.000Z',
