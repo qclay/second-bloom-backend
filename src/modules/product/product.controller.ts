@@ -20,6 +20,7 @@ import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
@@ -91,10 +92,11 @@ export class ProductController {
 
   @Get()
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({
     summary: 'List products',
     description:
-      'Paginated list of active products. Query: page, limit, categoryId, sellerId, conditionId, sizeId, region, city, minPrice, maxPrice, sortBy, sortOrder.',
+      'Paginated list. Query: page, limit, status (ACTIVE, PENDING_MODERATION, INACTIVE), categoryId, sellerId, etc. Status PENDING_MODERATION/INACTIVE: only admin/moderator or own products (sellerId=current user).',
   })
   @ApiCommonErrorResponses({
     unauthorized: false,
@@ -107,8 +109,11 @@ export class ProductController {
     'Paginated list of products (data + meta.pagination)',
     200,
   )
-  async findAll(@Query() query: ProductQueryDto) {
-    return this.productService.findAll(query);
+  async findAll(
+    @Query() query: ProductQueryDto,
+    @CurrentUser() user?: { id: string; role: UserRole },
+  ) {
+    return this.productService.findAll(query, user);
   }
 
   @Post('search')

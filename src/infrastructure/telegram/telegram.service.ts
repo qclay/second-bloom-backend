@@ -42,7 +42,10 @@ export class TelegramService implements ITelegramService {
     return this.sendMessage(message);
   }
 
-  async sendMessage(message: string): Promise<boolean> {
+  async sendMessage(
+    message: string,
+    extra?: Record<string, unknown>,
+  ): Promise<boolean> {
     if (!this.enabled || !this.botToken) {
       this.logger.warn(
         `Telegram service not configured. Would send: ${message}`,
@@ -63,6 +66,7 @@ export class TelegramService implements ITelegramService {
           chat_id: this.chatId,
           text: message,
           parse_mode: 'HTML',
+          ...(extra ?? {}),
         }),
       );
 
@@ -83,6 +87,63 @@ export class TelegramService implements ITelegramService {
         this.logger.error('Failed to send message to Telegram', error.message);
       }
       return false;
+    }
+  }
+
+  async editMessageText(params: {
+    chatId: number | string;
+    messageId: number;
+    text: string;
+    replyMarkup?: Record<string, unknown>;
+  }): Promise<void> {
+    if (!this.enabled || !this.botToken) {
+      this.logger.warn(
+        `Telegram service not configured. Would edit message: ${params.text}`,
+      );
+      return;
+    }
+
+    try {
+      const url = `${this.apiUrl}/editMessageText`;
+      await firstValueFrom(
+        this.httpService.post(url, {
+          chat_id: params.chatId,
+          message_id: params.messageId,
+          text: params.text,
+          parse_mode: 'HTML',
+          ...(params.replyMarkup
+            ? { reply_markup: params.replyMarkup }
+            : undefined),
+        }),
+      );
+    } catch (error) {
+      this.logger.error(
+        'Failed to edit Telegram message',
+        (error as Error).message,
+      );
+    }
+  }
+
+  async answerCallbackQuery(
+    callbackQueryId: string,
+    text?: string,
+  ): Promise<void> {
+    if (!this.enabled || !this.botToken) {
+      return;
+    }
+    try {
+      const url = `${this.apiUrl}/answerCallbackQuery`;
+      await firstValueFrom(
+        this.httpService.post(url, {
+          callback_query_id: callbackQueryId,
+          ...(text ? { text } : {}),
+        }),
+      );
+    } catch (error) {
+      this.logger.error(
+        'Failed to answer Telegram callback query',
+        (error as Error).message,
+      );
     }
   }
 

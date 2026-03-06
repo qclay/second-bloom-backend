@@ -25,6 +25,7 @@ import {
 } from '../../common/i18n/translation.util';
 import { TranslationService } from '../translation/translation.service';
 import { ConversationService } from '../conversation/conversation.service';
+import { TelegramService } from '../../infrastructure/telegram/telegram.service';
 
 @Injectable()
 export class ProductService {
@@ -38,6 +39,7 @@ export class ProductService {
     private readonly auctionService: AuctionService,
     private readonly translationService: TranslationService,
     private readonly conversationService: ConversationService,
+    private readonly telegramService: TelegramService,
   ) {}
 
   async createProduct(
@@ -171,10 +173,9 @@ export class ProductService {
             size: { connect: { id: dto.sizeId } },
             quantity: dto.quantity ?? 1,
             status:
-              dto.status ??
-              (user.role === UserRole.ADMIN
-                ? ProductStatus.ACTIVE
-                : ProductStatus.PENDING_MODERATION),
+              user.role === UserRole.ADMIN
+                ? (dto.status ?? ProductStatus.ACTIVE)
+                : ProductStatus.PENDING_MODERATION,
             isFeatured: dto.isFeatured ?? false,
             ...(dto.regionId && {
               regionRelation: { connect: { id: dto.regionId } },
@@ -226,10 +227,143 @@ export class ProductService {
       `Product created: ${product.id} by user: ${sellerId}. Credits remaining: ${user.role !== UserRole.ADMIN ? user.publicationCredits - 1 : 'unlimited (admin)'}`,
     );
 
+    if (product.status === ProductStatus.PENDING_MODERATION) {
+      void this.notifyTelegramProductPendingModeration(product.id).catch(
+        (err) => {
+          this.logger.error(
+            `Failed to send Telegram moderation message for product ${product.id}: ${
+              (err as Error).message
+            }`,
+          );
+        },
+      );
+    }
+
     return result;
   }
 
-  async findAll(query: ProductQueryDto) {
+  private async notifyTelegramProductPendingModeration(
+    productId: string,
+  ): Promise<void> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+          },
+        },
+        size: { select: { name: true } },
+        condition: { select: { name: true } },
+        cityRelation: { select: { name: true } },
+        regionRelation: { select: { name: true } },
+        images: {
+          where: { deletedAt: null, isActive: true },
+          take: 4,
+          include: { file: { select: { url: true } } },
+          orderBy: { displayOrder: 'asc' },
+        },
+      },
+    });
+
+    if (!product) return;
+
+    const sellerNameParts = [
+      product.seller?.firstName,
+      product.seller?.lastName,
+    ].filter(Boolean);
+    const sellerName =
+      sellerNameParts.join(' ') ||
+      product.seller?.phoneNumber ||
+      product.seller?.id;
+
+    const title =
+      resolveTranslation(
+        product.title as Record<string, string> | null,
+        null,
+      ) ?? '';
+    const cityRaw = product.cityRelation?.name ?? product.regionRelation?.name;
+    const cityName =
+      typeof cityRaw === 'string'
+        ? cityRaw
+        : cityRaw && typeof cityRaw === 'object'
+          ? resolveTranslation(
+              cityRaw as unknown as Record<string, string>,
+              null,
+            )
+          : undefined;
+    const size =
+      product.size?.name && typeof product.size.name === 'object'
+        ? resolveTranslation(
+            product.size.name as unknown as Record<string, string>,
+            null,
+          )
+        : (product.size?.name as unknown as string | undefined);
+    const condition =
+      product.condition?.name && typeof product.condition.name === 'object'
+        ? resolveTranslation(
+            product.condition.name as unknown as Record<string, string>,
+            null,
+          )
+        : (product.condition?.name as unknown as string | undefined);
+
+    const rawPrice = product.price;
+    const price =
+      typeof rawPrice === 'object' &&
+      rawPrice &&
+      'toNumber' in (rawPrice as unknown as { toNumber?: () => number })
+        ? (rawPrice as unknown as { toNumber: () => number }).toNumber()
+        : Number(rawPrice ?? 0);
+
+    const imageUrls = (product.images || [])
+      .map((img) => img.file?.url)
+      .filter((url): url is string => Boolean(url));
+
+    const header = '🆕 <b>Новый товар на модерации</b>';
+    const lines = [
+      `Автор: <b>${sellerName}</b>`,
+      `ID товара: <code>${product.id}</code>`,
+      title ? `Описание товара: <b>${title}</b>` : '',
+      cityName ? `Город: ${cityName}` : '',
+      size ? `Размер: ${size}` : '',
+      condition ? `Состояние: ${condition}` : '',
+      `Цена: <b>${price.toLocaleString('ru-RU')} ${product.currency}</b>`,
+      '',
+      imageUrls.length
+        ? imageUrls.map((u, idx) => `Фото ${idx + 1}: ${u}`).join('\n')
+        : '',
+      '',
+      'Статус: <b>PENDING_MODERATION</b>',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const message = `${header}\n\n${lines}`;
+
+    await this.telegramService.sendMessage(message, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: '✅ Опубликовать пост',
+              callback_data: `product:approve:${product.id}`,
+            },
+          ],
+          [
+            {
+              text: '✏️ Отправить на обновление',
+              callback_data: `product:reject:${product.id}`,
+            },
+          ],
+        ],
+      },
+    });
+  }
+
+  async findAll(query: ProductQueryDto, user?: { id: string; role: UserRole }) {
     const {
       page = 1,
       limit = 20,
@@ -248,6 +382,24 @@ export class ProductService {
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = query;
+    const restrictedStatuses: ProductStatus[] = [
+      ProductStatus.PENDING_MODERATION,
+      ProductStatus.INACTIVE,
+    ];
+    if (status && restrictedStatuses.includes(status)) {
+      if (!user) {
+        throw new ForbiddenException(
+          'Authentication required to filter by this status',
+        );
+      }
+      const isAdminOrMod =
+        user.role === UserRole.ADMIN || user.role === UserRole.MODERATOR;
+      if (!isAdminOrMod && sellerId !== user.id) {
+        throw new ForbiddenException(
+          'Only admins/moderators can list all products with this status, or use sellerId=your id for your own',
+        );
+      }
+    }
     const maxLimit = Math.min(limit, 100);
     const skip = (page - 1) * maxLimit;
 
@@ -936,8 +1088,6 @@ export class ProductService {
       },
     };
   }
-
-  // findAllPendingModeration removed – pending moderation listing endpoint was deprecated.
 
   async moderateProduct(
     id: string,

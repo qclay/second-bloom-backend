@@ -107,6 +107,20 @@
       mark_all_read: 'Mark all read',
       unread: 'Unread',
       no_notifications: 'No notifications yet.',
+      tab_moderation: 'Moderation',
+      moderation_hint: 'Review products pending approval. Approve to publish or reject with a reason (the seller will see it in chat).',
+      moderation_empty: 'No products pending moderation',
+      reject_reason_title: 'Rejection reason',
+      reject_reason_hint: 'This message will be sent to the seller. Required.',
+      reject_reason_placeholder: 'e.g. Photo quality is too low, please upload clearer images.',
+      reject_submit: 'Reject product',
+      approve_product: 'Approve',
+      reject_product: 'Reject',
+      view_product: 'View',
+      filter_status_all: 'All',
+      filter_status_posted: 'Posted',
+      filter_status_pending: 'Pending',
+      filter_status_rejected: 'Rejected',
       views: 'views',
       auction_ended: 'Auction Ended',
       auction_active: 'Auction Active',
@@ -325,6 +339,20 @@
       product_status_active: 'Faol',
       product_status_inactive: 'Nofaol',
       product_status_pending_moderation: 'Moderatsiyada',
+      tab_moderation: 'Moderatsiya',
+      moderation_hint: 'Tasdiqlanishi kerak bo\'lgan mahsulotlarni ko\'rib chiqing. Chop etish uchun tasdiqlang yoki sabab bilan rad eting (sotuvchi chatda ko\'radi).',
+      moderation_empty: 'Moderatsiyada mahsulot yo\'q',
+      reject_reason_title: 'Rad etish sababi',
+      reject_reason_hint: 'Bu xabar sotuvchiga yuboriladi. Majburiy.',
+      reject_reason_placeholder: 'Masalan: Rasm sifati past, aniqroq rasm yuklang.',
+      reject_submit: 'Mahsulotni rad etish',
+      approve_product: 'Tasdiqlash',
+      reject_product: 'Rad etish',
+      view_product: 'Ko\'rish',
+      filter_status_all: 'Barchasi',
+      filter_status_posted: 'Chop etilgan',
+      filter_status_pending: 'Kutilmoqda',
+      filter_status_rejected: 'Rad etilgan',
       edit_product: 'Mahsulotni tahrirlash',
       existing_images: 'Joriy rasmlar (saqlashda saqlanadi)',
       error_occurred: 'Xatolik yuz berdi',
@@ -500,6 +528,20 @@
       product_status_active: 'Активен',
       product_status_inactive: 'Неактивен',
       product_status_pending_moderation: 'На модерации',
+      tab_moderation: 'Модерация',
+      moderation_hint: 'Проверьте товары, ожидающие одобрения. Одобрите для публикации или отклоните с указанием причины (продавец увидит в чате).',
+      moderation_empty: 'Нет товаров на модерации',
+      reject_reason_title: 'Причина отклонения',
+      reject_reason_hint: 'Это сообщение будет отправлено продавцу. Обязательно.',
+      reject_reason_placeholder: 'Напр.: Низкое качество фото, загрузите чёткие изображения.',
+      reject_submit: 'Отклонить товар',
+      approve_product: 'Одобрить',
+      reject_product: 'Отклонить',
+      view_product: 'Просмотр',
+      filter_status_all: 'Все',
+      filter_status_posted: 'Опубликовано',
+      filter_status_pending: 'На модерации',
+      filter_status_rejected: 'Отклонено',
       edit_product: 'Редактировать товар',
       existing_images: 'Текущие изображения (сохраняются при сохранении)',
       error_occurred: 'Произошла ошибка',
@@ -570,6 +612,9 @@
   let auctionsPage = 1;
   let auctionsCache = [];
   let auctionsTotalPages = 1;
+  let moderationPage = 1;
+  let moderationTotalPages = 1;
+  let rejectModalProductId = null;
   let currentAuctionId = null;
   let currentAuctionCreatorId = null;
   let currentAuctionEnded = false;
@@ -731,6 +776,7 @@
       ? ([currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') || currentUser.phoneNumber || currentUser.id)
       : '';
     $('user-display-name').textContent = name;
+    updateModerationTabVisibility();
     switchTab('products');
     connectConversationSocket();
     loadNotificationCount();
@@ -811,7 +857,120 @@
     else if (tab === 'auctions') loadAuctions();
     else if (tab === 'orders') { loadOrders(); connectPaymentSocket(); }
     else if (tab === 'chat') { loadConversations(); connectConversationSocket(); }
+    else if (tab === 'moderation') loadModeration();
     else if (tab === 'notifications') loadNotifications();
+  }
+
+  function updateModerationTabVisibility() {
+    const tabEl = document.getElementById('tab-moderation');
+    if (!tabEl) return;
+    const isAdminOrMod = currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'MODERATOR');
+    if (isAdminOrMod) tabEl.classList.remove('hidden');
+    else tabEl.classList.add('hidden');
+  }
+
+  function loadModeration() {
+    const grid = $('moderation-grid');
+    const emptyEl = $('moderation-empty');
+    const loadingEl = $('moderation-loading');
+    if (!grid || !emptyEl || !loadingEl) return;
+    hide(emptyEl);
+    show(loadingEl);
+    grid.innerHTML = '';
+    const params = new URLSearchParams({ page: String(moderationPage), limit: '12' });
+    const url = `${API_BASE}${API_PREFIX}/products/moderation?${params}`;
+    const headers = { 'Content-Type': 'application/json', 'Accept-Language': currentLang || 'en' };
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    fetch(url, { headers })
+      .then((r) => {
+        if (!r.ok) return r.json().then((err) => Promise.reject(new Error(err?.message || err?.error?.message || r.statusText)));
+        return r.json();
+      })
+      .then((res) => {
+        hide(loadingEl);
+        const items = Array.isArray(res?.data) ? res.data : res?.data ? [res.data] : [];
+        const meta = res?.meta || {};
+        moderationTotalPages = (meta.totalPages ?? (meta.total != null ? Math.ceil(meta.total / (meta.limit || 12)) : 1)) || 1;
+        if (items.length === 0) {
+          show(emptyEl);
+          return;
+        }
+        hide(emptyEl);
+        items.forEach((p) => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          const title = (p.title && (typeof p.title === 'object' ? (p.title.en || p.title.uz || p.title.ru || '') : String(p.title))) || 'Product';
+          const imgUrl = p.images?.[0]?.url || p.images?.[0]?.file?.url || '';
+          const sellerName = [p.seller?.firstName, p.seller?.lastName].filter(Boolean).join(' ') || p.seller?.phoneNumber || '';
+          card.innerHTML = `
+            <div class="card-body">
+              ${imgUrl ? `<img src="${escapeHtml(imgUrl)}" alt="" class="card-img" style="width:100%;height:120px;object-fit:cover;border-radius:6px;margin-bottom:.5rem" />` : ''}
+              <h3 class="card-title">${escapeHtml(title)}</h3>
+              <div class="card-meta">${escapeHtml(sellerName)}</div>
+              <div class="card-price">${formatPrice(Number(p.price ?? 0), p.currency || 'UZS')}</div>
+              <div style="display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap">
+                <button type="button" class="btn secondary small moderation-btn-view" data-product-id="${escapeHtml(p.id)}">${t('view_product')}</button>
+                <button type="button" class="btn primary small moderation-btn-approve" data-product-id="${escapeHtml(p.id)}">${t('approve_product')}</button>
+                <button type="button" class="btn secondary small moderation-btn-reject" data-product-id="${escapeHtml(p.id)}">${t('reject_product')}</button>
+              </div>
+            </div>`;
+          const viewBtn = card.querySelector('.moderation-btn-view');
+          const approveBtn = card.querySelector('.moderation-btn-approve');
+          const rejectBtn = card.querySelector('.moderation-btn-reject');
+          if (viewBtn) viewBtn.addEventListener('click', () => { switchTab('products'); showProductDetail(p.id); });
+          if (approveBtn) approveBtn.addEventListener('click', () => onModerationApprove(p.id));
+          if (rejectBtn) rejectBtn.addEventListener('click', () => openRejectModal(p.id));
+          grid.appendChild(card);
+        });
+        updateModerationPagination();
+      })
+      .catch((err) => {
+        hide(loadingEl);
+        showToast(err.message || 'Failed to load moderation list', 'error');
+        show(emptyEl);
+        updateModerationPagination();
+      });
+  }
+
+  function updateModerationPagination() {
+    const info = $('moderation-page-info');
+    const prev = $('moderation-prev');
+    const next = $('moderation-next');
+    if (info) info.textContent = `Page ${moderationPage} / ${moderationTotalPages}`;
+    if (prev) prev.disabled = moderationPage <= 1;
+    if (next) next.disabled = moderationPage >= moderationTotalPages;
+  }
+
+  function onModerationApprove(productId) {
+    api(`/products/${productId}/moderate`, { method: 'PATCH', body: JSON.stringify({ action: 'approve' }) })
+      .then(() => { showToast(t('product_updated') || 'Product approved', 'success'); loadModeration(); })
+      .catch((err) => showToast(err.message, 'error'));
+  }
+
+  function openRejectModal(productId) {
+    rejectModalProductId = productId;
+    const overlay = $('reject-modal-overlay');
+    const input = $('reject-reason-input');
+    if (input) input.value = '';
+    if (overlay) show(overlay);
+  }
+
+  function closeRejectModal() {
+    rejectModalProductId = null;
+    hide($('reject-modal-overlay'));
+  }
+
+  function onSubmitReject() {
+    const reason = ($('reject-reason-input')?.value || '').trim();
+    if (!reason) {
+      showToast(t('reject_reason_hint') || 'Reason is required', 'error');
+      return;
+    }
+    if (!rejectModalProductId) { closeRejectModal(); return; }
+    const id = rejectModalProductId;
+    api(`/products/${id}/moderate`, { method: 'PATCH', body: JSON.stringify({ action: 'reject', rejectionReason: reason }) })
+      .then(() => { showToast(t('product_updated') || 'Product rejected', 'success'); closeRejectModal(); loadModeration(); })
+      .catch((err) => showToast(err.message, 'error'));
   }
 
   function loadProducts() {
@@ -826,6 +985,9 @@
       params.set('sellerId', currentUser.id);
       if (productsSalePhase && productsSalePhase !== 'all') params.set('salePhase', productsSalePhase);
     }
+    const statusFilterEl = document.getElementById('products-status-filter');
+    const statusFilter = statusFilterEl?.value?.trim();
+    if (statusFilter) params.set('status', statusFilter);
 
     api(`/products?${params}`)
       .then((res) => {
@@ -965,6 +1127,7 @@
         if (user && user.id) {
           currentUser = user;
           localStorage.setItem('sb_user', JSON.stringify(user));
+          updateModerationTabVisibility();
         }
         const paymentList = Array.isArray(payments) ? payments : payments?.data || [];
         renderBalanceAndPayments(currentUser, paymentList);
@@ -2533,6 +2696,8 @@
       productsPage = 1;
       loadProducts();
     });
+    const productsStatusFilter = document.getElementById('products-status-filter');
+    if (productsStatusFilter) productsStatusFilter.addEventListener('change', () => { productsPage = 1; loadProducts(); });
 
     const salePhaseBar = $('products-sale-phase-bar');
     if (salePhaseBar) {
@@ -2557,6 +2722,19 @@
     $('auctions-prev').addEventListener('click', () => { auctionsPage--; loadAuctions(); });
     $('auctions-next').addEventListener('click', () => { auctionsPage++; loadAuctions(); });
     document.querySelectorAll('#auction-detail-view .btn-back').forEach((btn) => { btn.addEventListener('click', hideAuctionDetail); });
+
+    const btnRefreshMod = $('btn-refresh-moderation');
+    if (btnRefreshMod) btnRefreshMod.addEventListener('click', () => loadModeration());
+    const modPrev = $('moderation-prev');
+    const modNext = $('moderation-next');
+    if (modPrev) modPrev.addEventListener('click', () => { moderationPage--; loadModeration(); });
+    if (modNext) modNext.addEventListener('click', () => { moderationPage++; loadModeration(); });
+    const rejectSubmit = $('reject-modal-submit');
+    const rejectCancel = $('reject-modal-cancel');
+    if (rejectSubmit) rejectSubmit.addEventListener('click', onSubmitReject);
+    if (rejectCancel) rejectCancel.addEventListener('click', closeRejectModal);
+    const rejectOverlay = $('reject-modal-overlay');
+    if (rejectOverlay) rejectOverlay.addEventListener('click', (e) => { if (e.target === rejectOverlay) closeRejectModal(); });
 
     $('btn-new-chat').addEventListener('click', onNewChat);
     $('btn-cancel-new-chat').addEventListener('click', () => hide($('new-chat-form')));

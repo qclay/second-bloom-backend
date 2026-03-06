@@ -115,29 +115,40 @@ export class PaymentService {
     }
 
     this.logger.log(
-      `Webhook received: invoice_id=${payload.invoice_id}, status=${payload.status}, amount=${payload.amount}`,
+      `Webhook received: invoice_id=${payload.invoice_id}, status=${payload.status}, amount=${payload.amount}, meta_data=${JSON.stringify(payload.meta_data)}`,
     );
 
-    const webhookAmount = new Prisma.Decimal(payload.amount);
+    const webhookAmountRaw = new Prisma.Decimal(payload.amount);
+    const webhookAmountSum =
+      payload.amount >= 100
+        ? new Prisma.Decimal(Math.floor(payload.amount / 100))
+        : webhookAmountRaw;
+    const amountsToTry = [webhookAmountRaw, webhookAmountSum].filter(
+      (a, i, arr) => arr.findIndex((b) => b.eq(a)) === i,
+    );
+
     const whereConditions: Prisma.PaymentWhereInput[] = [];
 
     if (payload.meta_data?.user_id) {
+      for (const amt of amountsToTry) {
+        whereConditions.push({
+          userId: payload.meta_data.user_id,
+          status: PaymentStatus.PENDING,
+          amount: amt,
+        });
+      }
       whereConditions.push({
         userId: payload.meta_data.user_id,
         status: PaymentStatus.PENDING,
-        amount: webhookAmount,
       });
-
-      whereConditions.push({
-        userId: payload.meta_data.user_id,
-        status: PaymentStatus.PENDING,
-      });
+    } else {
+      for (const amt of amountsToTry) {
+        whereConditions.push({
+          status: PaymentStatus.PENDING,
+          amount: amt,
+        });
+      }
     }
-
-    whereConditions.push({
-      status: PaymentStatus.PENDING,
-      amount: webhookAmount,
-    });
 
     let payment: PaymentWithRelations | null = null;
 
@@ -164,12 +175,16 @@ export class PaymentService {
       );
     }
 
-    if (payload.status === 'success') {
+    if (payload.status === 'success' || payload.status === 'completed') {
       return this.handleSuccessfulPayment(payment, payload);
-    } else if (payload.status === 'failed' || payload.status === 'cancelled') {
+    }
+    if (payload.status === 'failed' || payload.status === 'cancelled') {
       return this.handleFailedPayment(payment, payload);
     }
 
+    this.logger.warn(
+      `Webhook ignored: status="${payload.status}" (not success/completed). User balance/credits were NOT updated for payment ${payment.id}.`,
+    );
     return { success: true, message: 'Webhook processed' };
   }
 
@@ -215,6 +230,10 @@ export class PaymentService {
         where: { id: payment.userId },
         data: updateData,
       });
+
+      this.logger.log(
+        `User ${payment.userId} updated: ${payment.paymentType === PaymentType.TOP_UP ? `balance += ${payment.amount.toString()}` : `publicationCredits += ${payment.quantity}`}`,
+      );
 
       return {
         success: true,

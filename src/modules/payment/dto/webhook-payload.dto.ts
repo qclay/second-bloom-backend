@@ -54,9 +54,9 @@ export class WebhookPayloadDto {
   @ApiProperty({
     example: 'success',
     description: 'Payment status',
-    enum: ['success', 'failed', 'pending', 'cancelled'],
+    enum: ['success', 'completed', 'failed', 'pending', 'cancelled'],
   })
   @IsString()
-  @IsIn(['success', 'failed', 'pending', 'cancelled'])
+  @IsIn(['success', 'completed', 'failed', 'pending', 'cancelled'])
   status!: string;
 }
