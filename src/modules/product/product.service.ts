@@ -670,6 +670,8 @@ export class ProductService {
           | 'sold' = 'available';
         if (isAuctionActive) {
           saleStatus = 'onAuction';
+        } else if (activeAuction?.status === 'ENDED') {
+          saleStatus = 'sold';
         } else if (lastOrder) {
           if (lastOrder.status === OrderStatus.DELIVERED) {
             saleStatus = 'sold';
@@ -1053,6 +1055,8 @@ export class ProductService {
           | 'sold' = 'available';
         if (isAuctionActive) {
           saleStatus = 'onAuction';
+        } else if (activeAuction?.status === 'ENDED') {
+          saleStatus = 'sold';
         } else if (lastOrder) {
           if (lastOrder.status === OrderStatus.DELIVERED) {
             saleStatus = 'sold';
@@ -1277,6 +1281,8 @@ export class ProductService {
       'available';
     if (isAuctionActive) {
       saleStatus = 'onAuction';
+    } else if (activeAuction?.status === 'ENDED') {
+      saleStatus = 'sold';
     } else if (lastOrder) {
       if (lastOrder.status === OrderStatus.DELIVERED) {
         saleStatus = 'sold';
