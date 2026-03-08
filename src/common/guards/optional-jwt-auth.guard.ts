@@ -5,7 +5,10 @@ import { User } from '@prisma/client';
 @Injectable()
 export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
   canActivate(context: ExecutionContext) {
-    const request = context.switchToHttp().getRequest<{ user?: User | null; headers?: { authorization?: string } }>();
+    const request = context.switchToHttp().getRequest<{
+      user?: User | null;
+      headers?: { authorization?: string };
+    }>();
     const authHeader = request.headers?.authorization;
     if (!authHeader || !String(authHeader).startsWith('Bearer ')) {
       request.user = null;

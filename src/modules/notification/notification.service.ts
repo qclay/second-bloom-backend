@@ -52,7 +52,6 @@ export class NotificationService {
       | 'orderConfirmed'
       | 'orderShipped'
       | 'orderDelivered'
-      | 'reviewReceived'
       | 'newMessage'
       | 'system',
   ): boolean {
@@ -77,8 +76,6 @@ export class NotificationService {
         return prefs.orderShipped;
       case 'orderDelivered':
         return prefs.orderDelivered;
-      case 'reviewReceived':
-        return prefs.reviewReceived;
       case 'newMessage':
         return prefs.newMessage;
       case 'system':

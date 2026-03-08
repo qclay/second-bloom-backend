@@ -17,7 +17,6 @@ import { ProductModule } from './modules/product/product.module';
 import { AuctionModule } from './modules/auction/auction.module';
 import { BidModule } from './modules/bid/bid.module';
 import { OrderModule } from './modules/order/order.module';
-import { ReviewModule } from './modules/review/review.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { PaymentModule } from './modules/payment/payment.module';
@@ -62,7 +61,6 @@ import { AppController } from './app.controller';
     AuctionModule,
     BidModule,
     OrderModule,
-    ReviewModule,
     NotificationModule,
     ConversationModule,
     PaymentModule,

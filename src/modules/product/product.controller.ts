@@ -96,7 +96,7 @@ export class ProductController {
   @ApiOperation({
     summary: 'List products',
     description:
-      'Paginated list. Query: page, limit, status (ACTIVE, PENDING_MODERATION, INACTIVE), categoryId, sellerId, etc. Status PENDING_MODERATION/INACTIVE: only admin/moderator or own products (sellerId=current user).',
+      'Paginated list. Query: page, limit, status (PUBLISHED, PENDING, DRAFT, REJECTED), categoryId, sellerId, etc. Status PENDING/DRAFT/REJECTED: only admin/moderator or own products (sellerId=current user).',
   })
   @ApiCommonErrorResponses({
     unauthorized: false,

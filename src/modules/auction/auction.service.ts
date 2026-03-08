@@ -63,7 +63,7 @@ export class AuctionService {
       );
     }
 
-    if (product.status !== 'ACTIVE') {
+    if (product.status !== 'PUBLISHED') {
       throw new BadRequestException(
         'Product must be active to create an auction',
       );

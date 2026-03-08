@@ -2555,7 +2555,6 @@
     if (type.includes('AUCTION')) return 'auction';
     if (type.includes('MESSAGE') || type.includes('CHAT')) return 'chat';
     if (type.includes('ORDER')) return 'order';
-    if (type.includes('REVIEW')) return 'review';
     return 'system';
   }
 
@@ -2569,7 +2568,6 @@
     if (type.includes('ORDER_DELIVERED')) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
     if (type.includes('ORDER_SHIPPED')) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
     if (type.includes('ORDER')) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>';
-    if (type.includes('REVIEW')) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
   }
 
@@ -2585,7 +2583,6 @@
       ORDER_DELIVERED: 'Delivered',
       ORDER_SHIPPED: 'Shipped',
       OUTBID: 'Outbid',
-      REVIEW_RECEIVED: 'Review',
       SYSTEM: 'System',
     };
     return labels[type] || type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase());

@@ -103,25 +103,27 @@ export class UserController {
     return this.userService.updateProfile(user.id, updateProfileDto);
   }
 
-  @Post('add-publication-credits')
+  @Post(':id/publication-credits')
   @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Add publication credits',
-    description: 'Adds publication credits to the current user.',
+    summary: 'Add publication credits to a user (Admin only)',
+    description:
+      'Adds publication credits to the specified user. Use this in the admin panel to grant credits to any user.',
   })
-  @ApiCommonErrorResponses({ conflict: false, notFound: false })
+  @ApiCommonErrorResponses({ conflict: false, notFound: true })
   @ApiResponse({
     status: 200,
     description:
-      'Credits added; returns updated profile with new publicationCredits',
+      'Credits added; returns updated user with new publicationCredits',
     type: UserResponseDto,
   })
   async addPublicationCredits(
-    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
     @Body() dto: AddPublicationCreditsDto,
   ): Promise<UserResponseDto> {
-    return this.userService.addPublicationCredits(user.id, dto);
+    return this.userService.addPublicationCredits(id, dto);
   }
 
   @Get(':id')

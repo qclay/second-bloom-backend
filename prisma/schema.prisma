@@ -403,7 +403,7 @@ model Product {
   conditionId          String?
   sizeId               String?
   quantity             Int               @default(1)
-  status               ProductStatus     @default(PENDING_MODERATION)
+  status               ProductStatus     @default(PENDING)
   isFeatured           Boolean           @default(false)
   moderationRejectionReason String?
   moderationRejectedAt     DateTime?
@@ -433,7 +433,6 @@ model Product {
   districtRelation     District?         @relation(fields: [districtId], references: [id], onDelete: SetNull)
   publicationPayment   Payment?          @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id])
   seller               User              @relation(fields: [sellerId], references: [id])
-  reviews              Review[]
   conversations        Conversation[]
 
   @@index([publicationPaymentId])
@@ -474,45 +473,6 @@ model ProductImage {
   @@index([fileId])
   @@index([isActive, deletedAt])
   @@map("product_images")
-}
-
-model Review {
-  id           String    @id @default(uuid())
-  reviewerId   String
-  revieweeId   String
-  productId    String?
-  orderId      String?
-  parentId     String?
-  rating       Int       @db.SmallInt
-  comment      String?
-  isVerified   Boolean   @default(false)
-  isReported   Boolean   @default(false)
-  reportReason String?
-  reportedAt   DateTime?
-  helpfulCount Int       @default(0)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
-  deletedBy    String?
-  isActive     Boolean   @default(true)
-  parent       Review?   @relation("ReviewReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies      Review[]  @relation("ReviewReplies")
-  product      Product?  @relation(fields: [productId], references: [id])
-  reviewee     User      @relation("Reviewee", fields: [revieweeId], references: [id])
-  reviewer     User      @relation("Reviewer", fields: [reviewerId], references: [id])
-
-  @@unique([reviewerId, revieweeId, productId])
-  @@index([revieweeId])
-  @@index([revieweeId, createdAt])
-  @@index([productId])
-  @@index([productId, rating])
-  @@index([productId, createdAt])
-  @@index([rating])
-  @@index([parentId])
-  @@index([isReported])
-  @@index([isActive, deletedAt])
-  @@index([createdAt])
-  @@map("reviews")
 }
 
 model User {
@@ -560,8 +520,6 @@ model User {
   orders                 Order[]
   payments               Payment[]               @relation("PaymentUser")
   products               Product[]
-  receivedReviews        Review[]                @relation("Reviewee")
-  reviews                Review[]                @relation("Reviewer")
   avatar                 File?                   @relation("UserAvatar", fields: [avatarId], references: [id])
   verificationCodes      VerificationCode[]
 
@@ -776,9 +734,10 @@ enum PaymentStatus {
 }
 
 enum ProductStatus {
-  ACTIVE
-  INACTIVE
-  PENDING_MODERATION
+  DRAFT       
+  PENDING    
+  PUBLISHED   
+  REJECTED    
 }
 
 enum ProductType {

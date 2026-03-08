@@ -39,7 +39,7 @@ export class OrderService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.status !== 'ACTIVE') {
+    if (product.status !== 'PUBLISHED') {
       throw new BadRequestException('Product is not available for purchase');
     }
 

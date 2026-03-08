@@ -174,8 +174,8 @@ export class ProductService {
             quantity: dto.quantity ?? 1,
             status:
               user.role === UserRole.ADMIN
-                ? (dto.status ?? ProductStatus.ACTIVE)
-                : ProductStatus.PENDING_MODERATION,
+                ? (dto.status ?? ProductStatus.PUBLISHED)
+                : ProductStatus.PENDING,
             isFeatured: dto.isFeatured ?? false,
             ...(dto.regionId && {
               regionRelation: { connect: { id: dto.regionId } },
@@ -227,7 +227,7 @@ export class ProductService {
       `Product created: ${product.id} by user: ${sellerId}. Credits remaining: ${user.role !== UserRole.ADMIN ? user.publicationCredits - 1 : 'unlimited (admin)'}`,
     );
 
-    if (product.status === ProductStatus.PENDING_MODERATION) {
+    if (product.status === ProductStatus.PENDING) {
       void this.notifyTelegramProductPendingModeration(product.id).catch(
         (err) => {
           this.logger.error(
@@ -336,7 +336,7 @@ export class ProductService {
         ? imageUrls.map((u, idx) => `Фото ${idx + 1}: ${u}`).join('\n')
         : '',
       '',
-      'Статус: <b>PENDING_MODERATION</b>',
+      'Статус: <b>PENDING</b>',
     ]
       .filter(Boolean)
       .join('\n');
@@ -383,8 +383,9 @@ export class ProductService {
       sortOrder = 'desc',
     } = query;
     const restrictedStatuses: ProductStatus[] = [
-      ProductStatus.PENDING_MODERATION,
-      ProductStatus.INACTIVE,
+      ProductStatus.PENDING,
+      ProductStatus.DRAFT,
+      ProductStatus.REJECTED,
     ];
     if (status && restrictedStatuses.includes(status)) {
       if (!user) {
@@ -412,7 +413,7 @@ export class ProductService {
           ? {}
           : sellerId
             ? {}
-            : { status: ProductStatus.ACTIVE }),
+            : { status: ProductStatus.PUBLISHED }),
     };
 
     if (search) {
@@ -821,7 +822,7 @@ export class ProductService {
 
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
-      status: ProductStatus.ACTIVE,
+      status: ProductStatus.PUBLISHED,
     };
 
     if (search) {
@@ -1116,7 +1117,7 @@ export class ProductService {
       },
     });
     if (!product) throw new NotFoundException('Product not found');
-    if (product.status !== ProductStatus.PENDING_MODERATION) {
+    if (product.status !== ProductStatus.PENDING) {
       throw new BadRequestException('Product is not pending moderation');
     }
     if (dto.action === 'reject' && !dto.rejectionReason?.trim()) {
@@ -1129,7 +1130,7 @@ export class ProductService {
       await this.prisma.product.update({
         where: { id },
         data: {
-          status: ProductStatus.ACTIVE,
+          status: ProductStatus.PUBLISHED,
           moderationRejectionReason: null,
           moderationRejectedAt: null,
           moderationRejectedById: null,
@@ -1141,7 +1142,7 @@ export class ProductService {
     await this.prisma.product.update({
       where: { id },
       data: {
-        status: ProductStatus.INACTIVE,
+        status: ProductStatus.REJECTED,
         moderationRejectionReason: dto.rejectionReason?.trim() ?? null,
         moderationRejectedAt: new Date(),
         moderationRejectedById: userId,
@@ -1442,14 +1443,15 @@ export class ProductService {
       updateData.status = dto.status;
     }
     const isRejected =
-      product.status === ProductStatus.INACTIVE &&
+      (product.status === ProductStatus.DRAFT ||
+        product.status === ProductStatus.REJECTED) &&
       product.moderationRejectedAt != null;
     if (
       isRejected &&
       product.sellerId === userId &&
       (validatedImageIds !== undefined || Object.keys(updateData).length > 0)
     ) {
-      updateData.status = ProductStatus.PENDING_MODERATION;
+      updateData.status = ProductStatus.PENDING;
       updateData.moderationRejectionReason = null;
       updateData.moderationRejectedAt = null;
       updateData.moderationRejectedById = null;

@@ -1,5 +1,13 @@
-import { IsString, Matches, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  Matches,
+  MinLength,
+  MaxLength,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class SendOtpDto {
   @ApiProperty({
@@ -23,4 +31,16 @@ export class SendOtpDto {
   @MaxLength(15)
   @Matches(/^\d+$/, { message: 'phoneNumber must contain only digits' })
   phoneNumber!: string;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'When true, OTP is sent only to Telegram (no SMS). Use for admin panel login.',
+    required: false,
+    default: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  forAdminPanel?: boolean;
 }

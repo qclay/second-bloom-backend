@@ -271,7 +271,27 @@ export class UserService {
       await this.validateUsernameUniqueness(dto.username, id);
     }
 
-    const updatedUser = await this.userRepository.update(id, dto);
+    const allowedKeys: (keyof Prisma.UserUpdateInput)[] = [
+      'firstName',
+      'lastName',
+      'email',
+      'region',
+      'city',
+      'district',
+      'username',
+      'gender',
+      'language',
+      'country',
+      'role',
+      'isActive',
+    ];
+    const updateData = Object.fromEntries(
+      Object.entries(dto).filter(([k]) =>
+        allowedKeys.includes(k as keyof Prisma.UserUpdateInput),
+      ),
+    ) as Prisma.UserUpdateInput;
+
+    const updatedUser = await this.userRepository.update(id, updateData);
     return UserResponseDto.fromEntity(updatedUser);
   }
 

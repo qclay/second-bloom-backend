@@ -92,7 +92,7 @@ export class ProductResponseDto {
   @ApiProperty({
     enum: ProductStatus,
     description: 'Product status',
-    example: 'ACTIVE',
+    example: 'PUBLISHED',
   })
   status!: string;
 
@@ -177,7 +177,7 @@ export class ProductResponseDto {
     example: {
       id: '550e8400-e29b-41d4-a716-446655440040',
       endTime: '2026-01-05T17:15:29.000Z',
-      status: 'ACTIVE',
+      status: 'PUBLISHED',
       currentPrice: 100000,
       totalBids: 3,
       winner: null,

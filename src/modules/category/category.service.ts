@@ -153,7 +153,7 @@ export class CategoryService {
               categoryId: { in: categoryIds },
               deletedAt: null,
               isActive: true,
-              status: ProductStatus.ACTIVE,
+              status: ProductStatus.PUBLISHED,
             },
             _count: { _all: true },
           });
@@ -206,7 +206,7 @@ export class CategoryService {
         categoryId: id,
         deletedAt: null,
         isActive: true,
-        status: ProductStatus.ACTIVE,
+        status: ProductStatus.PUBLISHED,
       },
     });
 

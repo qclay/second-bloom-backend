@@ -45,7 +45,6 @@ async function main() {
   await prisma.bid.deleteMany();
   await prisma.auction.deleteMany();
   await prisma.order.deleteMany();
-  await prisma.review.deleteMany();
   await prisma.favorite.deleteMany();
   await prisma.productImage.deleteMany();
   await prisma.product.deleteMany();
@@ -424,7 +423,9 @@ async function main() {
     ...sellers,
     ...buyers,
   ];
-  console.log(`✅ Created ${allUsers.length} users (incl. administration chat)`);
+  console.log(
+    `✅ Created ${allUsers.length} users (incl. administration chat)`,
+  );
 
   console.log('📁 Seeding categories...');
   const flowersCategory = await prisma.category.create({
@@ -624,7 +625,7 @@ async function main() {
         conditionId: conditions[0].id,
         sizeId: sizes[3].id,
         quantity: 10,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         isFeatured: true,
         views: 45,
         countryId: uzbekistan.id,
@@ -651,7 +652,7 @@ async function main() {
         conditionId: conditions[0].id,
         sizeId: sizes[1].id,
         quantity: 15,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         isFeatured: false,
         views: 32,
         countryId: uzbekistan.id,
@@ -682,7 +683,7 @@ async function main() {
         conditionId: conditions[0].id,
         sizeId: sizes[2].id,
         quantity: 8,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         isFeatured: true,
         views: 67,
         countryId: uzbekistan.id,
@@ -709,7 +710,7 @@ async function main() {
         conditionId: conditions[1].id,
         sizeId: sizes[1].id,
         quantity: 5,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         isFeatured: false,
         views: 28,
         countryId: uzbekistan.id,
@@ -736,7 +737,7 @@ async function main() {
         conditionId: conditions[0].id,
         sizeId: sizes[3].id,
         quantity: 12,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         isFeatured: false,
         views: 19,
         countryId: uzbekistan.id,
@@ -767,7 +768,7 @@ async function main() {
         conditionId: conditions[0].id,
         sizeId: sizes[4].id,
         quantity: 3,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         isFeatured: true,
         views: 89,
         countryId: uzbekistan.id,
@@ -794,7 +795,7 @@ async function main() {
         conditionId: conditions[0].id,
         sizeId: sizes[1].id,
         quantity: 7,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         isFeatured: false,
         views: 41,
         countryId: uzbekistan.id,
@@ -825,7 +826,7 @@ async function main() {
         conditionId: conditions[1].id,
         sizeId: sizes[3].id,
         quantity: 4,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         isFeatured: false,
         views: 56,
         countryId: uzbekistan.id,
@@ -972,39 +973,6 @@ async function main() {
 
   console.log(`✅ Created ${bids.length} bids`);
 
-  console.log('⭐ Seeding reviews...');
-  const reviews = await Promise.all([
-    prisma.review.create({
-      data: {
-        reviewerId: buyers[0].id,
-        revieweeId: sellers[0].id,
-        productId: products[0].id,
-        orderId: orders[0].id,
-        rating: 5,
-        comment:
-          'Excellent quality roses! Very fresh and beautiful. Highly recommended!',
-        isVerified: true,
-        helpfulCount: 3,
-        createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
-      },
-    }),
-    prisma.review.create({
-      data: {
-        reviewerId: buyers[1].id,
-        revieweeId: sellers[1].id,
-        productId: products[3].id,
-        orderId: orders[1].id,
-        rating: 4,
-        comment: 'Good quality orchids, arrived in perfect condition.',
-        isVerified: true,
-        helpfulCount: 1,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      },
-    }),
-  ]);
-
-  console.log(`✅ Created ${reviews.length} reviews`);
-
   console.log('❤️ Seeding favorites...');
   const favorites = await Promise.all([
     prisma.favorite.create({
@@ -1080,7 +1048,6 @@ async function main() {
   console.log(`   - Orders: ${orders.length}`);
   console.log(`   - Auctions: ${auctions.length}`);
   console.log(`   - Bids: ${bids.length}`);
-  console.log(`   - Reviews: ${reviews.length}`);
   console.log(`   - Favorites: ${favorites.length}`);
   console.log(`   - Notifications: ${notifications.length}`);
 }

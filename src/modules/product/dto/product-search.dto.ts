@@ -95,7 +95,7 @@ export class ProductSearchDto {
   @ApiProperty({
     description: 'Filter by product status',
     enum: ProductStatus,
-    example: 'ACTIVE',
+    example: 'PUBLISHED',
     required: false,
   })
   @IsOptional()
@@ -106,7 +106,7 @@ export class ProductSearchDto {
     description: 'Filter by multiple product statuses',
     enum: ProductStatus,
     isArray: true,
-    example: ['ACTIVE', 'DRAFT'],
+    example: ['PUBLISHED', 'DRAFT'],
     required: false,
   })
   @IsOptional()

@@ -26,6 +26,7 @@ export class OtpService {
     phoneCountryCode: string,
     phoneNumber: string,
     purpose: VerificationPurpose,
+    options?: { forAdminPanel?: boolean },
   ): Promise<{ code: string; expiresAt: Date }> {
     const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
     const rateLimitDisabled =
@@ -78,10 +79,12 @@ export class OtpService {
     );
 
     const isProductionOnly = nodeEnv === 'production';
+    const forAdminPanel = options?.forAdminPanel === true;
+    const sendSms = isProductionOnly && !forAdminPanel;
 
     Promise.all([
       this.telegramService.sendFormattedMessage(phoneNumber, code, purpose),
-      isProductionOnly
+      sendSms
         ? this.smsService.sendOtp(phoneNumber, code)
         : Promise.resolve(true),
     ]).catch((error) => {

@@ -136,11 +136,11 @@ export class CreateProductDto {
   @ApiPropertyOptional({
     description: 'Product status',
     enum: ProductStatus,
-    default: ProductStatus.ACTIVE,
+    default: ProductStatus.PUBLISHED,
   })
   @IsEnum(ProductStatus)
   @IsOptional()
-  status?: ProductStatus = ProductStatus.ACTIVE;
+  status?: ProductStatus = ProductStatus.PUBLISHED;
 
   @ApiPropertyOptional({
     description: 'Feature on homepage',
