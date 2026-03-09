@@ -3,6 +3,12 @@ WORKDIR /app
 
 RUN npm install -g npm@latest
 
+# OpenSSL required for Prisma client generation (detection + native/WASM modules)
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends openssl ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
 COPY prisma ./prisma/
 COPY tsconfig*.json nest-cli.json ./
