@@ -218,11 +218,12 @@ export class PaymentService {
           `Added ${payment.amount.toString()} to balance for user ${payment.userId}`,
         );
       } else {
+        const creditsToAdd = Math.max(1, payment.quantity ?? 1);
         updateData.publicationCredits = {
-          increment: payment.quantity,
+          increment: creditsToAdd,
         };
         this.logger.log(
-          `Added ${payment.quantity} credits to user ${payment.userId}`,
+          `Added ${creditsToAdd} publication credit(s) to user ${payment.userId}`,
         );
       }
 
@@ -231,8 +232,13 @@ export class PaymentService {
         data: updateData,
       });
 
+      const creditsAdded =
+        payment.paymentType !== PaymentType.TOP_UP
+          ? Math.max(1, payment.quantity ?? 1)
+          : undefined;
+
       this.logger.log(
-        `User ${payment.userId} updated: ${payment.paymentType === PaymentType.TOP_UP ? `balance += ${payment.amount.toString()}` : `publicationCredits += ${payment.quantity}`}`,
+        `User ${payment.userId} updated: ${payment.paymentType === PaymentType.TOP_UP ? `balance += ${payment.amount.toString()}` : `publicationCredits += ${creditsAdded}`}`,
       );
 
       return {
@@ -240,7 +246,7 @@ export class PaymentService {
         message: 'Payment completed successfully',
         ...(payment.paymentType === PaymentType.TOP_UP
           ? { balanceAdded: Number(payment.amount) }
-          : { creditsAdded: payment.quantity }),
+          : { creditsAdded }),
       };
     });
 
@@ -251,7 +257,9 @@ export class PaymentService {
       quantity: payment.quantity,
       ...(payment.paymentType === PaymentType.TOP_UP
         ? { balanceAdded: Number(payment.amount) }
-        : { creditsAdded: payment.quantity }),
+        : {
+            creditsAdded: Math.max(1, payment.quantity ?? 1),
+          }),
       timestamp: new Date().toISOString(),
     });
 

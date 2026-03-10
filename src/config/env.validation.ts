@@ -152,6 +152,18 @@ class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
+  TELEGRAM_TOPIC_ID?: string;
+
+  @IsString()
+  @IsOptional()
+  TELEGRAM_TOPIC_ID_OTP?: string;
+
+  @IsString()
+  @IsOptional()
+  TELEGRAM_TOPIC_ID_MODERATION?: string;
+
+  @IsString()
+  @IsOptional()
   PAYMENT_SECRET_KEY?: string;
 
   @IsString()

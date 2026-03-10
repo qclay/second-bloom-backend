@@ -98,6 +98,11 @@ export class AppController {
       return { ok: true };
     }
 
+    const rejectionReasonText =
+      action === 'reject'
+        ? 'Отклонено через бота Telegram (уточните причину в админке при необходимости)'
+        : undefined;
+
     try {
       await this.productService.moderateProduct(
         productId,
@@ -106,9 +111,7 @@ export class AppController {
         {
           action: action === 'approve' ? 'approve' : 'reject',
           rejectionReason:
-            action === 'reject'
-              ? 'Rejected via Telegram moderation bot'
-              : undefined,
+            action === 'reject' ? rejectionReasonText : undefined,
         },
       );
 
@@ -116,7 +119,7 @@ export class AppController {
       const statusLine =
         action === 'approve'
           ? '\n\n✅ ОПУБЛИКОВАНО'
-          : '\n\n❌ ОТКЛОНЕНО (Telegram)';
+          : `\n\n❌ ОТКЛОНЕНО \nПричина: ${rejectionReasonText ?? 'Не указана'}`;
 
       await this.telegramService.editMessageText({
         chatId: message.chat.id,

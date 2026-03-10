@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const API_BASE = window.TEST_APP_API_BASE || 'https://api.secondbloom.uz';
+  const API_BASE = 'http://localhost:3000';
   const API_PREFIX = '/api/v1';
 
   const TRANSLATIONS = {

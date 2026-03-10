@@ -9,6 +9,8 @@ export class TelegramService implements ITelegramService {
   private readonly logger = new Logger(TelegramService.name);
   private readonly botToken: string;
   private readonly chatId: string;
+  private readonly topicIdOtp: number | undefined;
+  private readonly topicIdModeration: number | undefined;
   private readonly enabled: boolean;
   private readonly apiUrl: string;
 
@@ -18,19 +20,34 @@ export class TelegramService implements ITelegramService {
   ) {
     this.botToken = this.configService.get<string>('telegram.botToken', '');
     this.chatId = this.configService.get<string>('telegram.chatId', '');
+    this.topicIdOtp = this.configService.get<number | undefined>(
+      'telegram.topicIdOtp',
+      undefined,
+    );
+    this.topicIdModeration = this.configService.get<number | undefined>(
+      'telegram.topicIdModeration',
+      undefined,
+    );
     this.enabled = this.configService.get<boolean>('telegram.enabled', false);
     this.apiUrl = `https://api.telegram.org/bot${this.botToken}`;
 
     if (this.enabled && this.botToken && this.chatId) {
-      this.logger.log('Telegram service initialized successfully');
+      this.logger.log(
+        `Telegram initialized: chat_id=${this.chatId}, topic_otp=${this.topicIdOtp ?? 'none'}, topic_moderation=${this.topicIdModeration ?? 'none'}`,
+      );
     } else {
-      this.logger.warn('Telegram service is not configured or disabled');
+      const missing: string[] = [];
+      if (!this.botToken) missing.push('TELEGRAM_BOT_TOKEN');
+      if (!this.chatId) missing.push('TELEGRAM_CHAT_ID');
+      this.logger.warn(
+        `Telegram not configured. Add to .env and restart: ${missing.join(', ')}`,
+      );
     }
   }
 
   async sendOtp(phoneNumber: string, code: string): Promise<boolean> {
     const message = this.formatOtpMessage(phoneNumber, code);
-    return this.sendMessage(message);
+    return this.sendMessage(message, { topic: 'otp' });
   }
 
   async sendFormattedMessage(
@@ -39,16 +56,16 @@ export class TelegramService implements ITelegramService {
     purpose?: string,
   ): Promise<boolean> {
     const message = this.formatOtpMessage(phoneNumber, code, purpose);
-    return this.sendMessage(message);
+    return this.sendMessage(message, { topic: 'otp' });
   }
 
   async sendMessage(
     message: string,
-    extra?: Record<string, unknown>,
+    extra?: Record<string, unknown> & { topic?: 'otp' | 'moderation' },
   ): Promise<boolean> {
     if (!this.enabled || !this.botToken) {
       this.logger.warn(
-        `Telegram service not configured. Would send: ${message}`,
+        'Telegram not configured. Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to .env, then restart the app.',
       );
       return true;
     }
@@ -58,16 +75,27 @@ export class TelegramService implements ITelegramService {
       return false;
     }
 
+    const { topic, ...rest } = extra ?? {};
+    const topicId =
+      topic === 'otp'
+        ? this.topicIdOtp
+        : topic === 'moderation'
+          ? this.topicIdModeration
+          : undefined;
+
     try {
       const url = `${this.apiUrl}/sendMessage`;
 
+      const payload: Record<string, unknown> = {
+        chat_id: this.chatId,
+        text: message,
+        parse_mode: 'HTML',
+        ...(topicId != null ? { message_thread_id: topicId } : {}),
+        ...rest,
+      };
+
       const response = await firstValueFrom(
-        this.httpService.post(url, {
-          chat_id: this.chatId,
-          text: message,
-          parse_mode: 'HTML',
-          ...(extra ?? {}),
-        }),
+        this.httpService.post(url, payload),
       );
 
       if (response.data.ok) {
@@ -77,14 +105,93 @@ export class TelegramService implements ITelegramService {
         this.logger.error('Telegram API returned error', response.data);
         return false;
       }
-    } catch (error) {
-      if (error.response) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: unknown }; message?: string };
+      if (err.response?.data) {
         this.logger.error(
-          'Failed to send message to Telegram',
-          error.response.data,
+          'Telegram API error (check bot token, chat_id, and that bot is in the group):',
+          err.response.data,
         );
       } else {
-        this.logger.error('Failed to send message to Telegram', error.message);
+        this.logger.error(
+          'Failed to send to Telegram:',
+          err.message ?? String(error),
+        );
+      }
+      return false;
+    }
+  }
+
+  async sendMediaGroup(
+    photoUrls: string[],
+    caption: string,
+    options?: { topic?: 'otp' | 'moderation' },
+  ): Promise<boolean> {
+    if (!this.enabled || !this.botToken) {
+      this.logger.warn(
+        'Telegram not configured. Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to .env, then restart the app.',
+      );
+      return true;
+    }
+
+    if (!this.chatId) {
+      this.logger.error('Telegram chat ID not configured');
+      return false;
+    }
+
+    if (!photoUrls.length) {
+      this.logger.warn('sendMediaGroup: no photo URLs provided');
+      return false;
+    }
+
+    const { topic } = options ?? {};
+    const topicId =
+      topic === 'otp'
+        ? this.topicIdOtp
+        : topic === 'moderation'
+          ? this.topicIdModeration
+          : undefined;
+
+    const maxCaptionLength = 1024;
+    const safeCaption =
+      caption.length > maxCaptionLength
+        ? caption.slice(0, maxCaptionLength - 3) + '...'
+        : caption;
+
+    const media = photoUrls.slice(0, 10).map((url, index) => ({
+      type: 'photo' as const,
+      media: url,
+      parse_mode: 'HTML' as const,
+      ...(index === 0 ? { caption: safeCaption } : {}),
+    }));
+
+    try {
+      const url = `${this.apiUrl}/sendMediaGroup`;
+      const payload: Record<string, unknown> = {
+        chat_id: this.chatId,
+        media,
+        ...(topicId != null ? { message_thread_id: topicId } : {}),
+      };
+
+      const response = await firstValueFrom(
+        this.httpService.post(url, payload),
+      );
+
+      if (response.data?.ok) {
+        this.logger.log(`Telegram media group sent (${media.length} photo(s))`);
+        return true;
+      }
+      this.logger.error('Telegram sendMediaGroup API error', response.data);
+      return false;
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: unknown }; message?: string };
+      if (err.response?.data) {
+        this.logger.error('Telegram sendMediaGroup error:', err.response.data);
+      } else {
+        this.logger.error(
+          'Failed to send Telegram media group:',
+          err.message ?? String(error),
+        );
       }
       return false;
     }

@@ -32,7 +32,7 @@ export class OtpService {
     const rateLimitDisabled =
       this.configService.get<string>('OTP_RATE_LIMIT_DISABLED', 'false') ===
       'true';
-    const isProduction = nodeEnv === 'production' || nodeEnv === 'staging';
+    const isProduction = nodeEnv === 'production';
 
     if (isProduction && !rateLimitDisabled) {
       const existingCode =

@@ -253,6 +253,7 @@ export class ProductService {
             id: true,
             firstName: true,
             lastName: true,
+            phoneCountryCode: true,
             phoneNumber: true,
           },
         },
@@ -262,7 +263,7 @@ export class ProductService {
         regionRelation: { select: { name: true } },
         images: {
           where: { deletedAt: null, isActive: true },
-          take: 4,
+          take: 10,
           include: { file: { select: { url: true } } },
           orderBy: { displayOrder: 'asc' },
         },
@@ -275,38 +276,39 @@ export class ProductService {
       product.seller?.firstName,
       product.seller?.lastName,
     ].filter(Boolean);
-    const sellerName =
-      sellerNameParts.join(' ') ||
-      product.seller?.phoneNumber ||
-      product.seller?.id;
+    const sellerName = sellerNameParts.join(' ') || '';
 
+    const ru = 'ru' as const;
     const title =
-      resolveTranslation(
-        product.title as Record<string, string> | null,
-        null,
-      ) ?? '';
+      resolveTranslation(product.title as Record<string, string> | null, ru) ??
+      '';
+    const DESCRIPTION_MAX_LENGTH = 80;
+    const descriptionRaw = product.description as Record<string, string> | null;
+    const descriptionResolved =
+      descriptionRaw && typeof descriptionRaw === 'object'
+        ? resolveTranslation(descriptionRaw, ru)
+        : null;
+    const fullDescription = descriptionResolved?.trim() ?? '';
+    const description = fullDescription.slice(0, DESCRIPTION_MAX_LENGTH);
     const cityRaw = product.cityRelation?.name ?? product.regionRelation?.name;
     const cityName =
       typeof cityRaw === 'string'
         ? cityRaw
         : cityRaw && typeof cityRaw === 'object'
-          ? resolveTranslation(
-              cityRaw as unknown as Record<string, string>,
-              null,
-            )
+          ? resolveTranslation(cityRaw as unknown as Record<string, string>, ru)
           : undefined;
     const size =
       product.size?.name && typeof product.size.name === 'object'
         ? resolveTranslation(
             product.size.name as unknown as Record<string, string>,
-            null,
+            ru,
           )
         : (product.size?.name as unknown as string | undefined);
     const condition =
       product.condition?.name && typeof product.condition.name === 'object'
         ? resolveTranslation(
             product.condition.name as unknown as Record<string, string>,
-            null,
+            ru,
           )
         : (product.condition?.name as unknown as string | undefined);
 
@@ -322,45 +324,67 @@ export class ProductService {
       .map((img) => img.file?.url)
       .filter((url): url is string => Boolean(url));
 
+    const countryCode = product.seller?.phoneCountryCode?.trim() ?? '';
+    const rawPhone = product.seller?.phoneNumber ?? '';
+    const phoneDisplay = !rawPhone
+      ? '—'
+      : countryCode
+        ? `${countryCode.startsWith('+') ? countryCode : `+${countryCode}`}${rawPhone}`
+        : rawPhone;
+
+    const priceFormatted = price.toLocaleString('ru-RU');
+    const currencyLabel = product.currency === 'UZS' ? 'сум' : product.currency;
+
     const header = '🆕 <b>Новый товар на модерации</b>';
-    const lines = [
+    const captionLines = [
       `Автор: <b>${sellerName}</b>`,
-      `ID товара: <code>${product.id}</code>`,
-      title ? `Описание товара: <b>${title}</b>` : '',
+      `Телефон: <code>${phoneDisplay}</code>`,
+      title ? `Название: <b>${title}</b>` : '',
+      description
+        ? `Описание: ${description}${fullDescription.length > DESCRIPTION_MAX_LENGTH ? '…' : ''}`
+        : '',
       cityName ? `Город: ${cityName}` : '',
       size ? `Размер: ${size}` : '',
       condition ? `Состояние: ${condition}` : '',
-      `Цена: <b>${price.toLocaleString('ru-RU')} ${product.currency}</b>`,
+      `Цена: <b>${priceFormatted} ${currencyLabel}</b>`,
       '',
-      imageUrls.length
-        ? imageUrls.map((u, idx) => `Фото ${idx + 1}: ${u}`).join('\n')
-        : '',
-      '',
-      'Статус: <b>PENDING</b>',
+      'Статус: <b>На модерации</b>',
     ]
       .filter(Boolean)
       .join('\n');
 
-    const message = `${header}\n\n${lines}`;
-
-    await this.telegramService.sendMessage(message, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: '✅ Опубликовать пост',
-              callback_data: `product:approve:${product.id}`,
-            },
-          ],
-          [
-            {
-              text: '✏️ Отправить на обновление',
-              callback_data: `product:reject:${product.id}`,
-            },
-          ],
+    const caption = `${header}\n\n${captionLines}`;
+    const replyMarkup = {
+      inline_keyboard: [
+        [
+          {
+            text: '✅ Опубликовать пост',
+            callback_data: `product:approve:${product.id}`,
+          },
         ],
-      },
-    });
+        [
+          {
+            text: '✏️ Отправить на обновление',
+            callback_data: `product:reject:${product.id}`,
+          },
+        ],
+      ],
+    };
+
+    if (imageUrls.length > 0) {
+      await this.telegramService.sendMediaGroup(imageUrls, caption, {
+        topic: 'moderation',
+      });
+      await this.telegramService.sendMessage(caption, {
+        topic: 'moderation',
+        reply_markup: replyMarkup,
+      });
+    } else {
+      await this.telegramService.sendMessage(caption, {
+        topic: 'moderation',
+        reply_markup: replyMarkup,
+      });
+    }
   }
 
   async findAll(query: ProductQueryDto, user?: { id: string; role: UserRole }) {
