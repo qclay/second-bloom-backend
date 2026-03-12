@@ -22,6 +22,7 @@ import {
 } from '../../infrastructure/firebase/firebase-service.interface';
 import { Inject } from '@nestjs/common';
 import { PresenceService } from '../../redis/presence.service';
+import { DeviceTokensService } from '../../redis/device-tokens.service';
 
 @Injectable()
 export class NotificationService {
@@ -33,6 +34,7 @@ export class NotificationService {
     @Inject(FIREBASE_SERVICE_TOKEN)
     private readonly firebaseService: IFirebaseService,
     private readonly presenceService: PresenceService,
+    private readonly deviceTokensService: DeviceTokensService,
   ) {}
 
   private getUserLanguage(user: {
@@ -365,7 +367,12 @@ export class NotificationService {
       `Notification created: ${notification.id} for user ${user.id}, type: ${type}`,
     );
 
-    if (user.fcmToken) {
+    const deviceTokens = await this.deviceTokensService.getTokens(user.id);
+    const tokens = deviceTokens.length > 0
+      ? deviceTokens
+      : (user.fcmToken ? [user.fcmToken] : []);
+
+    if (tokens.length > 0) {
       try {
         const notificationData: Record<string, string> = {
           notificationId: notification.id,
@@ -381,33 +388,22 @@ export class NotificationService {
         };
 
         const deliveryMode = await this.getDeliveryModeForType(type, user.id);
-        const sent = await this.firebaseService.sendNotification(
-          user.fcmToken,
+        const { success, failure } = await this.firebaseService.sendNotificationToMultiple(
+          tokens,
           title,
           message,
           notificationData,
           { deliveryMode },
         );
 
-        if (sent) {
+        if (success > 0) {
           this.logger.log(
-            `FCM push notification sent to user ${user.id} for notification ${notification.id}`,
+            `FCM multicast sent for notification ${notification.id}: ${success} success, ${failure} failure (user ${user.id})`,
           );
         } else {
           this.logger.warn(
-            `Failed to send FCM push notification to user ${user.id} for notification ${notification.id}. Token may be invalid.`,
+            `Failed to send FCM push notifications to user ${user.id} for notification ${notification.id}. Tokens may be invalid.`,
           );
-
-          const isValid = this.firebaseService.validateToken(user.fcmToken);
-          if (!isValid) {
-            await this.prisma.user.update({
-              where: { id: user.id },
-              data: { fcmToken: null },
-            });
-            this.logger.log(
-              `Removed invalid FCM token format for user ${user.id}`,
-            );
-          }
         }
       } catch (error) {
         this.logger.error(

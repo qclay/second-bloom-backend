@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { RedisService } from './redis.service';
 import { PresenceService } from './presence.service';
+import { DeviceTokensService } from './device-tokens.service';
 
 @Global()
 @Module({
@@ -49,7 +50,8 @@ import { PresenceService } from './presence.service';
     },
     RedisService,
     PresenceService,
+    DeviceTokensService,
   ],
-  exports: ['REDIS_CLIENT', RedisService, PresenceService],
+  exports: ['REDIS_CLIENT', RedisService, PresenceService, DeviceTokensService],
 })
 export class RedisModule {}

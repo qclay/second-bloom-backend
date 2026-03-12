@@ -4,6 +4,15 @@ import { Transform } from 'class-transformer';
 
 export class UpdateFcmTokenDto {
   @ApiPropertyOptional({
+    description: 'Stable device identifier to map FCM token per device',
+    example: 'ios-iphone14-pro-max-abcdef123456',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  deviceId?: string;
+
+  @ApiPropertyOptional({
     description:
       'Firebase Cloud Messaging token. Omit or pass null/empty string to clear token (e.g. on logout).',
     example: 'fGhJkLmNoPqRsTuVwXyZ1234567890',

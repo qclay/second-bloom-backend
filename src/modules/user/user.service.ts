@@ -27,6 +27,7 @@ import {
 import { OtpService } from '../auth/services/otp.service';
 import { MessageResponseDto } from '../auth/dto/message-response.dto';
 import { AddPublicationCreditsDto } from './dto/add-publication-credits.dto';
+import { DeviceTokensService } from '../../redis/device-tokens.service';
 
 @Injectable()
 export class UserService {
@@ -38,6 +39,7 @@ export class UserService {
     @Inject(FIREBASE_SERVICE_TOKEN)
     private readonly firebaseService: IFirebaseService,
     private readonly otpService: OtpService,
+    private readonly deviceTokensService: DeviceTokensService,
   ) {}
 
   private async validateEmailUniqueness(
@@ -339,6 +341,18 @@ export class UserService {
           `Invalid FCM token format provided by user ${userId}. Token will be saved but may not work.`,
         );
       }
+    }
+
+    if (dto.deviceId) {
+      await this.deviceTokensService.setToken(
+        userId,
+        dto.deviceId,
+        dto.fcmToken || null,
+      );
+    } else {
+      this.logger.debug(
+        `updateFcmToken called without deviceId for user ${userId}; updating single user.fcmToken only`,
+      );
     }
 
     const updatedUser = await this.userRepository.updateFcmToken(
