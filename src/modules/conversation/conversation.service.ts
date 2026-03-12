@@ -1158,6 +1158,8 @@ export class ConversationService {
     return {
       id: conversation.id,
       flowerId: conv.product?.id ?? null,
+      flowerImageUrl:
+        conv.product?.images?.[0]?.file?.url ?? null,
       participants,
       unreadCount: myParticipant?.unreadCount ?? 0,
       isArchived: myParticipant?.isArchived ?? false,
