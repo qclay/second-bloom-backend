@@ -21,6 +21,7 @@ import {
   FIREBASE_SERVICE_TOKEN,
 } from '../../infrastructure/firebase/firebase-service.interface';
 import { Inject } from '@nestjs/common';
+import { PresenceService } from '../../redis/presence.service';
 
 @Injectable()
 export class NotificationService {
@@ -31,6 +32,7 @@ export class NotificationService {
     private readonly prisma: PrismaService,
     @Inject(FIREBASE_SERVICE_TOKEN)
     private readonly firebaseService: IFirebaseService,
+    private readonly presenceService: PresenceService,
   ) {}
 
   private getUserLanguage(user: {
@@ -41,26 +43,21 @@ export class NotificationService {
     return 'uz';
   }
 
-  private getDeliveryModeForType(
+  private async getDeliveryModeForType(
     type: NotificationType,
-  ): 'data-only' | 'notification' {
-    switch (type) {
-      // Auctions and chat-like realtime: data-only
-      case NotificationType.NEW_BID:
-      case NotificationType.OUTBID:
-      case NotificationType.BID_REJECTED:
-      case NotificationType.AUCTION_ENDED:
-      case NotificationType.AUCTION_ENDING_SOON:
-        return 'data-only';
-      // Orders and system: show OS banner as well
-      case NotificationType.ORDER_CONFIRMED:
-      case NotificationType.ORDER_SHIPPED:
-      case NotificationType.ORDER_DELIVERED:
-      case NotificationType.SYSTEM:
-      case NotificationType.AUCTION_STARTED:
-      default:
-        return 'notification';
+    userId: string,
+  ): Promise<'data-only' | 'notification'> {
+    if (
+      type === NotificationType.NEW_BID ||
+      type === NotificationType.OUTBID ||
+      type === NotificationType.BID_REJECTED ||
+      type === NotificationType.AUCTION_ENDED ||
+      type === NotificationType.AUCTION_ENDING_SOON
+    ) {
+      const online = await this.presenceService.isOnline(userId);
+      return online ? 'data-only' : 'notification';
     }
+    return 'notification';
   }
 
   private isNotificationEnabled(
@@ -383,7 +380,7 @@ export class NotificationService {
             : {}),
         };
 
-        const deliveryMode = this.getDeliveryModeForType(type);
+        const deliveryMode = await this.getDeliveryModeForType(type, user.id);
         const sent = await this.firebaseService.sendNotification(
           user.fcmToken,
           title,

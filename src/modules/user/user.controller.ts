@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Put,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -34,11 +35,15 @@ import {
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
+import { PresenceService } from '../../redis/presence.service';
 
 @ApiTags('Users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly presenceService: PresenceService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -181,6 +186,18 @@ export class UserController {
     @Body() updateFcmTokenDto: UpdateFcmTokenDto,
   ): Promise<UserResponseDto> {
     return this.userService.updateFcmToken(user.id, updateFcmTokenDto);
+  }
+
+  @Put('presence')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Ping presence while app is in foreground' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
+  @ApiResponse({ status: 204, description: 'Presence updated' })
+  async presencePing(@CurrentUser() user: { id: string }): Promise<void> {
+    await this.presenceService.ping(user.id);
+    return;
   }
 
   @Delete('profile')

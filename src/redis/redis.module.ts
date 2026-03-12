@@ -2,6 +2,7 @@ import { Global, Module, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { RedisService } from './redis.service';
+import { PresenceService } from './presence.service';
 
 @Global()
 @Module({
@@ -47,7 +48,8 @@ import { RedisService } from './redis.service';
       inject: [ConfigService],
     },
     RedisService,
+    PresenceService,
   ],
-  exports: ['REDIS_CLIENT', RedisService],
+  exports: ['REDIS_CLIENT', RedisService, PresenceService],
 })
 export class RedisModule {}
