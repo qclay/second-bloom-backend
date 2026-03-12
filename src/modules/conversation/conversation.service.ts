@@ -239,55 +239,83 @@ export class ConversationService {
     userId: string,
   ): Promise<ConversationResponseDto> {
     const product = await this.prisma.product.findFirst({
-      where: { id: productId, deletedAt: null, isActive: true },
-      select: { sellerId: true },
+      where: {
+        id: productId,
+        deletedAt: null,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        sellerId: true,
+      },
     });
+
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-    const sellerId = product.sellerId;
-    if (sellerId === userId) {
+
+    if (product.sellerId === userId) {
       throw new BadRequestException(
-        'You cannot start a chat with yourself about your own product',
+        'Cannot create conversation with yourself about your own product',
       );
     }
 
-    const existing = await this.prisma.conversation.findFirst({
+    const existingConversation = await this.prisma.conversation.findFirst({
       where: {
         productId,
+        orderId: null,
         deletedAt: null,
-        isActive: true,
+        participants: {
+          every: {
+            userId: {
+              in: [userId, product.sellerId],
+            },
+          },
+          some: {
+            userId,
+          },
+        },
         AND: [
-          { participants: { some: { userId: sellerId } } },
-          { participants: { some: { userId } } },
+          {
+            participants: {
+              some: {
+                userId: product.sellerId,
+              },
+            },
+          },
         ],
       },
       include: CONVERSATION_INCLUDE,
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    if (existing) {
+    if (existingConversation) {
       return this.mapConversationToDto(
-        existing as unknown as ConversationWithRelations,
+        existingConversation as ConversationWithRelations,
         userId,
       );
     }
 
-    const created = await this.prisma.conversation.create({
+    const createdConversation = await this.prisma.conversation.create({
       data: {
-        productId,
+        product: {
+          connect: { id: productId },
+        },
         participants: {
-          create: [{ userId: sellerId }, { userId }],
+          create: [{ userId }, { userId: product.sellerId }],
         },
       },
       include: CONVERSATION_INCLUDE,
     });
 
     this.logger.log(
-      `Conversation created for product ${productId} (seller: ${sellerId}, buyer: ${userId})`,
+      `Conversation created for product ${productId} between ${userId} and seller ${product.sellerId}`,
     );
 
     return this.mapConversationToDto(
-      created as unknown as ConversationWithRelations,
+      createdConversation as ConversationWithRelations,
       userId,
     );
   }
@@ -1130,7 +1158,6 @@ export class ConversationService {
     return {
       id: conversation.id,
       flowerId: conv.product?.id ?? null,
-      flowerImageUrl: conv.product?.images?.[0]?.file?.url ?? null,
       participants,
       unreadCount: myParticipant?.unreadCount ?? 0,
       isArchived: myParticipant?.isArchived ?? false,

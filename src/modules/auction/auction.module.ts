@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { BullModule } from '@nestjs/bull';
 import { AuctionService } from './auction.service';
 import { AuctionController } from './auction.controller';
 import { AuctionRepository } from './repositories/auction.repository';
@@ -11,12 +12,16 @@ import {
   ConfigModule as NestConfigModule,
   ConfigService,
 } from '@nestjs/config';
+import { AuctionSchedulingService } from './auction-scheduling.service';
 
 @Module({
   imports: [
     forwardRef(() => ProductModule),
     forwardRef(() => BidModule),
     NotificationModule,
+    BullModule.registerQueue({
+      name: 'auction',
+    }),
     JwtModule.registerAsync({
       imports: [NestConfigModule],
       useFactory: (configService: ConfigService) => {
@@ -32,7 +37,12 @@ import {
     }),
   ],
   controllers: [AuctionController],
-  providers: [AuctionService, AuctionRepository, AuctionGateway],
-  exports: [AuctionService, AuctionRepository, AuctionGateway],
+  providers: [AuctionService, AuctionRepository, AuctionGateway, AuctionSchedulingService],
+  exports: [
+    AuctionService,
+    AuctionRepository,
+    AuctionGateway,
+    AuctionSchedulingService,
+  ],
 })
-export class AuctionModule {}
+export class AuctionModule { }

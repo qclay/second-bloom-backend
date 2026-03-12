@@ -42,12 +42,9 @@ export const setupSwagger = (app: INestApplication): void => {
     new DocumentBuilder()
       .setTitle('Second Bloom API')
       .setVersion('1.0.0')
-      .setDescription(
-        'Second Bloom API Documentation. WebSocket (chat, auctions): see docs/WEBSOCKET.md',
-      )
-      .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' }
-      )
+      .setDescription('Second Bloom API Documentation')
+      // @ApiBearerAuth() handles access-token
+      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
       .build(),
     {
       extraModels: [

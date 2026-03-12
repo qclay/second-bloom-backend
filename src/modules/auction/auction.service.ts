@@ -21,6 +21,7 @@ import {
   isTranslationRecord,
   resolveTranslation,
 } from '../../common/i18n/translation.util';
+import { AuctionSchedulingService } from './auction-scheduling.service';
 
 @Injectable()
 export class AuctionService {
@@ -32,6 +33,7 @@ export class AuctionService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly auctionGateway: AuctionGateway,
+    private readonly auctionSchedulingService: AuctionSchedulingService,
   ) {}
 
   async createAuction(
@@ -127,6 +129,8 @@ export class AuctionService {
         });
       },
     );
+
+    await this.safeScheduleAuctionJob(auction.id, new Date(auction.endTime));
 
     this.logger.log(
       `Auction created: ${auction.id} for product ${dto.productId}`,
@@ -338,6 +342,8 @@ export class AuctionService {
     }
 
     const updateData: Prisma.AuctionUpdateInput = {};
+    let updatedEndTime: Date | null = null;
+    let shouldCancelJob = false;
 
     if (dto.endTime !== undefined) {
       const endTime = new Date(dto.endTime);
@@ -345,6 +351,7 @@ export class AuctionService {
         throw new BadRequestException('End time must be in the future');
       }
       updateData.endTime = endTime;
+      updatedEndTime = endTime;
     }
 
     if (dto.startPrice !== undefined) {
@@ -392,10 +399,17 @@ export class AuctionService {
       if (dto.status === 'CANCELLED') {
         updateData.deletedAt = new Date();
         updateData.deletedBy = userId;
+        shouldCancelJob = true;
       }
     }
 
     await this.auctionRepository.update(id, updateData);
+    if (shouldCancelJob) {
+      await this.safeCancelAuctionJob(id);
+    } else if (updatedEndTime) {
+      await this.safeRescheduleAuctionJob(id, updatedEndTime);
+    }
+
     return this.findById(id);
   }
 
@@ -419,6 +433,7 @@ export class AuctionService {
     }
 
     await this.auctionRepository.softDelete(id, userId);
+    await this.safeCancelAuctionJob(id);
   }
 
   async chooseWinner(
@@ -434,9 +449,7 @@ export class AuctionService {
     }
 
     if (auction.creatorId !== userId && userRole !== UserRole.ADMIN) {
-      throw new ForbiddenException(
-        'You can only set winner for your own auctions',
-      );
+      throw new ForbiddenException('You can only set winner for your own auctions');
     }
 
     if (auction.status !== 'ENDED') {
@@ -530,7 +543,7 @@ export class AuctionService {
     if (auction.status !== 'ACTIVE') {
       throw new BadRequestException(
         'Only active auctions can be closed early. Auction status: ' +
-          auction.status,
+        auction.status,
       );
     }
 
@@ -540,90 +553,13 @@ export class AuctionService {
       );
     }
 
-    const winningBid = await this.prisma.bid.findFirst({
-      where: {
-        auctionId,
-        isWinning: true,
-        isRetracted: false,
-      },
-      select: { id: true, bidderId: true },
-    });
+    await this.safeCancelAuctionJob(auctionId);
 
-    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      await tx.auction.update({
-        where: { id: auctionId },
-        data: {
-          status: 'ENDED',
-          winnerId: winningBid?.bidderId ?? null,
-        },
-      });
-
-      if (winningBid) {
-        await tx.bid.updateMany({
-          where: {
-            auctionId,
-            id: { not: winningBid.id },
-            isWinning: true,
-          },
-          data: { isWinning: false },
-        });
-      }
-    });
+    const updated = await this.finalizeAuction(auctionId, auction.productId);
 
     this.logger.log(
-      `Auction ${auctionId} closed early by user ${userId}. Winner: ${winningBid?.bidderId ?? 'none'}`,
+      `Auction ${auctionId} closed early by user ${userId}. Winner: ${updated.winnerId ?? 'none'}`,
     );
-
-    const participants = await this.prisma.bid.findMany({
-      where: { auctionId, isRetracted: false },
-      select: { bidderId: true },
-      distinct: ['bidderId'],
-    });
-    const product = await this.prisma.product.findUnique({
-      where: { id: auction.productId },
-      select: { title: true },
-    });
-    const productTitleRaw = product?.title ?? null;
-    const productTitle =
-      typeof productTitleRaw === 'string'
-        ? productTitleRaw
-        : isTranslationRecord(productTitleRaw)
-          ? (resolveTranslation(productTitleRaw, 'en') ?? undefined)
-          : undefined;
-    const winnerId = winningBid?.bidderId ?? null;
-
-    try {
-      await Promise.all(
-        participants.map((p) =>
-          this.notificationService.notifyAuctionEndedForParticipant({
-            userId: p.bidderId,
-            auctionId,
-            productId: auction.productId,
-            productTitle,
-            isWinner: winnerId !== null && p.bidderId === winnerId,
-          }),
-        ),
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to send AUCTION_ENDED notifications for auction ${auctionId}`,
-        error instanceof Error ? error.stack : error,
-      );
-    }
-
-    const updated = await this.findById(auctionId);
-    try {
-      this.auctionGateway.notifyAuctionEnded(
-        auctionId,
-        updated,
-        updated.winnerId ?? null,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to emit auction_ended WebSocket for auction ${auctionId}`,
-        error instanceof Error ? error.stack : error,
-      );
-    }
 
     return updated;
   }
@@ -662,6 +598,7 @@ export class AuctionService {
           this.logger.log(
             `Auction ${auctionId} extended until ${newEndTime.toISOString()}`,
           );
+          await this.safeRescheduleAuctionJob(auctionId, newEndTime);
           return true;
         }
 
@@ -718,19 +655,19 @@ export class AuctionService {
         }),
         productIds.length > 0
           ? this.prisma.product.findMany({
-              where: { id: { in: productIds } },
-              select: { id: true, title: true },
-            })
+            where: { id: { in: productIds } },
+            select: { id: true, title: true },
+          })
           : [],
         auctionIds.length > 0
           ? this.prisma.bid.findMany({
-              where: {
-                auctionId: { in: auctionIds },
-                isRetracted: false,
-              },
-              select: { auctionId: true, bidderId: true },
-              distinct: ['auctionId', 'bidderId'],
-            })
+            where: {
+              auctionId: { in: auctionIds },
+              isRetracted: false,
+            },
+            select: { auctionId: true, bidderId: true },
+            distinct: ['auctionId', 'bidderId'],
+          })
           : [],
       ]);
 
@@ -794,6 +731,8 @@ export class AuctionService {
             `Auction ${auction.id} ended. Winner: ${winningBid?.bidderId ?? 'none'}`,
           );
 
+          await this.safeCancelAuctionJob(auction.id);
+
           try {
             const productTitleRaw =
               productTitleByProductId.get(auction.productId) ?? null;
@@ -848,6 +787,148 @@ export class AuctionService {
       );
       throw error;
     }
+  }
+
+  async processAuctionCompletionJob(auctionId: string): Promise<void> {
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+      select: {
+        id: true,
+        status: true,
+        productId: true,
+        endTime: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!auction || auction.deletedAt) {
+      await this.safeCancelAuctionJob(auctionId);
+      this.logger.warn(
+        `Skipping completion job for auction ${auctionId}: not found or deleted`,
+      );
+      return;
+    }
+
+    if (auction.status !== 'ACTIVE') {
+      this.logger.log(
+        `Auction ${auctionId} completion job ignored: status is ${auction.status}`,
+      );
+      return;
+    }
+
+    if (auction.endTime > new Date()) {
+      this.logger.warn(
+        `Auction ${auctionId} completion job fired early. Rescheduling to ${auction.endTime.toISOString()}`,
+      );
+      await this.safeRescheduleAuctionJob(auctionId, auction.endTime);
+      return;
+    }
+
+    await this.finalizeAuction(auctionId, auction.productId);
+  }
+
+  private async finalizeAuction(
+    auctionId: string,
+    productId?: string | null,
+  ): Promise<AuctionResponseDto> {
+    const winningBid = await this.prisma.bid.findFirst({
+      where: {
+        auctionId,
+        isWinning: true,
+        isRetracted: false,
+      },
+      select: { id: true, bidderId: true },
+    });
+
+    let resolvedProductId = productId ?? null;
+    if (!resolvedProductId) {
+      const auctionRecord = await this.prisma.auction.findUnique({
+        where: { id: auctionId },
+        select: { productId: true },
+      });
+      resolvedProductId = auctionRecord?.productId ?? null;
+    }
+
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.auction.update({
+        where: { id: auctionId },
+        data: {
+          status: 'ENDED',
+          winnerId: winningBid?.bidderId ?? null,
+        },
+      });
+
+      if (winningBid) {
+        await tx.bid.updateMany({
+          where: {
+            auctionId,
+            id: { not: winningBid.id },
+            isWinning: true,
+          },
+          data: { isWinning: false },
+        });
+      }
+    });
+
+    const participants = await this.prisma.bid.findMany({
+      where: { auctionId, isRetracted: false },
+      select: { bidderId: true },
+      distinct: ['bidderId'],
+    });
+
+    let productTitle: string | undefined;
+    if (resolvedProductId) {
+      const product = await this.prisma.product.findUnique({
+        where: { id: resolvedProductId },
+        select: { title: true },
+      });
+      const productTitleRaw = product?.title ?? null;
+      productTitle =
+        typeof productTitleRaw === 'string'
+          ? productTitleRaw
+          : isTranslationRecord(productTitleRaw)
+            ? resolveTranslation(productTitleRaw, 'en') ?? undefined
+            : undefined;
+    }
+
+    const winnerId = winningBid?.bidderId ?? null;
+
+    if (resolvedProductId) {
+      try {
+        await Promise.all(
+          participants.map((p) =>
+            this.notificationService.notifyAuctionEndedForParticipant({
+              userId: p.bidderId,
+              auctionId,
+              productId: resolvedProductId!,
+              productTitle,
+              isWinner: winnerId !== null && p.bidderId === winnerId,
+            }),
+          ),
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to send AUCTION_ENDED notifications for auction ${auctionId}`,
+          error instanceof Error ? error.stack : error,
+        );
+      }
+    }
+
+    const updated = await this.findById(auctionId);
+    try {
+      this.auctionGateway.notifyAuctionEnded(
+        auctionId,
+        updated,
+        updated.winnerId ?? null,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to emit auction_ended WebSocket for auction ${auctionId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
+
+    return updated;
   }
 
   async getParticipants(auctionId: string): Promise<{
@@ -1089,5 +1170,47 @@ export class AuctionService {
       leaderboard,
       totalParticipants: leaderboard.length,
     };
+  }
+
+  private async safeScheduleAuctionJob(
+    auctionId: string,
+    endTime: Date,
+  ): Promise<void> {
+    try {
+      await this.auctionSchedulingService.scheduleAuctionEnd(auctionId, endTime);
+    } catch (error) {
+      this.logger.error(
+        `Failed to schedule auction job for ${auctionId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
+  }
+
+  private async safeRescheduleAuctionJob(
+    auctionId: string,
+    endTime: Date,
+  ): Promise<void> {
+    try {
+      await this.auctionSchedulingService.rescheduleAuctionEnd(
+        auctionId,
+        endTime,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to reschedule auction job for ${auctionId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
+  }
+
+  private async safeCancelAuctionJob(auctionId: string): Promise<void> {
+    try {
+      await this.auctionSchedulingService.cancelAuctionEnd(auctionId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to cancel auction job for ${auctionId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
   }
 }

@@ -7,6 +7,7 @@ import { AuthModule } from '../modules/auth/auth.module';
 import { ConversationModule } from '../modules/conversation/conversation.module';
 import { PaymentModule } from '../modules/payment/payment.module';
 import { EndExpiredAuctionsProcessor } from './auction/end-expired-auctions.processor';
+import { FinishAuctionProcessor } from './auction/finish-auction.processor';
 import { EndExpiredAuctionsScheduler } from './auction/end-expired-auctions.scheduler';
 import { CleanExpiredOtpsProcessor } from './auth/clean-expired-otps.processor';
 import { CleanExpiredOtpsScheduler } from './auth/clean-expired-otps.scheduler';
@@ -62,6 +63,7 @@ import { ExpirePendingPaymentsScheduler } from './payment/expire-pending-payment
   ],
   providers: [
     EndExpiredAuctionsProcessor,
+    FinishAuctionProcessor,
     EndExpiredAuctionsScheduler,
     CleanExpiredOtpsProcessor,
     CleanExpiredOtpsScheduler,

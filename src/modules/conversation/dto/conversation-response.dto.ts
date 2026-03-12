@@ -143,12 +143,6 @@ export class ConversationResponseDto {
   })
   flowerId?: string | null;
 
-  @ApiPropertyOptional({
-    description: 'URL of the flower (product) image',
-    example: 'https://cdn.example.com/flower.jpg',
-  })
-  flowerImageUrl?: string | null;
-
   @ApiProperty({
     type: [ConversationParticipantDto],
     description: 'All participants in the conversation',

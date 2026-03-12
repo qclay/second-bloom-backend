@@ -25,7 +25,22 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   console.log('🧹 Cleaning existing data...');
-  await prisma.message.deleteMany();
+  try {
+    await prisma.message.deleteMany();
+  } catch (e: unknown) {
+    if (
+      e &&
+      typeof e === 'object' &&
+      'code' in e &&
+      (e as { code: string }).code === 'P2021'
+    ) {
+      console.error(
+        '\n❌ The database is missing tables (e.g. messages). Run migrations first:\n   npx prisma migrate deploy\n   Then run: npx prisma db seed\n',
+      );
+      throw e;
+    }
+    throw e;
+  }
   await prisma.conversation.deleteMany();
   await prisma.bid.deleteMany();
   await prisma.auction.deleteMany();
@@ -33,24 +48,18 @@ async function main() {
   await prisma.favorite.deleteMany();
   await prisma.productImage.deleteMany();
   await prisma.product.deleteMany();
-  console.log('   - Basic product models cleaned');
   await prisma.district.deleteMany();
   await prisma.city.deleteMany();
   await prisma.region.deleteMany();
   await prisma.country.deleteMany();
-  console.log('   - Location models cleaned');
   await prisma.condition.deleteMany();
   await prisma.size.deleteMany();
   await prisma.category.deleteMany();
-  console.log('   - Taxonomy models cleaned');
   await prisma.notification.deleteMany();
   await prisma.notificationPreference.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.verificationCode.deleteMany();
   await prisma.user.deleteMany();
-  await prisma.file.deleteMany();
-  await prisma.publicationPricing.deleteMany();
-  console.log('   - User and metadata cleaned');
 
   console.log('📍 Seeding locations (Uzbekistan)...');
   const tr = (en: string, ru: string, uz: string) => ({ en, ru, uz });
@@ -240,58 +249,6 @@ async function main() {
     `   ${regions.length} regions, ${cities.length} cities, ${tashkentCityDistricts.length} districts (Tashkent city)`,
   );
 
-  console.log('👤 Seeding files (avatars and product images)...');
-  const avatarUrls = [
-    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6',
-    'https://images.unsplash.com/photo-1548013146-72479768bbaa',
-    'https://images.unsplash.com/photo-1520323232471-99b328329d5b',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
-    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80',
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e',
-  ];
-  const avatarFiles = await Promise.all(
-    avatarUrls.map((url, i) =>
-      prisma.file.create({
-        data: {
-          url,
-          key: `avatars/user${i + 1}.jpg`,
-          filename: `user${i + 1}.jpg`,
-          originalName: `avatar${i + 1}.jpg`,
-          mimeType: 'image/jpeg',
-          size: 1024 + i * 100,
-          fileType: 'IMAGE',
-        },
-      }),
-    ),
-  );
-  const dummyFiles = [
-    ...avatarFiles,
-    await prisma.file.create({
-      data: {
-        url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1',
-        key: 'products/roses.jpg',
-        filename: 'roses.jpg',
-        originalName: 'roses.jpg',
-        mimeType: 'image/jpeg',
-        size: 5120,
-        fileType: 'IMAGE',
-      },
-    }),
-    await prisma.file.create({
-      data: {
-        url: 'https://images.unsplash.com/photo-1582794543139-8ac9cb0f7b11',
-        key: 'products/tulips.jpg',
-        filename: 'tulips.jpg',
-        originalName: 'tulips.jpg',
-        mimeType: 'image/jpeg',
-        size: 4096,
-        fileType: 'IMAGE',
-      },
-    }),
-  ];
-
   console.log('👥 Seeding users...');
   const phoneCountryCode = '+998';
   const admin = await prisma.user.create({
@@ -309,7 +266,6 @@ async function main() {
       region: 'Tashkent',
       city: 'Tashkent',
       district: 'Yunusabad',
-      avatarId: avatarFiles[0].id,
     },
   });
 
@@ -328,7 +284,6 @@ async function main() {
       region: 'Tashkent',
       city: 'Tashkent',
       district: 'Chilanzar',
-      avatarId: avatarFiles[1].id,
     },
   });
 
@@ -365,7 +320,6 @@ async function main() {
         district: 'Mirobod',
         rating: 4.8,
         totalRatings: 15,
-        avatarId: avatarFiles[2].id,
       },
     }),
     prisma.user.create({
@@ -385,7 +339,6 @@ async function main() {
         district: 'Uchtepa',
         rating: 4.5,
         totalRatings: 8,
-        avatarId: avatarFiles[3].id,
       },
     }),
     prisma.user.create({
@@ -405,7 +358,6 @@ async function main() {
         district: 'Sergeli',
         rating: 4.9,
         totalRatings: 25,
-        avatarId: avatarFiles[4].id,
       },
     }),
   ]);
@@ -426,7 +378,6 @@ async function main() {
         region: 'Tashkent',
         city: 'Tashkent',
         district: 'Yakkasaroy',
-        avatarId: avatarFiles[5].id,
       },
     }),
     prisma.user.create({
@@ -444,7 +395,6 @@ async function main() {
         region: 'Tashkent',
         city: 'Tashkent',
         district: 'Olmazor',
-        avatarId: avatarFiles[6].id,
       },
     }),
     prisma.user.create({
@@ -683,9 +633,6 @@ async function main() {
         cityId: tashkentCity.id,
         districtId: byDistrictName('Mirobod').id,
         sellerId: sellers[0].id,
-        images: {
-          create: [{ fileId: dummyFiles[8].id, displayOrder: 0 }],
-        },
       },
     }),
     prisma.product.create({
@@ -713,9 +660,6 @@ async function main() {
         cityId: tashkentCity.id,
         districtId: byDistrictName('Mirobod').id,
         sellerId: sellers[0].id,
-        images: {
-          create: [{ fileId: dummyFiles[9].id, displayOrder: 0 }],
-        },
       },
     }),
     prisma.product.create({
@@ -747,9 +691,6 @@ async function main() {
         cityId: tashkentCity.id,
         districtId: byDistrictName('Mirobod').id,
         sellerId: sellers[0].id,
-        images: {
-          create: [{ fileId: dummyFiles[8].id, displayOrder: 0 }],
-        },
       },
     }),
     prisma.product.create({
@@ -777,9 +718,6 @@ async function main() {
         cityId: tashkentCity.id,
         districtId: byDistrictName('Uchtepa').id,
         sellerId: sellers[1].id,
-        images: {
-          create: [{ fileId: dummyFiles[9].id, displayOrder: 0 }],
-        },
       },
     }),
     prisma.product.create({
@@ -807,9 +745,6 @@ async function main() {
         cityId: tashkentCity.id,
         districtId: byDistrictName('Uchtepa').id,
         sellerId: sellers[1].id,
-        images: {
-          create: [{ fileId: dummyFiles[8].id, displayOrder: 0 }],
-        },
       },
     }),
     prisma.product.create({
@@ -841,9 +776,6 @@ async function main() {
         cityId: tashkentCity.id,
         districtId: byDistrictName('Sergeli').id,
         sellerId: sellers[2].id,
-        images: {
-          create: [{ fileId: dummyFiles[9].id, displayOrder: 0 }],
-        },
       },
     }),
     prisma.product.create({
@@ -871,9 +803,6 @@ async function main() {
         cityId: tashkentCity.id,
         districtId: byDistrictName('Sergeli').id,
         sellerId: sellers[2].id,
-        images: {
-          create: [{ fileId: dummyFiles[8].id, displayOrder: 0 }],
-        },
       },
     }),
     prisma.product.create({
@@ -905,15 +834,11 @@ async function main() {
         cityId: tashkentCity.id,
         districtId: byDistrictName('Sergeli').id,
         sellerId: sellers[2].id,
-        images: {
-          create: [{ fileId: dummyFiles[9].id, displayOrder: 0 }],
-        },
       },
     }),
   ]);
 
   console.log(`✅ Created ${products.length} products`);
-
 
   console.log('📦 Seeding orders...');
   const orderBase = Date.now();
@@ -1113,60 +1038,6 @@ async function main() {
 
   console.log(`✅ Created ${notifications.length} notifications`);
 
-  console.log('💬 Seeding conversations and messages...');
-  const conversation = await prisma.conversation.create({
-    data: {
-      productId: products[0].id,
-      orderId: orders[0].id,
-      participants: {
-        create: [
-          { userId: admin.id, unreadCount: 0 },
-          { userId: sellers[0].id, unreadCount: 1 },
-        ],
-      },
-    },
-  });
-
-  const message1 = await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      senderId: admin.id,
-      content: 'Hello, I am interested in your Red Roses!',
-    },
-  });
-
-  const message2 = await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      senderId: sellers[0].id,
-      content: 'Hello! Yes, they are very fresh. When would you like them?',
-    },
-  });
-
-  const message3 = await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      senderId: admin.id,
-      content: 'I would like to have them by tomorrow evening. Is that possible?',
-    },
-  });
-
-  const message4 = await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      senderId: sellers[0].id,
-      content: 'Yes, absolutely! I will prepare the bouquet for you.',
-    },
-  });
-
-  await prisma.conversation.update({
-    where: { id: conversation.id },
-    data: {
-      lastMessageId: message4.id,
-      lastMessageAt: message4.createdAt,
-    },
-  });
-
   console.log('\n✨ Seed completed successfully!');
   console.log('\n📊 Summary:');
   console.log(`   - Users: ${allUsers.length}`);
@@ -1179,18 +1050,11 @@ async function main() {
   console.log(`   - Bids: ${bids.length}`);
   console.log(`   - Favorites: ${favorites.length}`);
   console.log(`   - Notifications: ${notifications.length}`);
-  console.log(`   - Conversations: 1`);
-  console.log(`   - Messages: 2`);
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error seeding database:');
-    console.error(JSON.stringify(e, (key, value) =>
-      typeof value === 'bigint' ? value.toString() : value, 2));
-    if (e.code === 'P2002') {
-      console.error('Unique constraint failed on fields:', e.meta?.target);
-    }
+    console.error('❌ Error seeding database:', e);
     process.exit(1);
   })
   .finally(async () => {

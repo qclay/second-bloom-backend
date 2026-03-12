@@ -7,7 +7,7 @@ import { AuctionService } from '../../modules/auction/auction.service';
 export class EndExpiredAuctionsProcessor {
   private readonly logger = new Logger(EndExpiredAuctionsProcessor.name);
 
-  constructor(private readonly auctionService: AuctionService) {}
+  constructor(private readonly auctionService: AuctionService) { }
 
   @Process('end-expired')
   async handleEndExpired(job: Job<{ timestamp: number }>): Promise<void> {
