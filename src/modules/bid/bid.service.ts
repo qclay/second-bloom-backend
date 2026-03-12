@@ -17,6 +17,7 @@ import { AuctionRepository } from '../auction/repositories/auction.repository';
 import { AuctionGateway } from '../auction/gateways/auction.gateway';
 import { NotificationService } from '../notification/notification.service';
 import type { Request } from 'express';
+import { AuctionSchedulingService } from '../auction/auction-scheduling.service';
 
 @Injectable()
 export class BidService {
@@ -29,6 +30,7 @@ export class BidService {
     @Inject(forwardRef(() => AuctionGateway))
     private readonly auctionGateway: AuctionGateway,
     private readonly notificationService: NotificationService,
+    private readonly auctionSchedulingService: AuctionSchedulingService,
   ) {}
 
   async createBid(
@@ -137,6 +139,8 @@ export class BidService {
     );
 
     const outbidUserId = previousWinningBid?.bidderId ?? null;
+
+    let autoExtendedNewEndTime: Date | null = null;
 
     const result = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
@@ -289,6 +293,7 @@ export class BidService {
             this.logger.log(
               `Auction ${dto.auctionId} auto-extended until ${newEndTime.toISOString()}`,
             );
+            autoExtendedNewEndTime = newEndTime;
           }
         }
 
@@ -304,6 +309,10 @@ export class BidService {
           ? ` (replaced ${deletedBidIds.length} previous bid(s))`
           : ''),
     );
+
+    if (autoExtendedNewEndTime) {
+      await this.safeRescheduleAuctionJob(dto.auctionId, autoExtendedNewEndTime);
+    }
 
     const bidResponse = await this.findById(bid.id);
 
@@ -927,5 +936,19 @@ export class BidService {
         totalPages: Math.ceil(total / maxLimit),
       },
     };
+  }
+
+  private async safeRescheduleAuctionJob(
+    auctionId: string,
+    endTime: Date,
+  ): Promise<void> {
+    try {
+      await this.auctionSchedulingService.rescheduleAuctionEnd(auctionId, endTime);
+    } catch (error) {
+      this.logger.error(
+        `Failed to reschedule auction job after auto-extend for ${auctionId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
   }
 }

@@ -165,7 +165,11 @@ export class UserController {
   @Post('fcm-token')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Register or update FCM token' })
+  @ApiOperation({
+    summary: 'Register or update FCM token',
+    description:
+      'Save FCM token for push notifications. Call after login. Pass null or empty string to clear (e.g. on logout). See docs/NOTIFICATIONS.md.',
+  })
   @ApiCommonErrorResponses({ conflict: false, notFound: false })
   @ApiResponse({
     status: 200,
