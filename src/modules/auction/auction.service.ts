@@ -913,7 +913,6 @@ export class AuctionService {
     }
 
     const updated = await this.findById(auctionId);
-    // WebSocket auction_ended notification removed; Firebase push above covers delivery
     return updated;
   }
 

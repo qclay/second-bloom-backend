@@ -333,8 +333,6 @@ export class BidService {
 
     const bidResponse = await this.findById(bid.id);
 
-    // WebSocket notifications removed; Firebase data-only pushes will drive client UI
-
     try {
       await this.notificationService.notifyNewBidForSeller({
         sellerId: auction.creatorId,
@@ -354,7 +352,6 @@ export class BidService {
       this.logger.log(
         `User ${outbidUserId} was outbid on auction ${dto.auctionId}`,
       );
-      // WebSocket outbid notification removed; using Firebase push below
 
       try {
         await this.notificationService.notifyOutbid({

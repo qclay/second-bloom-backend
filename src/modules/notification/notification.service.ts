@@ -41,6 +41,28 @@ export class NotificationService {
     return 'uz';
   }
 
+  private getDeliveryModeForType(
+    type: NotificationType,
+  ): 'data-only' | 'notification' {
+    switch (type) {
+      // Auctions and chat-like realtime: data-only
+      case NotificationType.NEW_BID:
+      case NotificationType.OUTBID:
+      case NotificationType.BID_REJECTED:
+      case NotificationType.AUCTION_ENDED:
+      case NotificationType.AUCTION_ENDING_SOON:
+        return 'data-only';
+      // Orders and system: show OS banner as well
+      case NotificationType.ORDER_CONFIRMED:
+      case NotificationType.ORDER_SHIPPED:
+      case NotificationType.ORDER_DELIVERED:
+      case NotificationType.SYSTEM:
+      case NotificationType.AUCTION_STARTED:
+      default:
+        return 'notification';
+    }
+  }
+
   private isNotificationEnabled(
     prefs: NotificationPreference | null,
     kind:
@@ -361,11 +383,13 @@ export class NotificationService {
             : {}),
         };
 
+        const deliveryMode = this.getDeliveryModeForType(type);
         const sent = await this.firebaseService.sendNotification(
           user.fcmToken,
           title,
           message,
           notificationData,
+          { deliveryMode },
         );
 
         if (sent) {

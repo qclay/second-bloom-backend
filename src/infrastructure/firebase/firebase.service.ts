@@ -53,6 +53,7 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
     title: string,
     body: string,
     data?: Record<string, string>,
+    options?: { deliveryMode?: 'data-only' | 'notification' },
   ): Promise<boolean> {
     if (!this.app) {
       this.logger.warn('Firebase not initialized. Notification not sent.');
@@ -65,6 +66,9 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
           async () => {
             const message: admin.messaging.Message = {
               token,
+              ...(options?.deliveryMode === 'notification' && title && body
+                ? { notification: { title, body } }
+                : {}),
               data: data
                 ? Object.fromEntries(
                     Object.entries(data).map(([key, value]) => [
@@ -138,6 +142,7 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
     title: string,
     body: string,
     data?: Record<string, string>,
+    options?: { deliveryMode?: 'data-only' | 'notification' },
   ): Promise<{ success: number; failure: number }> {
     if (!this.app) {
       this.logger.warn('Firebase not initialized. Notifications not sent.');
@@ -151,6 +156,9 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
     try {
       const message: admin.messaging.MulticastMessage = {
         tokens,
+        ...(options?.deliveryMode === 'notification' && title && body
+          ? { notification: { title, body } }
+          : {}),
         data: data
           ? Object.fromEntries(
               Object.entries(data).map(([key, value]) => [key, String(value)]),
