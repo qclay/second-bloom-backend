@@ -8,7 +8,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, Injectable } from '@nestjs/common';
+import { Logger, Injectable, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ConversationService } from '../conversation.service';
@@ -16,12 +16,15 @@ import { SendMessageDto } from '../dto/send-message.dto';
 import { ConversationMessageResponseDto } from '../dto/message-response.dto';
 import { JoinConversationDto } from '../dto/join-conversation.dto';
 import { CONVERSATION_EVENTS } from '../constants/conversation-events.constants';
+import { WsJwtGuard } from '../../../common/guards/ws-jwt.guard';
+import { WsRateLimitGuard } from '../../../common/guards/ws-rate-limit.guard';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
 }
 
 @Injectable()
+@UseGuards(WsJwtGuard, WsRateLimitGuard)
 @WebSocketGateway({
   cors: {
     origin:
@@ -51,6 +54,7 @@ export class ConversationGateway
     private readonly conversationService: ConversationService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly wsRateLimitGuard: WsRateLimitGuard,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
@@ -108,6 +112,7 @@ export class ConversationGateway
 
   async handleDisconnect(client: AuthenticatedSocket) {
     if (client.userId) {
+      this.wsRateLimitGuard.removeSocket(client.id);
       this.removeUserSocket(client.userId, client.id);
 
       const stillOnline = this.userSockets.has(client.userId);

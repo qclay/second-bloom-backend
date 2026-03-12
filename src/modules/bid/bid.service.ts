@@ -4,8 +4,6 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { BidRepository } from './repositories/bid.repository';
 import { CreateBidDto } from './dto/create-bid.dto';
@@ -14,7 +12,6 @@ import { BidResponseDto } from './dto/bid-response.dto';
 import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuctionRepository } from '../auction/repositories/auction.repository';
-import { AuctionGateway } from '../auction/gateways/auction.gateway';
 import { NotificationService } from '../notification/notification.service';
 import type { Request } from 'express';
 import { AuctionSchedulingService } from '../auction/auction-scheduling.service';
@@ -27,8 +24,6 @@ export class BidService {
     private readonly bidRepository: BidRepository,
     private readonly auctionRepository: AuctionRepository,
     private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => AuctionGateway))
-    private readonly auctionGateway: AuctionGateway,
     private readonly notificationService: NotificationService,
     private readonly auctionSchedulingService: AuctionSchedulingService,
   ) {}
@@ -312,19 +307,33 @@ export class BidService {
 
     if (autoExtendedNewEndTime) {
       await this.safeRescheduleAuctionJob(dto.auctionId, autoExtendedNewEndTime);
+      try {
+        const participants = await this.prisma.bid.findMany({
+          where: { auctionId: dto.auctionId, isRetracted: false },
+          select: { bidderId: true },
+          distinct: ['bidderId'],
+        });
+        await Promise.all(
+          participants.map((p) =>
+            this.notificationService.notifyAuctionExtendedForParticipant({
+              userId: p.bidderId,
+              auctionId: dto.auctionId,
+              productId: auction.productId,
+              newEndTime: autoExtendedNewEndTime!,
+            }),
+          ),
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to send AUCTION_EXTENDED notifications for auction ${dto.auctionId}`,
+          error instanceof Error ? error.stack : error,
+        );
+      }
     }
 
     const bidResponse = await this.findById(bid.id);
 
-    if (deletedBidIds.length > 0) {
-      this.auctionGateway.notifyBidReplaced(
-        dto.auctionId,
-        deletedBidIds,
-        bidResponse,
-      );
-    } else {
-      this.auctionGateway.notifyNewBid(dto.auctionId, bidResponse);
-    }
+    // WebSocket notifications removed; Firebase data-only pushes will drive client UI
 
     try {
       await this.notificationService.notifyNewBidForSeller({
@@ -345,11 +354,7 @@ export class BidService {
       this.logger.log(
         `User ${outbidUserId} was outbid on auction ${dto.auctionId}`,
       );
-      this.auctionGateway.notifyOutbid(
-        outbidUserId,
-        dto.auctionId,
-        bidResponse,
-      );
+      // WebSocket outbid notification removed; using Firebase push below
 
       try {
         await this.notificationService.notifyOutbid({
@@ -372,13 +377,6 @@ export class BidService {
       const auctionEndTime = new Date(updatedAuction.endTime);
       const originalEndTime = new Date(auction.endTime);
 
-      if (auctionEndTime > originalEndTime) {
-        this.auctionGateway.notifyAuctionExtended(
-          dto.auctionId,
-          auctionEndTime,
-          'Auto-extended due to last-minute bid',
-        );
-      }
     }
 
     return bidResponse;
@@ -639,13 +637,6 @@ export class BidService {
 
     if (isOwner && bid.bidderId !== userId) {
       const rejectedBid = await this.findById(id);
-
-      this.auctionGateway.notifyBidRejected(
-        bid.bidderId,
-        auction.id,
-        rejectedBid,
-      );
-
       try {
         await this.notificationService.notifyBidRejected({
           userId: bid.bidderId,

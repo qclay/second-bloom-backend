@@ -90,12 +90,14 @@ export class NotificationService {
       | NotificationType
       | 'NEW_MESSAGE_SYSTEM'
       | 'NEW_BID_SELLER'
-      | 'BID_REJECTED',
+      | 'BID_REJECTED'
+      | 'AUCTION_EXTENDED',
     lang: 'uz' | 'ru' | 'en',
     context: {
       productTitle?: string;
       amount?: number;
       currency?: string;
+      newEndTime?: Date;
       bidderName?: string;
       isWinner?: boolean;
       orderNumber?: string;
@@ -175,6 +177,31 @@ export class NotificationService {
         message: isWinner
           ? `"${product}" buketi bo‘yicha auksionda g‘olib bo‘ldingiz.`
           : `"${product}" buketi bo‘yicha auksion yakunlandi.`,
+      };
+    }
+
+    if (titleKey === 'AUCTION_EXTENDED') {
+      const formattedTime = context.newEndTime
+        ? new Date(context.newEndTime).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '';
+      if (lang === 'ru') {
+        return {
+          title: 'Аукцион продлён',
+          message: `Аукцион продлён до ${formattedTime}`.trim(),
+        };
+      }
+      if (lang === 'en') {
+        return {
+          title: 'Auction extended',
+          message: `Auction extended until ${formattedTime}`.trim(),
+        };
+      }
+      return {
+        title: 'Auksion uzaytildi',
+        message: `Auksion ${formattedTime} ga qadar uzaytirildi.`.trim(),
       };
     }
 
@@ -452,6 +479,10 @@ export class NotificationService {
       {
         auctionId: params.auctionId,
         productId: params.productId,
+        ...(params.amount !== undefined
+          ? { amount: String(params.amount) }
+          : {}),
+        ...(params.currency ? { currency: params.currency } : {}),
       },
     );
   }
@@ -501,6 +532,10 @@ export class NotificationService {
       {
         auctionId: params.auctionId,
         productId: params.productId,
+        ...(params.amount !== undefined
+          ? { amount: String(params.amount) }
+          : {}),
+        ...(params.currency ? { currency: params.currency } : {}),
       },
     );
   }
@@ -550,6 +585,10 @@ export class NotificationService {
       {
         auctionId: params.auctionId,
         productId: params.productId,
+        ...(params.amount !== undefined
+          ? { amount: String(params.amount) }
+          : {}),
+        ...(params.currency ? { currency: params.currency } : {}),
       },
     );
   }
@@ -601,6 +640,43 @@ export class NotificationService {
       {
         auctionId: params.auctionId,
         productId: params.productId,
+        isWinner: String(params.isWinner),
+      },
+    );
+  }
+
+  async notifyAuctionExtendedForParticipant(params: {
+    userId: string;
+    auctionId: string;
+    productId: string;
+    newEndTime: Date;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { id: true, fcmToken: true, notificationPreference: true, language: true },
+    });
+
+    if (!user) return;
+    const prefs = user.notificationPreference;
+    if (!this.isNotificationEnabled(prefs, 'auctionEndingSoon')) {
+      return;
+    }
+
+    const lang = this.getUserLanguage(user);
+    const { title, message } = this.getLocalizedText('AUCTION_EXTENDED', lang, {
+      newEndTime: params.newEndTime,
+    });
+
+    await this.persistAndPush(
+      { id: user.id, fcmToken: user.fcmToken },
+      NotificationType.AUCTION_ENDING_SOON,
+      title,
+      message,
+      {
+        auctionId: params.auctionId,
+        productId: params.productId,
+        newEndTime: params.newEndTime.toISOString(),
+        event: 'AUCTION_EXTENDED',
       },
     );
   }

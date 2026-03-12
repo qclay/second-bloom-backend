@@ -8,13 +8,15 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, Injectable } from '@nestjs/common';
+import { Logger, Injectable, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { BidResponseDto } from '../../bid/dto/bid-response.dto';
 import { AuctionResponseDto } from '../dto/auction-response.dto';
 import { JoinAuctionDto } from '../dto/join-auction.dto';
 import { AUCTION_EVENTS } from '../constants/auction-events.constants';
+import { WsJwtGuard } from '../../../common/guards/ws-jwt.guard';
+import { WsRateLimitGuard } from '../../../common/guards/ws-rate-limit.guard';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -22,6 +24,7 @@ interface AuthenticatedSocket extends Socket {
 }
 
 @Injectable()
+@UseGuards(WsJwtGuard, WsRateLimitGuard)
 @WebSocketGateway({
   cors: {
     origin:
@@ -64,6 +67,7 @@ export class AuctionGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly wsRateLimitGuard: WsRateLimitGuard,
   ) {
     this.setupKeepAlive();
   }
@@ -134,6 +138,7 @@ export class AuctionGateway
 
   handleDisconnect(client: AuthenticatedSocket) {
     if (client.userId) {
+      this.wsRateLimitGuard.removeSocket(client.id);
       const userId = client.userId;
       this.removeUserSocket(userId, client.id);
       this.socketMetadata.delete(client.id);
@@ -464,62 +469,4 @@ export class AuctionGateway
     };
   }
 
-  getUserDevices(userId: string): Array<{
-    socketId: string;
-    deviceId?: string;
-    userAgent?: string;
-    ipAddress?: string;
-    platform?: string;
-    connectedAt: number;
-    lastActivity: number;
-  }> {
-    const userSockets = this.userSockets.get(userId);
-    if (!userSockets) {
-      return [];
-    }
-
-    return Array.from(userSockets)
-      .map((socketId) => {
-        const metadata = this.socketMetadata.get(socketId);
-        if (!metadata) {
-          return null;
-        }
-        return {
-          socketId,
-          deviceId: metadata.deviceId,
-          userAgent: metadata.userAgent,
-          ipAddress: metadata.ipAddress,
-          platform: metadata.platform,
-          connectedAt: metadata.connectedAt,
-          lastActivity: metadata.lastActivity,
-        };
-      })
-      .filter(
-        (device): device is NonNullable<typeof device> => device !== null,
-      );
-  }
-
-  getSocketInfo(socketId: string): {
-    userId?: string;
-    deviceId?: string;
-    userAgent?: string;
-    ipAddress?: string;
-    platform?: string;
-    connectedAt?: number;
-    lastActivity?: number;
-  } | null {
-    const metadata = this.socketMetadata.get(socketId);
-    if (!metadata) {
-      return null;
-    }
-    return {
-      userId: metadata.userId,
-      deviceId: metadata.deviceId,
-      userAgent: metadata.userAgent,
-      ipAddress: metadata.ipAddress,
-      platform: metadata.platform,
-      connectedAt: metadata.connectedAt,
-      lastActivity: metadata.lastActivity,
-    };
-  }
 }

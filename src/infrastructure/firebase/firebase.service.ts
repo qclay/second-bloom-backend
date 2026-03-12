@@ -65,10 +65,6 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
           async () => {
             const message: admin.messaging.Message = {
               token,
-              notification: {
-                title,
-                body,
-              },
               data: data
                 ? Object.fromEntries(
                     Object.entries(data).map(([key, value]) => [
@@ -85,6 +81,7 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
                   aps: {
                     sound: 'default',
                     badge: 1,
+                    contentAvailable: true,
                   },
                 },
               },
@@ -154,10 +151,6 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
     try {
       const message: admin.messaging.MulticastMessage = {
         tokens,
-        notification: {
-          title,
-          body,
-        },
         data: data
           ? Object.fromEntries(
               Object.entries(data).map(([key, value]) => [key, String(value)]),
@@ -171,6 +164,7 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
             aps: {
               sound: 'default',
               badge: 1,
+              contentAvailable: true,
             },
           },
         },

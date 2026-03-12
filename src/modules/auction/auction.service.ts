@@ -16,7 +16,6 @@ import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { NotificationService } from '../notification/notification.service';
-import { AuctionGateway } from './gateways/auction.gateway';
 import {
   isTranslationRecord,
   resolveTranslation,
@@ -32,7 +31,6 @@ export class AuctionService {
     private readonly productRepository: ProductRepository,
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
-    private readonly auctionGateway: AuctionGateway,
     private readonly auctionSchedulingService: AuctionSchedulingService,
   ) {}
 
@@ -915,19 +913,7 @@ export class AuctionService {
     }
 
     const updated = await this.findById(auctionId);
-    try {
-      this.auctionGateway.notifyAuctionEnded(
-        auctionId,
-        updated,
-        updated.winnerId ?? null,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to emit auction_ended WebSocket for auction ${auctionId}`,
-        error instanceof Error ? error.stack : error,
-      );
-    }
-
+    // WebSocket auction_ended notification removed; Firebase push above covers delivery
     return updated;
   }
 
