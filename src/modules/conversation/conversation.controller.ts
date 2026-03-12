@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Body,
   Patch,
   Param,
@@ -17,6 +18,7 @@ import { MessageQueryDto } from './dto/message-query.dto';
 import { SearchMessagesQueryDto } from './dto/search-messages-query.dto';
 import { SearchMessagesResponseDto } from './dto/search-messages-response.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { GetOrCreateByProductDto } from './dto/get-or-create-by-product.dto';
 import { ConversationResponseDto } from './dto/conversation-response.dto';
 import { ConversationMessageResponseDto } from './dto/message-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -51,6 +53,39 @@ export class ConversationController {
     @CurrentUser('id') userId: string,
   ) {
     return this.conversationService.getConversations(query, userId);
+  }
+
+  @Post('by-product')
+  @UsePipes(new SanitizePipe())
+  @ApiOperation({
+    summary: 'Get or create conversation with product seller',
+    description:
+      'Returns existing conversation or creates new one between current user and product seller. Use when user wants to contact seller about a product (before purchase).',
+  })
+  @ApiCommonErrorResponses({ conflict: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversation (existing or created)',
+    type: ConversationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot chat with yourself about your own product',
+    type: ApiErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Product not found',
+    type: ApiErrorResponseDto,
+  })
+  async getOrCreateByProduct(
+    @Body() dto: GetOrCreateByProductDto,
+    @CurrentUser('id') userId: string,
+  ): Promise<ConversationResponseDto> {
+    return this.conversationService.getOrCreateConversationByProduct(
+      dto.productId,
+      userId,
+    );
   }
 
   @Get(':id')

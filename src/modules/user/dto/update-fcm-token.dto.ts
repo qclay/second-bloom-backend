@@ -1,13 +1,16 @@
-import { IsString, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class UpdateFcmTokenDto {
-  @ApiProperty({
-    description: 'Firebase Cloud Messaging token',
+  @ApiPropertyOptional({
+    description:
+      'Firebase Cloud Messaging token. Omit or pass null/empty string to clear token (e.g. on logout).',
     example: 'fGhJkLmNoPqRsTuVwXyZ1234567890',
-    required: true,
   })
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsString()
-  @IsNotEmpty()
-  fcmToken!: string;
+  @MaxLength(500)
+  fcmToken?: string | null;
 }

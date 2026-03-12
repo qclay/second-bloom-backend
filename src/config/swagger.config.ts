@@ -42,10 +42,11 @@ export const setupSwagger = (app: INestApplication): void => {
     new DocumentBuilder()
       .setTitle('Second Bloom API')
       .setVersion('1.0.0')
-      .setDescription('Second Bloom API Documentation')
+      .setDescription(
+        'Second Bloom API Documentation. WebSocket (chat, auctions): see docs/WEBSOCKET.md',
+      )
       .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
-        'access-token',
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' }
       )
       .build(),
     {
@@ -67,8 +68,8 @@ export const setupSwagger = (app: INestApplication): void => {
         string,
         infer V
       >
-        ? V
-        : never
+      ? V
+      : never
     >;
     const healthPaths: Record<string, (typeof paths)[string]> = {};
     for (const path of Object.keys(paths)) {
