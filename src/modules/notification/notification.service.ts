@@ -98,6 +98,7 @@ export class NotificationService {
       currency?: string;
       bidderName?: string;
       isWinner?: boolean;
+      orderNumber?: string;
     } = {},
   ): { title: string; message: string } {
     const titleKey = type;
@@ -196,6 +197,63 @@ export class NotificationService {
         title: 'Stavkangiz rad etildi',
         message:
           `Auksion muallifi "${product}" buketi bo'yicha${amountText ? ` ${amountText} miqdoridagi` : ''} stavkangizni rad etdi.`.trim(),
+      };
+    }
+
+    if (titleKey === 'ORDER_CONFIRMED') {
+      if (lang === 'ru') {
+        return {
+          title: 'Заказ подтверждён',
+          message: `Продавец подтвердил ваш заказ №${context.orderNumber || ''} по букету "${product}".`,
+        };
+      }
+      if (lang === 'en') {
+        return {
+          title: 'Order confirmed',
+          message: `Seller confirmed your order #${context.orderNumber || ''} for "${product}".`,
+        };
+      }
+      return {
+        title: 'Buyurtma tasdiqlandi',
+        message: `Sotuvchi "${product}" buketi bo'yicha #${context.orderNumber || ''} buyurtmangizni tasdiqladi.`,
+      };
+    }
+
+    if (titleKey === 'ORDER_SHIPPED') {
+      if (lang === 'ru') {
+        return {
+          title: 'Заказ отправлен',
+          message: `Ваш заказ №${context.orderNumber || ''} по букету "${product}" отправлен.`,
+        };
+      }
+      if (lang === 'en') {
+        return {
+          title: 'Order shipped',
+          message: `Your order #${context.orderNumber || ''} for "${product}" has been shipped.`,
+        };
+      }
+      return {
+        title: 'Buyurtma yuborildi',
+        message: `"${product}" buketi bo'yicha #${context.orderNumber || ''} buyurtmangiz yuborildi.`,
+      };
+    }
+
+    if (titleKey === 'ORDER_DELIVERED') {
+      if (lang === 'ru') {
+        return {
+          title: 'Заказ доставлен',
+          message: `Заказ №${context.orderNumber || ''} по букету "${product}" доставлен.`,
+        };
+      }
+      if (lang === 'en') {
+        return {
+          title: 'Order delivered',
+          message: `Order #${context.orderNumber || ''} for "${product}" has been delivered.`,
+        };
+      }
+      return {
+        title: 'Buyurtma yetkazildi',
+        message: `"${product}" buketi bo'yicha #${context.orderNumber || ''} buyurtma yetkazildi.`,
       };
     }
 
@@ -544,6 +602,117 @@ export class NotificationService {
         auctionId: params.auctionId,
         productId: params.productId,
       },
+    );
+  }
+
+  async notifyOrderConfirmed(params: {
+    buyerId: string;
+    orderId: string;
+    orderNumber: string;
+    productId: string;
+    productTitle?: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.buyerId },
+      select: {
+        id: true,
+        fcmToken: true,
+        language: true,
+        notificationPreference: true,
+      },
+    });
+    if (!user) return;
+    const prefs = user.notificationPreference;
+    if (!this.isNotificationEnabled(prefs, 'orderConfirmed')) return;
+    const lang = this.getUserLanguage(user);
+    const { title, message } = this.getLocalizedText(
+      NotificationType.ORDER_CONFIRMED,
+      lang,
+      {
+        productTitle: params.productTitle,
+        orderNumber: params.orderNumber,
+      },
+    );
+    await this.persistAndPush(
+      { id: user.id, fcmToken: user.fcmToken },
+      NotificationType.ORDER_CONFIRMED,
+      title,
+      message,
+      { orderId: params.orderId, productId: params.productId },
+    );
+  }
+
+  async notifyOrderShipped(params: {
+    buyerId: string;
+    orderId: string;
+    orderNumber: string;
+    productId: string;
+    productTitle?: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.buyerId },
+      select: {
+        id: true,
+        fcmToken: true,
+        language: true,
+        notificationPreference: true,
+      },
+    });
+    if (!user) return;
+    const prefs = user.notificationPreference;
+    if (!this.isNotificationEnabled(prefs, 'orderShipped')) return;
+    const lang = this.getUserLanguage(user);
+    const { title, message } = this.getLocalizedText(
+      NotificationType.ORDER_SHIPPED,
+      lang,
+      {
+        productTitle: params.productTitle,
+        orderNumber: params.orderNumber,
+      },
+    );
+    await this.persistAndPush(
+      { id: user.id, fcmToken: user.fcmToken },
+      NotificationType.ORDER_SHIPPED,
+      title,
+      message,
+      { orderId: params.orderId, productId: params.productId },
+    );
+  }
+
+  async notifyOrderDelivered(params: {
+    buyerId: string;
+    orderId: string;
+    orderNumber: string;
+    productId: string;
+    productTitle?: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.buyerId },
+      select: {
+        id: true,
+        fcmToken: true,
+        language: true,
+        notificationPreference: true,
+      },
+    });
+    if (!user) return;
+    const prefs = user.notificationPreference;
+    if (!this.isNotificationEnabled(prefs, 'orderDelivered')) return;
+    const lang = this.getUserLanguage(user);
+    const { title, message } = this.getLocalizedText(
+      NotificationType.ORDER_DELIVERED,
+      lang,
+      {
+        productTitle: params.productTitle,
+        orderNumber: params.orderNumber,
+      },
+    );
+    await this.persistAndPush(
+      { id: user.id, fcmToken: user.fcmToken },
+      NotificationType.ORDER_DELIVERED,
+      title,
+      message,
+      { orderId: params.orderId, productId: params.productId },
     );
   }
 

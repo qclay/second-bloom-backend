@@ -118,7 +118,7 @@ export class ConversationService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async createConversationForOrder(orderId: string): Promise<void> {
     const order = await this.prisma.order.findFirst({
@@ -232,6 +232,92 @@ export class ConversationService {
     }
 
     return this.mapConversationToDto(conv, userId);
+  }
+
+  async getOrCreateConversationByProduct(
+    productId: string,
+    userId: string,
+  ): Promise<ConversationResponseDto> {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id: productId,
+        deletedAt: null,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        sellerId: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    if (product.sellerId === userId) {
+      throw new BadRequestException(
+        'Cannot create conversation with yourself about your own product',
+      );
+    }
+
+    const existingConversation = await this.prisma.conversation.findFirst({
+      where: {
+        productId,
+        orderId: null,
+        deletedAt: null,
+        participants: {
+          every: {
+            userId: {
+              in: [userId, product.sellerId],
+            },
+          },
+          some: {
+            userId,
+          },
+        },
+        AND: [
+          {
+            participants: {
+              some: {
+                userId: product.sellerId,
+              },
+            },
+          },
+        ],
+      },
+      include: CONVERSATION_INCLUDE,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (existingConversation) {
+      return this.mapConversationToDto(
+        existingConversation as ConversationWithRelations,
+        userId,
+      );
+    }
+
+    const createdConversation = await this.prisma.conversation.create({
+      data: {
+        product: {
+          connect: { id: productId },
+        },
+        participants: {
+          create: [{ userId }, { userId: product.sellerId }],
+        },
+      },
+      include: CONVERSATION_INCLUDE,
+    });
+
+    this.logger.log(
+      `Conversation created for product ${productId} between ${userId} and seller ${product.sellerId}`,
+    );
+
+    return this.mapConversationToDto(
+      createdConversation as ConversationWithRelations,
+      userId,
+    );
   }
 
   async sendMessage(
@@ -848,10 +934,10 @@ export class ConversationService {
       const other = conv.participants.find((p) => p.userId !== userId);
       const conversationTitle = other
         ? [other.user.firstName, other.user.lastName]
-            .filter(Boolean)
-            .join(' ') ||
-          other.user.phoneNumber ||
-          'Conversation'
+          .filter(Boolean)
+          .join(' ') ||
+        other.user.phoneNumber ||
+        'Conversation'
         : 'Conversation';
       const rest = { ...msg };
       delete (rest as { conversation?: unknown }).conversation;
@@ -1009,9 +1095,9 @@ export class ConversationService {
           : Number(p.price);
       seller = p.seller
         ? this.mapUserToSellerBuyer({
-            ...p.seller,
-            avatar: p.seller.avatar ? { url: p.seller.avatar.url } : null,
-          })
+          ...p.seller,
+          avatar: p.seller.avatar ? { url: p.seller.avatar.url } : null,
+        })
         : null;
       pinnedProduct = {
         id: p.id,
@@ -1080,12 +1166,12 @@ export class ConversationService {
       lastMessageAt: toISOString(conversation.lastMessageAt),
       lastMessage: conversation.lastMessage
         ? {
-            id: conversation.lastMessage.id,
-            content: conversation.lastMessage.content,
-            messageType: conversation.lastMessage.messageType,
-            createdAt: toISOString(conversation.lastMessage.createdAt) ?? '',
-            isRead: conversation.lastMessage.isRead,
-          }
+          id: conversation.lastMessage.id,
+          content: conversation.lastMessage.content,
+          messageType: conversation.lastMessage.messageType,
+          createdAt: toISOString(conversation.lastMessage.createdAt) ?? '',
+          isRead: conversation.lastMessage.isRead,
+        }
         : null,
       createdAt: toISOString(conversation.createdAt) ?? '',
       updatedAt: toISOString(conversation.updatedAt) ?? '',
@@ -1350,12 +1436,12 @@ export class ConversationService {
       content: message.content,
       file: message.file
         ? {
-            id: message.file.id,
-            url: message.file.url,
-            filename: message.file.filename,
-            mimeType: message.file.mimeType,
-            size: message.file.size,
-          }
+          id: message.file.id,
+          url: message.file.url,
+          filename: message.file.filename,
+          mimeType: message.file.mimeType,
+          size: message.file.size,
+        }
         : null,
       deliveryStatus: message.deliveryStatus,
       isRead: message.isRead,

@@ -16,6 +16,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { AuctionRepository } from '../auction/repositories/auction.repository';
 import { ConversationService } from '../conversation/conversation.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class OrderService {
@@ -27,6 +28,7 @@ export class OrderService {
     private readonly auctionRepository: AuctionRepository,
     private readonly prisma: PrismaService,
     private readonly conversationService: ConversationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createOrder(
@@ -548,7 +550,36 @@ export class OrderService {
 
     await this.orderRepository.update(id, updateData);
 
-    if (updateData.status === 'DELIVERED') {
+    const newStatus = (updateData.status as OrderStatus) ?? order.status;
+    const notifyParams = {
+      buyerId: order.buyerId,
+      orderId: id,
+      orderNumber: order.orderNumber,
+      productId: order.productId,
+      productTitle: this.getProductTitleForNotify(product),
+    };
+
+    if (newStatus === 'CONFIRMED') {
+      this.notificationService.notifyOrderConfirmed(notifyParams).catch((err) => {
+        this.logger.warn(
+          `Failed to send ORDER_CONFIRMED notification for order ${id}`,
+          err instanceof Error ? err.message : String(err),
+        );
+      });
+    } else if (newStatus === 'SHIPPED') {
+      this.notificationService.notifyOrderShipped(notifyParams).catch((err) => {
+        this.logger.warn(
+          `Failed to send ORDER_SHIPPED notification for order ${id}`,
+          err instanceof Error ? err.message : String(err),
+        );
+      });
+    } else if (newStatus === 'DELIVERED') {
+      this.notificationService.notifyOrderDelivered(notifyParams).catch((err) => {
+        this.logger.warn(
+          `Failed to send ORDER_DELIVERED notification for order ${id}`,
+          err instanceof Error ? err.message : String(err),
+        );
+      });
       this.conversationService
         .deactivateConversationsForOrder(id)
         .catch((err) => {
@@ -600,6 +631,12 @@ export class OrderService {
     await this.orderRepository.softDelete(id, userId);
 
     this.logger.log(`Order ${id} deleted by user ${userId}`);
+  }
+
+  private getProductTitleForNotify(product: { title?: unknown }): string {
+    const t = product.title as Record<string, string> | null | undefined;
+    if (!t || typeof t !== 'object') return '';
+    return t.ru ?? t.en ?? t.uz ?? Object.values(t)[0] ?? '';
   }
 
   private validateStatusTransition(

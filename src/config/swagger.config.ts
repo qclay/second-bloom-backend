@@ -43,10 +43,8 @@ export const setupSwagger = (app: INestApplication): void => {
       .setTitle('Second Bloom API')
       .setVersion('1.0.0')
       .setDescription('Second Bloom API Documentation')
-      .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
-        'access-token',
-      )
+      // @ApiBearerAuth() handles access-token
+      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
       .build(),
     {
       extraModels: [
@@ -67,8 +65,8 @@ export const setupSwagger = (app: INestApplication): void => {
         string,
         infer V
       >
-        ? V
-        : never
+      ? V
+      : never
     >;
     const healthPaths: Record<string, (typeof paths)[string]> = {};
     for (const path of Object.keys(paths)) {
