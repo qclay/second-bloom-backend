@@ -136,7 +136,7 @@ jobs:
             docker-compose build --no-cache
             
             echo "🔄 Running database migrations..."
-            docker-compose up -d postgres redis
+            docker-compose up -d redis
             sleep 10
             docker-compose exec -T app npx prisma migrate deploy || {
               echo "❌ Migration failed!"
