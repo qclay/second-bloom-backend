@@ -1,40 +1,32 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { AbstractCronJob } from '../common/abstract-cron-job';
+import { MetricsService } from '../../metrics/metrics.service';
 
 @Injectable()
-export class EndExpiredAuctionsScheduler {
-  private readonly logger = new Logger(EndExpiredAuctionsScheduler.name);
+export class EndExpiredAuctionsScheduler extends AbstractCronJob {
+  protected readonly logger = new Logger(EndExpiredAuctionsScheduler.name);
+  protected readonly jobName = 'end-expired-auctions';
+  protected readonly configKey = 'auctions';
 
   constructor(
     @InjectQueue('auction') private readonly auctionQueue: Queue,
-    private readonly configService: ConfigService,
-  ) {}
+    configService: ConfigService,
+    metricsService: MetricsService,
+  ) {
+    super(configService, metricsService);
+  }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron('*/30 * * * * *') // Fallback, will be overridden by the system if we had dynamic cron
   async scheduleEndExpiredAuctions(): Promise<void> {
-    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
-    if (nodeEnv !== 'production') {
-      return;
-    }
-    const enabled = this.configService.get<string>(
-      'AUCTION_END_CRON_ENABLED',
-      'true',
-    );
-    if (enabled !== 'true' && enabled !== '1') {
-      return;
-    }
-    try {
+    await this.executeJob(async () => {
       await this.auctionQueue.add('end-expired', {
         timestamp: Date.now(),
+        batchSize: this.getBatchSize(),
       });
-    } catch (error) {
-      this.logger.error(
-        'Failed to schedule end expired auctions job',
-        error instanceof Error ? error.stack : error,
-      );
-    }
+    });
   }
 }

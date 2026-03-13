@@ -120,7 +120,7 @@ export class ConversationService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async createConversationForOrder(orderId: string): Promise<void> {
     const order = await this.prisma.order.findUnique({
@@ -269,8 +269,6 @@ export class ConversationService {
     return this.mapConversationToDto(conv, userId);
   }
 
-
-
   async resolveConversation(
     dto: ResolveConversationDto,
     userId: string,
@@ -298,9 +296,8 @@ export class ConversationService {
     }
 
     if (context === ConversationContextType.SUPPORT) {
-      const { conversationId } = await this.getOrCreateAdministrationConversation(
-        userId,
-      );
+      const { conversationId } =
+        await this.getOrCreateAdministrationConversation(userId);
       if (!conversationId)
         throw new BadRequestException('Could not resolve administration chat');
       return this.getConversationById(conversationId, userId);
@@ -341,7 +338,10 @@ export class ConversationService {
         orderId,
         productId: order.productId,
         participants: {
-          create: [{ userId: order.buyerId }, { userId: order.product.sellerId }],
+          create: [
+            { userId: order.buyerId },
+            { userId: order.product.sellerId },
+          ],
         },
       },
       include: CONVERSATION_INCLUDE,
@@ -357,7 +357,7 @@ export class ConversationService {
     productId: string,
     userId: string,
     targetUserId?: string,
-    metadata?: Record<string, any>,
+    metadata?: Prisma.JsonObject,
   ): Promise<ConversationResponseDto> {
     const product = await this.prisma.product.findFirst({
       where: {
@@ -383,7 +383,10 @@ export class ConversationService {
       );
     }
 
-    if (userId !== product.sellerId && otherParticipantId !== product.sellerId) {
+    if (
+      userId !== product.sellerId &&
+      otherParticipantId !== product.sellerId
+    ) {
       throw new BadRequestException(
         'One of the conversation participants must be the product seller',
       );
@@ -445,7 +448,7 @@ export class ConversationService {
         participants: {
           create: [{ userId }, { userId: otherParticipantId }],
         },
-        ...(metadata && { metadata }),
+        ...(metadata ? { metadata } : {}),
       },
       include: CONVERSATION_INCLUDE,
     });
@@ -459,9 +462,6 @@ export class ConversationService {
       userId,
     );
   }
-
-
-
 
   async sendMessage(
     dto: SendMessageDto,
@@ -1066,27 +1066,29 @@ export class ConversationService {
       take,
     });
 
+    type ConversationParticipantSummary = {
+      userId: string;
+      unreadCount: number;
+      user: {
+        firstName: string | null;
+        lastName: string | null;
+        phoneNumber: string;
+      };
+    };
+
     const data = messages.map((msg) => {
       const conv = msg.conversation as {
-        participants: {
-          userId: string;
-          unreadCount: number;
-          user: {
-            firstName: string | null;
-            lastName: string | null;
-            phoneNumber: string;
-          };
-        }[];
+        participants: ConversationParticipantSummary[];
       };
       const other = conv.participants.find((p) => p.userId !== userId);
       const conversationTitle = other
         ? [other.user.firstName, other.user.lastName]
-          .filter(Boolean)
-          .join(' ') ||
-        other.user.phoneNumber ||
-        'Conversation'
+            .filter(Boolean)
+            .join(' ') ||
+          other.user.phoneNumber ||
+          'Conversation'
         : 'Conversation';
-      const participant = conv.participants.find((p: any) => p.userId === userId);
+      const participant = conv.participants.find((p) => p.userId === userId);
       const unreadCount = Number(participant?.unreadCount ?? 0);
 
       const rest = { ...msg };
@@ -1098,7 +1100,6 @@ export class ConversationService {
         unreadCount,
       };
     });
-
 
     return { data };
   }
@@ -1248,9 +1249,9 @@ export class ConversationService {
           : Number(p.price);
       seller = p.seller
         ? this.mapUserToSellerBuyer({
-          ...p.seller,
-          avatar: p.seller.avatar ? { url: p.seller.avatar.url } : null,
-        })
+            ...p.seller,
+            avatar: p.seller.avatar ? { url: p.seller.avatar.url } : null,
+          })
         : null;
       pinnedProduct = {
         id: p.id,
@@ -1311,8 +1312,7 @@ export class ConversationService {
     return {
       id: conversation.id,
       flowerId: conv.product?.id ?? null,
-      flowerImageUrl:
-        conv.product?.images?.[0]?.file?.url ?? null,
+      flowerImageUrl: conv.product?.images?.[0]?.file?.url ?? null,
       participants,
       unreadCount: myParticipant?.unreadCount ?? 0,
       isArchived: myParticipant?.isArchived ?? false,
@@ -1321,12 +1321,12 @@ export class ConversationService {
       lastMessageAt: toISOString(conversation.lastMessageAt),
       lastMessage: conversation.lastMessage
         ? {
-          id: conversation.lastMessage.id,
-          content: conversation.lastMessage.content,
-          messageType: conversation.lastMessage.messageType,
-          createdAt: toISOString(conversation.lastMessage.createdAt) ?? '',
-          isRead: conversation.lastMessage.isRead,
-        }
+            id: conversation.lastMessage.id,
+            content: conversation.lastMessage.content,
+            messageType: conversation.lastMessage.messageType,
+            createdAt: toISOString(conversation.lastMessage.createdAt) ?? '',
+            isRead: conversation.lastMessage.isRead,
+          }
         : null,
       createdAt: toISOString(conversation.createdAt) ?? '',
       updatedAt: toISOString(conversation.updatedAt) ?? '',
@@ -1441,7 +1441,7 @@ export class ConversationService {
       });
       if (!conv) throw new NotFoundException('Conversation not found');
       const isParticipant = conv.participants.some(
-        (p) => p.userId === senderId,
+        (p: { userId: string }) => p.userId === senderId,
       );
       if (!isParticipant)
         throw new ForbiddenException('Sender is not a participant');
@@ -1530,7 +1530,21 @@ export class ConversationService {
     }
   }
 
-  async deactivateOrderConversationsSweep(): Promise<number> {
+  async deactivateConversationByProductId(productId: string): Promise<void> {
+    const result = await this.prisma.conversation.updateMany({
+      where: { productId, deletedAt: null, isActive: true },
+      data: { isActive: false },
+    });
+    if (result.count > 0) {
+      this.logger.log(
+        `Deactivated ${result.count} conversation(s) for product ${productId}`,
+      );
+    }
+  }
+
+  async deactivateOrderConversationsSweep(
+    batchSize = 100,
+  ): Promise<{ deactivatedCount: number; hasMore: boolean }> {
     const conversations = await this.prisma.conversation.findMany({
       where: {
         orderId: { not: null },
@@ -1543,7 +1557,13 @@ export class ConversationService {
         lastMessageAt: true,
         order: { select: { status: true, deliveredAt: true } },
       },
+      take: batchSize,
     });
+
+    if (conversations.length === 0) {
+      return { deactivatedCount: 0, hasMore: false };
+    }
+
     const idsToDeactivate = conversations
       .filter((c) => {
         const order = c.order;
@@ -1559,15 +1579,23 @@ export class ConversationService {
         return false;
       })
       .map((c) => c.id);
-    if (idsToDeactivate.length === 0) return 0;
-    await this.prisma.conversation.updateMany({
-      where: { id: { in: idsToDeactivate } },
-      data: { isActive: false },
-    });
-    this.logger.log(
-      `Deactivated ${idsToDeactivate.length} order conversation(s) (sweep)`,
-    );
-    return idsToDeactivate.length;
+
+    let deactivatedCount = 0;
+    if (idsToDeactivate.length > 0) {
+      const result = await this.prisma.conversation.updateMany({
+        where: { id: { in: idsToDeactivate } },
+        data: { isActive: false },
+      });
+      deactivatedCount = result.count;
+      this.logger.log(
+        `Deactivated ${deactivatedCount} order conversation(s) (sweep)`,
+      );
+    }
+
+    return {
+      deactivatedCount,
+      hasMore: conversations.length === batchSize,
+    };
   }
 
   private mapMessageToDto(
@@ -1592,12 +1620,12 @@ export class ConversationService {
       content: message.content,
       file: message.file
         ? {
-          id: message.file.id,
-          url: message.file.url,
-          filename: message.file.filename,
-          mimeType: message.file.mimeType,
-          size: message.file.size,
-        }
+            id: message.file.id,
+            url: message.file.url,
+            filename: message.file.filename,
+            mimeType: message.file.mimeType,
+            size: message.file.size,
+          }
         : null,
       deliveryStatus: message.deliveryStatus,
       isRead: message.isRead,

@@ -468,5 +468,4 @@ export class AuctionGateway
       platform,
     };
   }
-
 }

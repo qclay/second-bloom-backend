@@ -65,8 +65,8 @@ export const setupSwagger = (app: INestApplication): void => {
         string,
         infer V
       >
-      ? V
-      : never
+        ? V
+        : never
     >;
     const healthPaths: Record<string, (typeof paths)[string]> = {};
     for (const path of Object.keys(paths)) {

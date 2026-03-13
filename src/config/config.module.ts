@@ -8,6 +8,7 @@ import { smsConfig } from './sms.config';
 import { sentryConfig } from './sentry.config';
 import { firebaseConfig } from './firebase.config';
 import telegramConfig from './telegram.config';
+import { cronConfig } from './cron.config';
 import { validateEnv } from './env.validation';
 
 @Global()
@@ -24,6 +25,7 @@ import { validateEnv } from './env.validation';
         sentryConfig,
         firebaseConfig,
         telegramConfig,
+        cronConfig,
       ],
       validate: validateEnv,
       envFilePath: ['.env.local', '.env'],

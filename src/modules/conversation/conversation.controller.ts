@@ -39,7 +39,7 @@ import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ConversationController {
-  constructor(private readonly conversationService: ConversationService) { }
+  constructor(private readonly conversationService: ConversationService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all conversations for current user' })
@@ -54,7 +54,6 @@ export class ConversationController {
   ) {
     return this.conversationService.getConversations(query, userId);
   }
-
 
   @Post('resolve')
   @ApiOperation({

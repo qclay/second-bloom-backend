@@ -169,6 +169,62 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   PAYMENT_API_URL?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_ENABLED?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_AUCTIONS_ENABLED?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_AUCTIONS_EXPRESSION?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_AUCTIONS_BATCH_SIZE?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_OTPS_ENABLED?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_OTPS_EXPRESSION?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_OTPS_BATCH_SIZE?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_PAYMENTS_ENABLED?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_PAYMENTS_EXPRESSION?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_PAYMENTS_BATCH_SIZE?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_PAYMENTS_MAX_AGE_MS?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_CONVERSATIONS_ENABLED?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_CONVERSATIONS_EXPRESSION?: string;
+
+  @IsString()
+  @IsOptional()
+  CRON_CONVERSATIONS_BATCH_SIZE?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

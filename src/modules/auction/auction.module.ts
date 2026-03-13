@@ -9,8 +9,6 @@ import { NotificationModule } from '../notification/notification.module';
 import { ConversationModule } from '../conversation/conversation.module';
 import { AuctionSchedulingService } from './auction-scheduling.service';
 
-
-
 @Module({
   imports: [
     forwardRef(() => ProductModule),
@@ -23,10 +21,6 @@ import { AuctionSchedulingService } from './auction-scheduling.service';
   ],
   controllers: [AuctionController],
   providers: [AuctionService, AuctionRepository, AuctionSchedulingService],
-  exports: [
-    AuctionService,
-    AuctionRepository,
-    AuctionSchedulingService,
-  ],
+  exports: [AuctionService, AuctionRepository, AuctionSchedulingService],
 })
-export class AuctionModule { }
+export class AuctionModule {}

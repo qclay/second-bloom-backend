@@ -26,7 +26,7 @@ export class BidService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly auctionSchedulingService: AuctionSchedulingService,
-  ) { }
+  ) {}
 
   async createBid(
     dto: CreateBidDto,
@@ -38,22 +38,20 @@ export class BidService {
     if (!auction || auction.deletedAt) {
       throw new NotFoundException('Auction not found');
     }
+    if (auction.creatorId === bidderId) {
+      throw new ForbiddenException('You cannot bid on your own auction');
+    }
 
     const bidder = await this.prisma.user.findUnique({
       where: { id: bidderId },
-      select: { role: true, auctionBannedUntil: true },
+      select: { auctionBannedUntil: true },
     });
-
-    if (auction.creatorId === bidderId && bidder?.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('You cannot bid on your own auction');
-    }
 
     const now = new Date();
     if (
       bidder?.auctionBannedUntil &&
       bidder.auctionBannedUntil.getTime() > now.getTime()
     ) {
-
       throw new ForbiddenException(
         `You are temporarily banned from participating in auctions until ${bidder.auctionBannedUntil.toISOString()}. Contact support for more information.`,
       );
@@ -302,13 +300,16 @@ export class BidService {
 
     this.logger.log(
       `Bid created: ${bid.id} for auction ${dto.auctionId} by user ${bidderId}. Amount: ${bidAmount}` +
-      (deletedBidIds.length > 0
-        ? ` (replaced ${deletedBidIds.length} previous bid(s))`
-        : ''),
+        (deletedBidIds.length > 0
+          ? ` (replaced ${deletedBidIds.length} previous bid(s))`
+          : ''),
     );
 
     if (autoExtendedNewEndTime) {
-      await this.safeRescheduleAuctionJob(dto.auctionId, autoExtendedNewEndTime);
+      await this.safeRescheduleAuctionJob(
+        dto.auctionId,
+        autoExtendedNewEndTime,
+      );
       try {
         const participants = await this.prisma.bid.findMany({
           where: { auctionId: dto.auctionId, isRetracted: false },
@@ -371,13 +372,6 @@ export class BidService {
       }
     }
 
-    const updatedAuction = await this.auctionRepository.findById(dto.auctionId);
-    if (updatedAuction) {
-      const auctionEndTime = new Date(updatedAuction.endTime);
-      const originalEndTime = new Date(auction.endTime);
-
-    }
-
     return bidResponse;
   }
 
@@ -402,24 +396,24 @@ export class BidService {
       where =
         view === 'new'
           ? {
-            auctionId: auctionId ?? undefined,
-            readByOwnerAt: null,
-            rejectedAt: null,
-            isRetracted: false,
-          }
+              auctionId: auctionId ?? undefined,
+              readByOwnerAt: null,
+              rejectedAt: null,
+              isRetracted: false,
+            }
           : view === 'rejected'
             ? {
-              auctionId: auctionId ?? undefined,
-              rejectedAt: { not: null },
-            }
+                auctionId: auctionId ?? undefined,
+                rejectedAt: { not: null },
+              }
             : view === 'top'
               ? {
-                auctionId: auctionId ?? undefined,
-                isWinning: true,
-              }
+                  auctionId: auctionId ?? undefined,
+                  isWinning: true,
+                }
               : {
-                auctionId: auctionId ?? undefined,
-              };
+                  auctionId: auctionId ?? undefined,
+                };
     } else {
       where = {};
 
@@ -634,27 +628,7 @@ export class BidService {
       `Bid ${id} ${isOwner ? 'removed by owner' : userId === bid.bidderId ? 'retracted by bidder' : 'retracted by admin'}`,
     );
 
-    const updatedAuction = await this.auctionRepository.findById(bid.auctionId);
-
-    if (isOwner && bid.bidderId !== userId) {
-      const rejectedBid = await this.findById(id);
-      try {
-        await this.notificationService.notifyBidRejected({
-          userId: bid.bidderId,
-          auctionId: auction.id,
-          productId: auction.productId,
-          amount: Number(bid.amount),
-          currency: 'UZS',
-        });
-      } catch (error) {
-        this.logger.error(
-          `Failed to send BID_REJECTED notification for bid ${id}`,
-          error instanceof Error ? error.stack : error,
-        );
-      }
-
-      await this.applyPlatformBanIfNeeded(bid.bidderId);
-    }
+    await this.applyPlatformBanIfNeeded(bid.bidderId);
   }
 
   private static readonly PLATFORM_BAN_DAYS = 3;
@@ -935,7 +909,10 @@ export class BidService {
     endTime: Date,
   ): Promise<void> {
     try {
-      await this.auctionSchedulingService.rescheduleAuctionEnd(auctionId, endTime);
+      await this.auctionSchedulingService.rescheduleAuctionEnd(
+        auctionId,
+        endTime,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to reschedule auction job after auto-extend for ${auctionId}`,

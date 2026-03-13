@@ -40,7 +40,7 @@ export class AuctionService {
     private readonly notificationService: NotificationService,
     private readonly auctionSchedulingService: AuctionSchedulingService,
     private readonly conversationService: ConversationService,
-  ) { }
+  ) {}
 
   async createAuction(
     dto: CreateAuctionDto,
@@ -455,7 +455,9 @@ export class AuctionService {
     }
 
     if (auction.creatorId !== userId && userRole !== UserRole.ADMIN) {
-      throw new ForbiddenException('You can only set winner for your own auctions');
+      throw new ForbiddenException(
+        'You can only set winner for your own auctions',
+      );
     }
 
     if (auction.status !== 'ENDED') {
@@ -527,7 +529,9 @@ export class AuctionService {
 
     if (winnerId) {
       try {
-        const product = await this.productRepository.findById(auction.productId);
+        const product = await this.productRepository.findById(
+          auction.productId,
+        );
         if (!product || product.deletedAt) {
           this.logger.warn(
             `Skipping winner chat creation for auction ${id}: product not found or deleted`,
@@ -538,16 +542,17 @@ export class AuctionService {
               AuctionService.WINNER_MESSAGES,
               (winnerLanguage ?? undefined) as unknown as string,
             ) ?? AuctionService.WINNER_MESSAGES.en!;
-          const conversation = await this.conversationService.getOrCreateConversationByProduct(
-            product.id,
-            product.sellerId,
-            winnerId,
-            {
-              type: 'AUCTION_WINNER',
-              auctionId: id,
-              productId: product.id,
-            },
-          );
+          const conversation =
+            await this.conversationService.getOrCreateConversationByProduct(
+              product.id,
+              product.sellerId,
+              winnerId,
+              {
+                type: 'AUCTION_WINNER',
+                auctionId: id,
+                productId: product.id,
+              },
+            );
           await this.conversationService.sendMessageAsSender(
             conversation.id,
             product.sellerId,
@@ -594,7 +599,7 @@ export class AuctionService {
     if (auction.status !== 'ACTIVE') {
       throw new BadRequestException(
         'Only active auctions can be closed early. Auction status: ' +
-        auction.status,
+          auction.status,
       );
     }
 
@@ -669,7 +674,9 @@ export class AuctionService {
     }
   }
 
-  async endExpiredAuctions(): Promise<number> {
+  async endExpiredAuctions(
+    batchSize: number = 100,
+  ): Promise<{ endedCount: number; hasMore: boolean }> {
     try {
       const now = new Date();
       const expiredAuctions = await this.prisma.auction.findMany({
@@ -679,11 +686,11 @@ export class AuctionService {
           deletedAt: null,
         },
         select: { id: true, productId: true },
-        take: 100,
+        take: batchSize,
       });
 
       if (expiredAuctions.length === 0) {
-        return 0;
+        return { endedCount: 0, hasMore: false };
       }
 
       const auctionIds = expiredAuctions.map((a) => a.id);
@@ -706,19 +713,19 @@ export class AuctionService {
         }),
         productIds.length > 0
           ? this.prisma.product.findMany({
-            where: { id: { in: productIds } },
-            select: { id: true, title: true },
-          })
+              where: { id: { in: productIds } },
+              select: { id: true, title: true },
+            })
           : [],
         auctionIds.length > 0
           ? this.prisma.bid.findMany({
-            where: {
-              auctionId: { in: auctionIds },
-              isRetracted: false,
-            },
-            select: { auctionId: true, bidderId: true },
-            distinct: ['auctionId', 'bidderId'],
-          })
+              where: {
+                auctionId: { in: auctionIds },
+                isRetracted: false,
+              },
+              select: { auctionId: true, bidderId: true },
+              distinct: ['auctionId', 'bidderId'],
+            })
           : [],
       ]);
 
@@ -830,7 +837,7 @@ export class AuctionService {
         );
       }
 
-      return endedCount;
+      return { endedCount, hasMore: expiredAuctions.length === batchSize };
     } catch (error) {
       this.logger.error(
         'Error in endExpiredAuctions batch job',
@@ -938,7 +945,7 @@ export class AuctionService {
         typeof productTitleRaw === 'string'
           ? productTitleRaw
           : isTranslationRecord(productTitleRaw)
-            ? resolveTranslation(productTitleRaw, 'en') ?? undefined
+            ? (resolveTranslation(productTitleRaw, 'en') ?? undefined)
             : undefined;
     }
 
@@ -951,7 +958,7 @@ export class AuctionService {
             this.notificationService.notifyAuctionEndedForParticipant({
               userId: p.bidderId,
               auctionId,
-              productId: resolvedProductId!,
+              productId: resolvedProductId,
               productTitle,
               isWinner: winnerId !== null && p.bidderId === winnerId,
             }),
@@ -1215,7 +1222,10 @@ export class AuctionService {
     endTime: Date,
   ): Promise<void> {
     try {
-      await this.auctionSchedulingService.scheduleAuctionEnd(auctionId, endTime);
+      await this.auctionSchedulingService.scheduleAuctionEnd(
+        auctionId,
+        endTime,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to schedule auction job for ${auctionId}`,

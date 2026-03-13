@@ -18,6 +18,8 @@ import { WebhookPayloadDto } from './dto/webhook-payload.dto';
 import { SignatureVerifier } from './utils/signature-verifier';
 import { PaymentWithRelations } from './interfaces/payment-with-relations.interface';
 import { PaymentGateway } from './gateways/payment.gateway';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 @Injectable()
 export class PaymentService {
@@ -30,6 +32,7 @@ export class PaymentService {
     private readonly paymentRepository: PaymentRepository,
     private readonly configService: ConfigService,
     private readonly paymentGateway: PaymentGateway,
+    @InjectQueue('payment') private readonly paymentQueue: Queue,
   ) {
     this.paymentSecretKey =
       this.configService.get<string>('PAYMENT_SECRET_KEY') ?? '';
@@ -90,6 +93,17 @@ export class PaymentService {
 
     this.logger.log(
       `Payment invoice created: ${payment.id} for user: ${userId}, type: ${paymentType}, quantity: ${quantity}, amount: ${totalAmount.toString()}`,
+    );
+
+    // Schedule delayed expiration job
+    const maxAgeMs = this.configService.get<number>(
+      'cron.jobs.payments.maxAgeMs',
+      3600000,
+    ); // Default 1 hour
+    await this.paymentQueue.add(
+      'expire-payment',
+      { paymentId: payment.id },
+      { delay: maxAgeMs },
     );
 
     return {
@@ -337,20 +351,56 @@ export class PaymentService {
     return this.serializePayment(payment);
   }
 
-  async expireStalePendingPayments(maxAgeHours = 24): Promise<number> {
+  async expireStalePendingPayments(
+    maxAgeHours = 24,
+    batchSize = 100,
+  ): Promise<{ expiredCount: number; hasMore: boolean }> {
     const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
-    const result = await this.prisma.payment.updateMany({
+
+    // Find IDs first to limit batch size
+    const paymentsToExpire = await this.prisma.payment.findMany({
       where: {
         status: PaymentStatus.PENDING,
         createdAt: { lt: cutoff },
       },
+      select: { id: true },
+      take: batchSize,
+    });
+
+    if (paymentsToExpire.length === 0) {
+      return { expiredCount: 0, hasMore: false };
+    }
+
+    const idsToExpire = paymentsToExpire.map((p) => p.id);
+
+    const result = await this.prisma.payment.updateMany({
+      where: {
+        id: { in: idsToExpire },
+      },
       data: { status: PaymentStatus.EXPIRED },
     });
+
     if (result.count > 0) {
-      this.logger.log(
-        `Expired ${result.count} stale PENDING payment(s) (older than ${maxAgeHours}h)`,
-      );
+      this.logger.log(`Expired ${result.count} stale pending payments`);
     }
-    return result.count;
+
+    return {
+      expiredCount: result.count,
+      hasMore: paymentsToExpire.length === batchSize,
+    };
+  }
+
+  async expirePaymentIfPending(paymentId: string): Promise<void> {
+    const result = await this.prisma.payment.updateMany({
+      where: {
+        id: paymentId,
+        status: PaymentStatus.PENDING,
+      },
+      data: { status: PaymentStatus.EXPIRED },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`Payment ${paymentId} expired due to delayed job`);
+    }
   }
 }

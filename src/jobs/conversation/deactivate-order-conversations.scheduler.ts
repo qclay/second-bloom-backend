@@ -1,35 +1,34 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { ConversationService } from '../../modules/conversation/conversation.service';
+import { Cron } from '@nestjs/schedule';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
+import { AbstractCronJob } from '../common/abstract-cron-job';
+import { MetricsService } from '../../metrics/metrics.service';
 
 @Injectable()
-export class DeactivateOrderConversationsScheduler {
-  private readonly logger = new Logger(
+export class DeactivateOrderConversationsScheduler extends AbstractCronJob {
+  protected readonly logger = new Logger(
     DeactivateOrderConversationsScheduler.name,
   );
+  protected readonly jobName = 'deactivate-order-conversations';
+  protected readonly configKey = 'conversations';
 
   constructor(
-    private readonly conversationService: ConversationService,
-    private readonly configService: ConfigService,
-  ) {}
+    @InjectQueue('conversation') private readonly conversationQueue: Queue,
+    configService: ConfigService,
+    metricsService: MetricsService,
+  ) {
+    super(configService, metricsService);
+  }
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron('*/30 * * * *') // Fallback 30 minutes
   async runDeactivateOrderConversationsSweep(): Promise<void> {
-    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
-    if (nodeEnv !== 'production') {
-      return;
-    }
-    this.logger.log('Running deactivate order conversations sweep');
-    try {
-      const count =
-        await this.conversationService.deactivateOrderConversationsSweep();
-      this.logger.log(`Sweep completed: ${count} conversation(s) deactivated`);
-    } catch (error) {
-      this.logger.error(
-        'Deactivate order conversations sweep failed',
-        error instanceof Error ? error.stack : error,
-      );
-    }
+    await this.executeJob(async () => {
+      await this.conversationQueue.add('deactivate-order-conversations', {
+        timestamp: Date.now(),
+        batchSize: this.getBatchSize(),
+      });
+    });
   }
 }

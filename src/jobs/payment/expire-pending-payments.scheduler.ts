@@ -1,44 +1,33 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
-import { PaymentService } from '../../modules/payment/payment.service';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { AbstractCronJob } from '../common/abstract-cron-job';
+import { MetricsService } from '../../metrics/metrics.service';
 
 @Injectable()
-export class ExpirePendingPaymentsScheduler {
-  private readonly logger = new Logger(ExpirePendingPaymentsScheduler.name);
+export class ExpirePendingPaymentsScheduler extends AbstractCronJob {
+  protected readonly logger = new Logger(ExpirePendingPaymentsScheduler.name);
+  protected readonly jobName = 'expire-pending-payments';
+  protected readonly configKey = 'payments';
 
   constructor(
-    private readonly paymentService: PaymentService,
-    private readonly configService: ConfigService,
-  ) {}
+    @InjectQueue('payment') private readonly paymentQueue: Queue,
+    configService: ConfigService,
+    metricsService: MetricsService,
+  ) {
+    super(configService, metricsService);
+  }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron('0 * * * *') // Fallback hourly
   async runExpirePendingPayments(): Promise<void> {
-    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
-    if (nodeEnv !== 'production') {
-      return;
-    }
-    const enabled = this.configService.get<string>(
-      'PAYMENT_EXPIRE_CRON_ENABLED',
-      'true',
-    );
-    if (enabled !== 'true' && enabled !== '1') {
-      return;
-    }
-    const maxAgeHours = this.configService.get<number>(
-      'PAYMENT_PENDING_EXPIRE_HOURS',
-      24,
-    );
-    this.logger.log('Running expire pending payments sweep');
-    try {
-      const count =
-        await this.paymentService.expireStalePendingPayments(maxAgeHours);
-      this.logger.log(`Expire sweep completed: ${count} payment(s) expired`);
-    } catch (error) {
-      this.logger.error(
-        'Expire pending payments sweep failed',
-        error instanceof Error ? error.stack : error,
-      );
-    }
+    await this.executeJob(async () => {
+      await this.paymentQueue.add('expire-stale', {
+        timestamp: Date.now(),
+        batchSize: this.getBatchSize(),
+        maxAgeMs: this.configService.get<number>('cron.jobs.payments.maxAgeMs'),
+      });
+    });
   }
 }

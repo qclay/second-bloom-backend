@@ -1,34 +1,32 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
+import { AbstractCronJob } from '../common/abstract-cron-job';
+import { MetricsService } from '../../metrics/metrics.service';
 
 @Injectable()
-export class CleanExpiredOtpsScheduler {
-  private readonly logger = new Logger(CleanExpiredOtpsScheduler.name);
+export class CleanExpiredOtpsScheduler extends AbstractCronJob {
+  protected readonly logger = new Logger(CleanExpiredOtpsScheduler.name);
+  protected readonly jobName = 'clean-expired-otps';
+  protected readonly configKey = 'otps';
 
   constructor(
     @InjectQueue('auth') private readonly authQueue: Queue,
-    private readonly configService: ConfigService,
-  ) {}
+    configService: ConfigService,
+    metricsService: MetricsService,
+  ) {
+    super(configService, metricsService);
+  }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron('0 * * * *') // Fallback hourly
   async scheduleCleanExpiredOtps(): Promise<void> {
-    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
-    if (nodeEnv !== 'production') {
-      return;
-    }
-    this.logger.log('Scheduling clean expired OTPs job');
-    try {
+    await this.executeJob(async () => {
       await this.authQueue.add('clean-expired-otps', {
         timestamp: Date.now(),
+        batchSize: this.getBatchSize(),
       });
-    } catch (error) {
-      this.logger.error(
-        'Failed to schedule clean expired OTPs job',
-        error instanceof Error ? error.stack : error,
-      );
-    }
+    });
   }
 }

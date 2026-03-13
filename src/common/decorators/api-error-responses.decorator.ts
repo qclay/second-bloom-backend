@@ -8,7 +8,13 @@ const ERROR_EXAMPLES: Record<number, object> = {
     error: {
       code: 'VALIDATION_FAILED',
       message: 'Validation failed',
-      details: [{ field: 'fcmToken', message: 'fcmToken must be a string', code: 'INVALID_FORMAT' }],
+      details: [
+        {
+          field: 'fcmToken',
+          message: 'fcmToken must be a string',
+          code: 'INVALID_FORMAT',
+        },
+      ],
     },
     statusCode: 400,
     timestamp: new Date().toISOString(),
@@ -126,18 +132,11 @@ export function ApiCommonErrorResponses(options?: {
   }
 
   if (forbidden) {
-    decorators.push(
-      errorResponse(
-        403,
-        'Forbidden - Insufficient permissions',
-      ),
-    );
+    decorators.push(errorResponse(403, 'Forbidden - Insufficient permissions'));
   }
 
   if (notFound) {
-    decorators.push(
-      errorResponse(404, 'Not Found - Resource does not exist'),
-    );
+    decorators.push(errorResponse(404, 'Not Found - Resource does not exist'));
   }
 
   if (conflict) {
@@ -151,10 +150,7 @@ export function ApiCommonErrorResponses(options?: {
 
   if (internalServerError) {
     decorators.push(
-      errorResponse(
-        500,
-        'Internal Server Error - Unexpected server error',
-      ),
+      errorResponse(500, 'Internal Server Error - Unexpected server error'),
     );
   }
 

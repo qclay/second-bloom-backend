@@ -12,7 +12,10 @@ import { EndExpiredAuctionsScheduler } from './auction/end-expired-auctions.sche
 import { CleanExpiredOtpsProcessor } from './auth/clean-expired-otps.processor';
 import { CleanExpiredOtpsScheduler } from './auth/clean-expired-otps.scheduler';
 import { DeactivateOrderConversationsScheduler } from './conversation/deactivate-order-conversations.scheduler';
+import { DeactivateOrderConversationsProcessor } from './conversation/deactivate-order-conversations.processor';
 import { ExpirePendingPaymentsScheduler } from './payment/expire-pending-payments.scheduler';
+import { ExpirePendingPaymentsProcessor } from './payment/expire-pending-payments.processor';
+import { JobsAdminController } from './jobs-admin.controller';
 
 @Module({
   imports: [
@@ -56,18 +59,27 @@ import { ExpirePendingPaymentsScheduler } from './payment/expire-pending-payment
     BullModule.registerQueue({
       name: 'auth',
     }),
+    BullModule.registerQueue({
+      name: 'payment',
+    }),
+    BullModule.registerQueue({
+      name: 'conversation',
+    }),
     AuctionModule,
     AuthModule,
     ConversationModule,
     PaymentModule,
   ],
+  controllers: [JobsAdminController],
   providers: [
     EndExpiredAuctionsProcessor,
     FinishAuctionProcessor,
     EndExpiredAuctionsScheduler,
     CleanExpiredOtpsProcessor,
     CleanExpiredOtpsScheduler,
+    DeactivateOrderConversationsProcessor,
     DeactivateOrderConversationsScheduler,
+    ExpirePendingPaymentsProcessor,
     ExpirePendingPaymentsScheduler,
   ],
   exports: [BullModule],

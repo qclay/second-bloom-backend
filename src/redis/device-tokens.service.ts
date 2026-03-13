@@ -13,9 +13,13 @@ export class DeviceTokensService {
 
   private key(userId: string): string {
     return `${this.keyPrefix}${userId}`;
-    }
+  }
 
-  async setToken(userId: string, deviceId: string, token: string | null): Promise<void> {
+  async setToken(
+    userId: string,
+    deviceId: string,
+    token: string | null,
+  ): Promise<void> {
     const key = this.key(userId);
     const current = (await this.redis.get<DeviceTokenMap>(key)) || {};
     if (!token) {

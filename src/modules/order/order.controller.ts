@@ -34,7 +34,7 @@ import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 @ApiTags('Orders')
 @Controller('orders')
 export class OrderController {
-  constructor(private readonly orderService: OrderService) { }
+  constructor(private readonly orderService: OrderService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)

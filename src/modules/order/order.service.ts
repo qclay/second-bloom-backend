@@ -17,6 +17,8 @@ import { ProductRepository } from '../product/repositories/product.repository';
 import { AuctionRepository } from '../auction/repositories/auction.repository';
 import { ConversationService } from '../conversation/conversation.service';
 import { NotificationService } from '../notification/notification.service';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 @Injectable()
 export class OrderService {
@@ -24,12 +26,13 @@ export class OrderService {
 
   constructor(
     private readonly orderRepository: OrderRepository,
+    private readonly prisma: PrismaService,
     private readonly productRepository: ProductRepository,
     private readonly auctionRepository: AuctionRepository,
-    private readonly prisma: PrismaService,
     private readonly conversationService: ConversationService,
     private readonly notificationService: NotificationService,
-  ) { }
+    @InjectQueue('conversation') private readonly conversationQueue: Queue,
+  ) {}
 
   async createOrder(
     dto: CreateOrderDto,
@@ -153,8 +156,8 @@ export class OrderService {
             },
             auction: dto.auctionId
               ? {
-                connect: { id: dto.auctionId },
-              }
+                  connect: { id: dto.auctionId },
+                }
               : undefined,
             amount,
             status: OrderStatus.PENDING,
@@ -561,12 +564,14 @@ export class OrderService {
     };
 
     if (newStatus === 'CONFIRMED') {
-      this.notificationService.notifyOrderConfirmed(notifyParams).catch((err) => {
-        this.logger.warn(
-          `Failed to send ORDER_CONFIRMED notification for order ${id}`,
-          err instanceof Error ? err.message : String(err),
-        );
-      });
+      this.notificationService
+        .notifyOrderConfirmed(notifyParams)
+        .catch((err) => {
+          this.logger.warn(
+            `Failed to send ORDER_CONFIRMED notification for order ${id}`,
+            err instanceof Error ? err.message : String(err),
+          );
+        });
     } else if (newStatus === 'SHIPPED') {
       this.notificationService.notifyOrderShipped(notifyParams).catch((err) => {
         this.logger.warn(
@@ -575,17 +580,25 @@ export class OrderService {
         );
       });
     } else if (newStatus === 'DELIVERED') {
-      this.notificationService.notifyOrderDelivered(notifyParams).catch((err) => {
-        this.logger.warn(
-          `Failed to send ORDER_DELIVERED notification for order ${id}`,
-          err instanceof Error ? err.message : String(err),
-        );
-      });
-      this.conversationService
-        .deactivateConversationsForOrder(id)
+      this.notificationService
+        .notifyOrderDelivered(notifyParams)
         .catch((err) => {
           this.logger.warn(
-            `Failed to deactivate conversation(s) for order ${id}`,
+            `Failed to send ORDER_DELIVERED notification for order ${id}`,
+            err instanceof Error ? err.message : String(err),
+          );
+        });
+      // Schedule a job to deactivate conversations related to this order/product
+      // The old direct call: this.conversationService.deactivateConversationsForOrder(id)
+      // This logic was moved to a delayed job to distribute load
+      this.conversationQueue
+        .add('deactivate-conversation-by-order', {
+          orderId: id,
+          productId: order.productId,
+        })
+        .catch((err) => {
+          this.logger.warn(
+            `Failed to schedule conversation deactivation for order ${id}`,
             err instanceof Error ? err.message : err,
           );
         });

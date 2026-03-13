@@ -9,6 +9,9 @@ export class MetricsService implements OnModuleInit {
   readonly httpRequestTotal: promClient.Counter<string>;
   readonly httpRequestErrors: promClient.Counter<string>;
   readonly memoryUsage: promClient.Gauge<string>;
+  readonly cronRunsTotal: promClient.Counter<string>;
+  readonly cronFailuresTotal: promClient.Counter<string>;
+  readonly cronDurationSeconds: promClient.Histogram<string>;
 
   constructor() {
     this.register = new promClient.Registry();
@@ -42,6 +45,28 @@ export class MetricsService implements OnModuleInit {
       labelNames: ['type'],
       registers: [this.register],
     });
+
+    this.cronRunsTotal = new promClient.Counter({
+      name: 'cron_runs_total',
+      help: 'Total number of cron job runs',
+      labelNames: ['job', 'status'],
+      registers: [this.register],
+    });
+
+    this.cronFailuresTotal = new promClient.Counter({
+      name: 'cron_failures_total',
+      help: 'Total number of cron job failures',
+      labelNames: ['job'],
+      registers: [this.register],
+    });
+
+    this.cronDurationSeconds = new promClient.Histogram({
+      name: 'cron_duration_seconds',
+      help: 'Duration of cron jobs in seconds',
+      labelNames: ['job'],
+      buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300], // buckets from 100ms to 5 minutes
+      registers: [this.register],
+    });
   }
 
   onModuleInit(): void {
@@ -69,6 +94,18 @@ export class MetricsService implements OnModuleInit {
 
     if (statusCode >= 400) {
       this.httpRequestErrors.inc(labels);
+    }
+  }
+
+  recordCronRun(jobName: string, durationMs: number, success: boolean): void {
+    this.cronRunsTotal.inc({
+      job: jobName,
+      status: success ? 'success' : 'failure',
+    });
+    this.cronDurationSeconds.observe({ job: jobName }, durationMs / 1000);
+
+    if (!success) {
+      this.cronFailuresTotal.inc({ job: jobName });
     }
   }
 

@@ -35,7 +35,7 @@ export class NotificationService {
     private readonly firebaseService: IFirebaseService,
     private readonly presenceService: PresenceService,
     private readonly deviceTokensService: DeviceTokensService,
-  ) { }
+  ) {}
 
   private getUserLanguage(user: {
     language: string | null;
@@ -205,9 +205,9 @@ export class NotificationService {
     if (titleKey === 'AUCTION_EXTENDED') {
       const formattedTime = context.newEndTime
         ? new Date(context.newEndTime).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
+            hour: '2-digit',
+            minute: '2-digit',
+          })
         : '';
       if (lang === 'ru') {
         return {
@@ -369,9 +369,12 @@ export class NotificationService {
     );
 
     const deviceTokens = await this.deviceTokensService.getTokens(user.id);
-    const tokens = deviceTokens.length > 0
-      ? deviceTokens
-      : (user.fcmToken ? [user.fcmToken] : []);
+    const tokens =
+      deviceTokens.length > 0
+        ? deviceTokens
+        : user.fcmToken
+          ? [user.fcmToken]
+          : [];
 
     if (tokens.length > 0) {
       try {
@@ -380,22 +383,23 @@ export class NotificationService {
           type,
           ...(data
             ? Object.fromEntries(
-              Object.entries(data).map(([key, value]) => [
-                key,
-                String(value),
-              ]),
-            )
+                Object.entries(data).map(([key, value]) => [
+                  key,
+                  String(value),
+                ]),
+              )
             : {}),
         };
 
         const deliveryMode = await this.getDeliveryModeForType(type, user.id);
-        const { success, failure } = await this.firebaseService.sendNotificationToMultiple(
-          tokens,
-          title,
-          message,
-          notificationData,
-          { deliveryMode },
-        );
+        const { success, failure } =
+          await this.firebaseService.sendNotificationToMultiple(
+            tokens,
+            title,
+            message,
+            notificationData,
+            { deliveryMode },
+          );
 
         if (success > 0) {
           this.logger.log(
@@ -671,7 +675,12 @@ export class NotificationService {
   }): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: params.userId },
-      select: { id: true, fcmToken: true, notificationPreference: true, language: true },
+      select: {
+        id: true,
+        fcmToken: true,
+        notificationPreference: true,
+        language: true,
+      },
     });
 
     if (!user) return;
