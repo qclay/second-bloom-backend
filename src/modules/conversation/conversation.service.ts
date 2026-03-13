@@ -21,6 +21,8 @@ import {
 import { ConversationMessageResponseDto } from './dto/message-response.dto';
 import { Prisma, MessageType, DeliveryStatus, UserRole } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { ResolveConversationDto } from './dto/resolve-conversation.dto';
+import { ConversationContextType } from './constants/conversation-context.enum';
 import {
   resolveTranslation,
   type TranslationRecord,
@@ -267,9 +269,98 @@ export class ConversationService {
     return this.mapConversationToDto(conv, userId);
   }
 
+
+
+  async resolveConversation(
+    dto: ResolveConversationDto,
+    userId: string,
+  ): Promise<ConversationResponseDto> {
+    const { context, productId, orderId, targetUserId, metadata } = dto;
+
+    if (context === ConversationContextType.ORDER) {
+      if (!orderId)
+        throw new BadRequestException('orderId is required for ORDER context');
+      return this.resolveOrderConversation(orderId, userId);
+    }
+
+    if (
+      context === ConversationContextType.PRODUCT ||
+      context === ConversationContextType.AUCTION_BID
+    ) {
+      if (!productId)
+        throw new BadRequestException('productId is required for this context');
+      return this.getOrCreateConversationByProduct(
+        productId,
+        userId,
+        targetUserId,
+        metadata,
+      );
+    }
+
+    if (context === ConversationContextType.SUPPORT) {
+      const { conversationId } = await this.getOrCreateAdministrationConversation(
+        userId,
+      );
+      if (!conversationId)
+        throw new BadRequestException('Could not resolve administration chat');
+      return this.getConversationById(conversationId, userId);
+    }
+
+    throw new BadRequestException('Unsupported conversation context');
+  }
+
+  private async resolveOrderConversation(
+    orderId: string,
+    userId: string,
+  ): Promise<ConversationResponseDto> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { product: true },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Safety check - ensure user is part of the order
+    if (order.buyerId !== userId && order.product.sellerId !== userId) {
+      throw new ForbiddenException('You do not have access to this order');
+    }
+
+    // Try to find existing conversation linked to this order
+    const existing = await this.prisma.conversation.findFirst({
+      where: { orderId, deletedAt: null },
+      include: CONVERSATION_INCLUDE,
+    });
+
+    if (existing) {
+      return this.mapConversationToDto(
+        existing as ConversationWithRelations,
+        userId,
+      );
+    }
+
+    // If not found, we create one (though usually it's created automatically on order create)
+    const created = await this.prisma.conversation.create({
+      data: {
+        orderId,
+        productId: order.productId,
+        participants: {
+          create: [{ userId: order.buyerId }, { userId: order.product.sellerId }],
+        },
+      },
+      include: CONVERSATION_INCLUDE,
+    });
+
+    return this.mapConversationToDto(
+      created as ConversationWithRelations,
+      userId,
+    );
+  }
+
   async getOrCreateConversationByProduct(
     productId: string,
     userId: string,
+    targetUserId?: string,
+    metadata?: Record<string, any>,
   ): Promise<ConversationResponseDto> {
     const product = await this.prisma.product.findFirst({
       where: {
@@ -287,10 +378,28 @@ export class ConversationService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.sellerId === userId) {
+    const otherParticipantId = targetUserId || product.sellerId;
+
+    if (otherParticipantId === userId) {
       throw new BadRequestException(
-        'Cannot create conversation with yourself about your own product',
+        'Cannot create conversation with yourself about this product',
       );
+    }
+
+    if (userId !== product.sellerId && otherParticipantId !== product.sellerId) {
+      throw new BadRequestException(
+        'One of the conversation participants must be the product seller',
+      );
+    }
+
+    if (targetUserId) {
+      const targetUser = await this.prisma.user.findUnique({
+        where: { id: targetUserId },
+        select: { id: true },
+      });
+      if (!targetUser) {
+        throw new NotFoundException('Target user not found');
+      }
     }
 
     const existingConversation = await this.prisma.conversation.findFirst({
@@ -301,7 +410,7 @@ export class ConversationService {
         participants: {
           every: {
             userId: {
-              in: [userId, product.sellerId],
+              in: [userId, otherParticipantId],
             },
           },
           some: {
@@ -312,7 +421,7 @@ export class ConversationService {
           {
             participants: {
               some: {
-                userId: product.sellerId,
+                userId: otherParticipantId,
               },
             },
           },
@@ -337,14 +446,15 @@ export class ConversationService {
           connect: { id: productId },
         },
         participants: {
-          create: [{ userId }, { userId: product.sellerId }],
+          create: [{ userId }, { userId: otherParticipantId }],
         },
+        ...(metadata && { metadata }),
       },
       include: CONVERSATION_INCLUDE,
     });
 
     this.logger.log(
-      `Conversation created for product ${productId} between ${userId} and seller ${product.sellerId}`,
+      `Conversation created for product ${productId} between ${userId} and ${otherParticipantId} (Contextual)`,
     );
 
     return this.mapConversationToDto(
@@ -352,6 +462,9 @@ export class ConversationService {
       userId,
     );
   }
+
+
+
 
   async sendMessage(
     dto: SendMessageDto,
@@ -977,16 +1090,18 @@ export class ConversationService {
         'Conversation'
         : 'Conversation';
       const participant = conv.participants.find((p: any) => p.userId === userId);
-      const unreadCount = participant ? participant.unreadCount || 0 : 0;
+      const unreadCount = Number(participant?.unreadCount ?? 0);
 
       const rest = { ...msg };
       delete (rest as { conversation?: unknown }).conversation;
+
       return {
         message: this.mapMessageToDto(rest as MessageWithRelations),
         conversationTitle,
         unreadCount,
       };
     });
+
 
     return { data };
   }

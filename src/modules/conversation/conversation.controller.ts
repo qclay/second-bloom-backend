@@ -18,7 +18,7 @@ import { MessageQueryDto } from './dto/message-query.dto';
 import { SearchMessagesQueryDto } from './dto/search-messages-query.dto';
 import { SearchMessagesResponseDto } from './dto/search-messages-response.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
-import { GetOrCreateByProductDto } from './dto/get-or-create-by-product.dto';
+import { ResolveConversationDto } from './dto/resolve-conversation.dto';
 import { ConversationResponseDto } from './dto/conversation-response.dto';
 import { ConversationMessageResponseDto } from './dto/message-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -39,7 +39,7 @@ import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ConversationController {
-  constructor(private readonly conversationService: ConversationService) {}
+  constructor(private readonly conversationService: ConversationService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all conversations for current user' })
@@ -55,37 +55,23 @@ export class ConversationController {
     return this.conversationService.getConversations(query, userId);
   }
 
-  @Post('by-product')
-  @UsePipes(new SanitizePipe())
+
+  @Post('resolve')
   @ApiOperation({
-    summary: 'Get or create conversation with product seller',
+    summary: 'Get or create conversation based on business context',
     description:
-      'Returns existing conversation or creates new one between current user and product seller. Use when user wants to contact seller about a product (before purchase).',
+      'Resolves a conversation based on context (PRODUCT, AUCTION_BID, ORDER, SUPPORT). Created if not exists.',
   })
-  @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
-    status: 200,
-    description: 'Conversation (existing or created)',
+    status: 201,
+    description: 'Conversation resolved successfully',
     type: ConversationResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Cannot chat with yourself about your own product',
-    type: ApiErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Product not found',
-    type: ApiErrorResponseDto,
-  })
-  async getOrCreateByProduct(
-    @Body() dto: GetOrCreateByProductDto,
+  async resolve(
+    @Body() dto: ResolveConversationDto,
     @CurrentUser('id') userId: string,
   ): Promise<ConversationResponseDto> {
-    return this.conversationService.getOrCreateConversationByProduct(
-      dto.productId,
-      userId,
-    );
+    return this.conversationService.resolveConversation(dto, userId);
   }
 
   @Get(':id')

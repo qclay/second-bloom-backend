@@ -39,19 +39,21 @@ export class BidService {
       throw new NotFoundException('Auction not found');
     }
 
-    if (auction.creatorId === bidderId) {
+    const bidder = await this.prisma.user.findUnique({
+      where: { id: bidderId },
+      select: { role: true, auctionBannedUntil: true },
+    });
+
+    if (auction.creatorId === bidderId && bidder?.role !== UserRole.ADMIN) {
       throw new ForbiddenException('You cannot bid on your own auction');
     }
 
     const now = new Date();
-    const bidder = await this.prisma.user.findUnique({
-      where: { id: bidderId },
-      select: { auctionBannedUntil: true },
-    });
     if (
       bidder?.auctionBannedUntil &&
       bidder.auctionBannedUntil.getTime() > now.getTime()
     ) {
+
       throw new ForbiddenException(
         `You are temporarily banned from participating in auctions until ${bidder.auctionBannedUntil.toISOString()}. Contact support for more information.`,
       );
