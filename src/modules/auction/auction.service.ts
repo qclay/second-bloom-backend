@@ -20,12 +20,18 @@ import { ConversationService } from '../conversation/conversation.service';
 import {
   isTranslationRecord,
   resolveTranslation,
+  type TranslationRecord,
 } from '../../common/i18n/translation.util';
 import { AuctionSchedulingService } from './auction-scheduling.service';
 
 @Injectable()
 export class AuctionService {
   private readonly logger = new Logger(AuctionService.name);
+  private static readonly WINNER_MESSAGES: TranslationRecord = {
+    en: 'You won the auction. Please coordinate the next steps with the seller.',
+    ru: 'Вы выиграли аукцион. Пожалуйста, согласуйте дальнейшие шаги с продавцом.',
+    uz: 'Siz auksionda g‘olib bo‘ldingiz. Keyingi qadamlarni sotuvchiga yozib kelishing.',
+  };
 
   constructor(
     private readonly auctionRepository: AuctionRepository,
@@ -460,14 +466,16 @@ export class AuctionService {
 
     const winnerId = dto.winnerId ?? null;
 
+    let winnerLanguage: string | null = null;
     if (winnerId) {
       const userExists = await this.prisma.user.findUnique({
         where: { id: winnerId },
-        select: { id: true },
+        select: { id: true, language: true },
       });
       if (!userExists) {
         throw new BadRequestException(`User ${winnerId} not found`);
       }
+      winnerLanguage = userExists.language ?? null;
 
       const winnerBidCount = await this.prisma.bid.count({
         where: {
@@ -525,6 +533,11 @@ export class AuctionService {
             `Skipping winner chat creation for auction ${id}: product not found or deleted`,
           );
         } else {
+          const localizedContent =
+            resolveTranslation(
+              AuctionService.WINNER_MESSAGES,
+              (winnerLanguage ?? undefined) as unknown as string,
+            ) ?? AuctionService.WINNER_MESSAGES.en!;
           const conversation = await this.conversationService.getOrCreateConversationByProduct(
             product.id,
             product.sellerId,
@@ -538,7 +551,7 @@ export class AuctionService {
           await this.conversationService.sendMessageAsSender(
             conversation.id,
             product.sellerId,
-            'You won the auction. Please coordinate the next steps with the seller.',
+            localizedContent,
             {
               type: 'AUCTION_WINNER',
               auctionId: id,
