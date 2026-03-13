@@ -154,7 +154,6 @@ export class ConversationService {
       return;
     }
 
-    // Try to find an existing chat about this product between these users
     const existingForProduct = await this.prisma.conversation.findFirst({
       where: {
         productId: order.productId,
@@ -937,7 +936,9 @@ export class ConversationService {
           select: {
             id: true,
             participants: {
-              include: {
+              select: {
+                userId: true,
+                unreadCount: true,
                 user: {
                   select: {
                     id: true,

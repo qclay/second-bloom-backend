@@ -34,7 +34,7 @@ import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 @ApiTags('Orders')
 @Controller('orders')
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(private readonly orderService: OrderService) { }
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -60,8 +60,9 @@ export class OrderController {
   async create(
     @Body() createOrderDto: CreateOrderDto,
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
   ): Promise<OrderResponseDto> {
-    return await this.orderService.createOrder(createOrderDto, userId);
+    return await this.orderService.createOrder(createOrderDto, userId, role);
   }
 
   @Get()

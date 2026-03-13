@@ -29,11 +29,12 @@ export class OrderService {
     private readonly prisma: PrismaService,
     private readonly conversationService: ConversationService,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
 
   async createOrder(
     dto: CreateOrderDto,
     buyerId: string,
+    role?: UserRole,
   ): Promise<OrderResponseDto> {
     const product = await this.productRepository.findById(dto.productId);
 
@@ -45,7 +46,7 @@ export class OrderService {
       throw new BadRequestException('Product is not available for purchase');
     }
 
-    if (product.sellerId === buyerId) {
+    if (product.sellerId === buyerId && role !== UserRole.ADMIN) {
       throw new ForbiddenException('You cannot purchase your own product');
     }
 
@@ -152,8 +153,8 @@ export class OrderService {
             },
             auction: dto.auctionId
               ? {
-                  connect: { id: dto.auctionId },
-                }
+                connect: { id: dto.auctionId },
+              }
               : undefined,
             amount,
             status: OrderStatus.PENDING,
