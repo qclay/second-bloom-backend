@@ -121,18 +121,19 @@ export class ConversationService {
   ) { }
 
   async createConversationForOrder(orderId: string): Promise<void> {
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, deletedAt: null, isActive: true },
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
       select: {
         id: true,
         buyerId: true,
         productId: true,
         product: { select: { sellerId: true } },
+        deletedAt: true,
       },
     });
-    if (!order) {
+    if (!order || order.deletedAt) {
       this.logger.warn(
-        `Order ${orderId} not found, skipping conversation creation`,
+        `Order ${orderId} not found or deleted, skipping conversation creation`,
       );
       return;
     }
@@ -159,12 +160,17 @@ export class ConversationService {
         productId: order.productId,
         orderId: null,
         deletedAt: null,
-        isActive: true,
         participants: {
           every: {
             userId: { in: [sellerId, buyerId] },
           },
+          some: { userId: sellerId },
         },
+        AND: [
+          {
+            participants: { some: { userId: buyerId } },
+          },
+        ],
       },
       select: { id: true },
     });
@@ -953,6 +959,7 @@ export class ConversationService {
       const conv = msg.conversation as {
         participants: {
           userId: string;
+          unreadCount: number;
           user: {
             firstName: string | null;
             lastName: string | null;
@@ -968,8 +975,8 @@ export class ConversationService {
         other.user.phoneNumber ||
         'Conversation'
         : 'Conversation';
-      const participant = conv.participants.find((p) => p.userId === userId);
-      const unreadCount = participant ? (participant as any).unreadCount || 0 : 0;
+      const participant = conv.participants.find((p: any) => p.userId === userId);
+      const unreadCount = participant ? participant.unreadCount || 0 : 0;
 
       const rest = { ...msg };
       delete (rest as { conversation?: unknown }).conversation;
