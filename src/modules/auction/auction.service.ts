@@ -12,10 +12,11 @@ import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { ChooseWinnerDto } from './dto/choose-winner.dto';
 import { AuctionQueryDto } from './dto/auction-query.dto';
 import { AuctionResponseDto } from './dto/auction-response.dto';
-import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
+import { Prisma, AuctionStatus, UserRole, MessageType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { NotificationService } from '../notification/notification.service';
+import { ConversationService } from '../conversation/conversation.service';
 import {
   isTranslationRecord,
   resolveTranslation,
@@ -32,6 +33,7 @@ export class AuctionService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly auctionSchedulingService: AuctionSchedulingService,
+    private readonly conversationService: ConversationService,
   ) { }
 
   async createAuction(
@@ -514,6 +516,44 @@ export class AuctionService {
     this.logger.log(
       `Auction ${id} winner set to ${winnerId ?? 'none'} by user ${userId}`,
     );
+
+    if (winnerId) {
+      try {
+        const product = await this.productRepository.findById(auction.productId);
+        if (!product || product.deletedAt) {
+          this.logger.warn(
+            `Skipping winner chat creation for auction ${id}: product not found or deleted`,
+          );
+        } else {
+          const conversation = await this.conversationService.getOrCreateConversationByProduct(
+            product.id,
+            product.sellerId,
+            winnerId,
+            {
+              type: 'AUCTION_WINNER',
+              auctionId: id,
+              productId: product.id,
+            },
+          );
+          await this.conversationService.sendMessageAsSender(
+            conversation.id,
+            product.sellerId,
+            'You won the auction. Please coordinate the next steps with the seller.',
+            {
+              type: 'AUCTION_WINNER',
+              auctionId: id,
+              productId: product.id,
+            },
+            MessageType.SYSTEM,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to create winner conversation for auction ${id}`,
+          error instanceof Error ? error.stack : error,
+        );
+      }
+    }
 
     return this.findById(id);
   }

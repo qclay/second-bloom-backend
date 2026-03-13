@@ -320,12 +320,10 @@ export class ConversationService {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    // Safety check - ensure user is part of the order
     if (order.buyerId !== userId && order.product.sellerId !== userId) {
       throw new ForbiddenException('You do not have access to this order');
     }
 
-    // Try to find existing conversation linked to this order
     const existing = await this.prisma.conversation.findFirst({
       where: { orderId, deletedAt: null },
       include: CONVERSATION_INCLUDE,
@@ -338,7 +336,6 @@ export class ConversationService {
       );
     }
 
-    // If not found, we create one (though usually it's created automatically on order create)
     const created = await this.prisma.conversation.create({
       data: {
         orderId,
@@ -1435,6 +1432,7 @@ export class ConversationService {
     senderId: string,
     content: string,
     metadata?: Record<string, unknown>,
+    messageType: MessageType = MessageType.TEXT,
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       const conv = await tx.conversation.findUnique({
@@ -1452,7 +1450,7 @@ export class ConversationService {
         data: {
           conversationId,
           senderId,
-          messageType: MessageType.TEXT,
+          messageType,
           content,
           deliveryStatus: DeliveryStatus.SENT,
           ...(metadata && { metadata: metadata as Prisma.InputJsonValue }),

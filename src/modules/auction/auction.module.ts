@@ -6,6 +6,7 @@ import { AuctionRepository } from './repositories/auction.repository';
 import { ProductModule } from '../product/product.module';
 import { BidModule } from '../bid/bid.module';
 import { NotificationModule } from '../notification/notification.module';
+import { ConversationModule } from '../conversation/conversation.module';
 import { AuctionSchedulingService } from './auction-scheduling.service';
 
 
@@ -15,6 +16,7 @@ import { AuctionSchedulingService } from './auction-scheduling.service';
     forwardRef(() => ProductModule),
     forwardRef(() => BidModule),
     NotificationModule,
+    ConversationModule,
     BullModule.registerQueue({
       name: 'auction',
     }),
