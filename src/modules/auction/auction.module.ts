@@ -8,6 +8,8 @@ import { BidModule } from '../bid/bid.module';
 import { NotificationModule } from '../notification/notification.module';
 import { AuctionSchedulingService } from './auction-scheduling.service';
 
+
+
 @Module({
   imports: [
     forwardRef(() => ProductModule),

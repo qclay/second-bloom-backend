@@ -35,7 +35,7 @@ export class NotificationService {
     private readonly firebaseService: IFirebaseService,
     private readonly presenceService: PresenceService,
     private readonly deviceTokensService: DeviceTokensService,
-  ) {}
+  ) { }
 
   private getUserLanguage(user: {
     language: string | null;
@@ -54,7 +54,8 @@ export class NotificationService {
       type === NotificationType.OUTBID ||
       type === NotificationType.BID_REJECTED ||
       type === NotificationType.AUCTION_ENDED ||
-      type === NotificationType.AUCTION_ENDING_SOON
+      type === NotificationType.AUCTION_ENDING_SOON ||
+      type === NotificationType.AUCTION_STARTED
     ) {
       const online = await this.presenceService.isOnline(userId);
       return online ? 'data-only' : 'notification';
@@ -204,9 +205,9 @@ export class NotificationService {
     if (titleKey === 'AUCTION_EXTENDED') {
       const formattedTime = context.newEndTime
         ? new Date(context.newEndTime).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
+          hour: '2-digit',
+          minute: '2-digit',
+        })
         : '';
       if (lang === 'ru') {
         return {
@@ -379,11 +380,11 @@ export class NotificationService {
           type,
           ...(data
             ? Object.fromEntries(
-                Object.entries(data).map(([key, value]) => [
-                  key,
-                  String(value),
-                ]),
-              )
+              Object.entries(data).map(([key, value]) => [
+                key,
+                String(value),
+              ]),
+            )
             : {}),
         };
 

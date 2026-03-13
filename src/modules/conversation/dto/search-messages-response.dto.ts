@@ -14,6 +14,12 @@ export class SearchMessagesResultDto {
       'Display name of the conversation (other participant or order label)',
   })
   conversationTitle!: string;
+
+  @ApiProperty({
+    example: 2,
+    description: 'Number of unread messages in this conversation for the user',
+  })
+  unreadCount!: number;
 }
 
 export class SearchMessagesResponseDto {

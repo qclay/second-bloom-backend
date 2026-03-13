@@ -152,6 +152,34 @@ export class ConversationService {
       this.logger.debug(`Conversation already exists for order ${orderId}`);
       return;
     }
+
+    // Try to find an existing chat about this product between these users
+    const existingForProduct = await this.prisma.conversation.findFirst({
+      where: {
+        productId: order.productId,
+        orderId: null,
+        deletedAt: null,
+        isActive: true,
+        participants: {
+          every: {
+            userId: { in: [sellerId, buyerId] },
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (existingForProduct) {
+      await this.prisma.conversation.update({
+        where: { id: existingForProduct.id },
+        data: { orderId },
+      });
+      this.logger.log(
+        `Conversation ${existingForProduct.id} linked to order ${orderId}`,
+      );
+      return;
+    }
+
     await this.prisma.conversation.create({
       data: {
         orderId,
@@ -859,6 +887,7 @@ export class ConversationService {
     data: {
       message: ConversationMessageResponseDto;
       conversationTitle: string;
+      unreadCount: number;
     }[];
   }> {
     const query = (q || '').trim();
@@ -939,11 +968,15 @@ export class ConversationService {
         other.user.phoneNumber ||
         'Conversation'
         : 'Conversation';
+      const participant = conv.participants.find((p) => p.userId === userId);
+      const unreadCount = participant ? (participant as any).unreadCount || 0 : 0;
+
       const rest = { ...msg };
       delete (rest as { conversation?: unknown }).conversation;
       return {
         message: this.mapMessageToDto(rest as MessageWithRelations),
         conversationTitle,
+        unreadCount,
       };
     });
 

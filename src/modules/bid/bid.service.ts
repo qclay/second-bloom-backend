@@ -26,7 +26,7 @@ export class BidService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly auctionSchedulingService: AuctionSchedulingService,
-  ) {}
+  ) { }
 
   async createBid(
     dto: CreateBidDto,
@@ -300,9 +300,9 @@ export class BidService {
 
     this.logger.log(
       `Bid created: ${bid.id} for auction ${dto.auctionId} by user ${bidderId}. Amount: ${bidAmount}` +
-        (deletedBidIds.length > 0
-          ? ` (replaced ${deletedBidIds.length} previous bid(s))`
-          : ''),
+      (deletedBidIds.length > 0
+        ? ` (replaced ${deletedBidIds.length} previous bid(s))`
+        : ''),
     );
 
     if (autoExtendedNewEndTime) {
@@ -400,24 +400,24 @@ export class BidService {
       where =
         view === 'new'
           ? {
-              auctionId: auctionId ?? undefined,
-              readByOwnerAt: null,
-              rejectedAt: null,
-              isRetracted: false,
-            }
+            auctionId: auctionId ?? undefined,
+            readByOwnerAt: null,
+            rejectedAt: null,
+            isRetracted: false,
+          }
           : view === 'rejected'
             ? {
-                auctionId: auctionId ?? undefined,
-                rejectedAt: { not: null },
-              }
+              auctionId: auctionId ?? undefined,
+              rejectedAt: { not: null },
+            }
             : view === 'top'
               ? {
-                  auctionId: auctionId ?? undefined,
-                  isWinning: true,
-                }
+                auctionId: auctionId ?? undefined,
+                isWinning: true,
+              }
               : {
-                  auctionId: auctionId ?? undefined,
-                };
+                auctionId: auctionId ?? undefined,
+              };
     } else {
       where = {};
 
@@ -631,6 +631,8 @@ export class BidService {
     this.logger.log(
       `Bid ${id} ${isOwner ? 'removed by owner' : userId === bid.bidderId ? 'retracted by bidder' : 'retracted by admin'}`,
     );
+
+    const updatedAuction = await this.auctionRepository.findById(bid.auctionId);
 
     if (isOwner && bid.bidderId !== userId) {
       const rejectedBid = await this.findById(id);

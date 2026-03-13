@@ -32,7 +32,7 @@ export class AuctionService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly auctionSchedulingService: AuctionSchedulingService,
-  ) {}
+  ) { }
 
   async createAuction(
     dto: CreateAuctionDto,
