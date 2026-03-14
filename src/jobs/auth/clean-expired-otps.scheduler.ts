@@ -20,7 +20,7 @@ export class CleanExpiredOtpsScheduler extends AbstractCronJob {
     super(configService, metricsService);
   }
 
-  @Cron('0 * * * *') // Fallback hourly
+  @Cron('0 * * * *', { name: 'clean-expired-otps' }) // Fallback hourly
   async scheduleCleanExpiredOtps(): Promise<void> {
     await this.executeJob(async () => {
       await this.authQueue.add('clean-expired-otps', {

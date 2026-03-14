@@ -255,12 +255,17 @@ export class AuctionController {
   @ApiOperation({
     summary: 'Choose auction winner',
     description:
-      'Set or clear the winner for an ended auction. Only auction owner or admin. Winner must have at least one bid on this auction. Send { "winnerId": "user-uuid" } or { "winnerId": null } to clear.',
+      'Manually select the winner for an ACTIVE or ENDED auction. Only auction owner or admin. Winner must have at least one bid. ' +
+      'When called on ACTIVE auction: cancels cron job and immediately ends the auction. ' +
+      'Automatically creates: (1) Order with PENDING status, (2) Conversation/chat between seller and winner, (3) System message in chat. ' +
+      'Returns chatId in response for frontend to redirect user to the conversation. ' +
+      'Sends push notification to winner with isWinner: true.',
   })
   @ApiParam({ name: 'id', description: 'Auction UUID' })
   @ApiResponse({
     status: 200,
-    description: 'Auction with updated winner',
+    description:
+      'Auction with updated winner and chatId for the created conversation',
     type: AuctionResponseDto,
   })
   @ApiCommonErrorResponses({ conflict: false })

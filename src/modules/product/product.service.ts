@@ -1,12 +1,11 @@
 import {
   Injectable,
-  Inject,
-  forwardRef,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ProductRepository } from './repositories/product.repository';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -35,8 +34,7 @@ export class ProductService {
     private readonly productRepository: ProductRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => AuctionService))
-    private readonly auctionService: AuctionService,
+    private readonly moduleRef: ModuleRef,
     private readonly translationService: TranslationService,
     private readonly conversationService: ConversationService,
     private readonly telegramService: TelegramService,
@@ -215,7 +213,9 @@ export class ProductService {
         autoExtend: dto.auction?.autoExtend ?? true,
         extendMinutes: dto.auction?.extendMinutes ?? 5,
       };
-      await this.auctionService.createAuction(auctionDto, sellerId);
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      const auctionService = await this.moduleRef.get(AuctionService);
+      await auctionService.createAuction(auctionDto, sellerId);
       this.logger.log(
         `Auction created for product ${product.id} (seller: ${sellerId})`,
       );
@@ -1549,7 +1549,9 @@ export class ProductService {
         autoExtend: dto.auction?.autoExtend ?? true,
         extendMinutes: dto.auction?.extendMinutes ?? 5,
       };
-      await this.auctionService.createAuction(auctionDto, userId, userRole);
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      const auctionService = await this.moduleRef.get(AuctionService);
+      await auctionService.createAuction(auctionDto, userId, userRole);
       this.logger.log(
         `Auction created for product ${id} via update (caller: ${userId})`,
       );

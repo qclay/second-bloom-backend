@@ -6,6 +6,7 @@ import { AuctionModule } from '../modules/auction/auction.module';
 import { AuthModule } from '../modules/auth/auth.module';
 import { ConversationModule } from '../modules/conversation/conversation.module';
 import { PaymentModule } from '../modules/payment/payment.module';
+import { MetricsModule } from '../metrics/metrics.module';
 import { EndExpiredAuctionsProcessor } from './auction/end-expired-auctions.processor';
 import { FinishAuctionProcessor } from './auction/finish-auction.processor';
 import { EndExpiredAuctionsScheduler } from './auction/end-expired-auctions.scheduler';
@@ -69,6 +70,7 @@ import { JobsAdminController } from './jobs-admin.controller';
     AuthModule,
     ConversationModule,
     PaymentModule,
+    MetricsModule,
   ],
   controllers: [JobsAdminController],
   providers: [

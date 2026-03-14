@@ -28,6 +28,12 @@ export class AppController {
     };
   }
 
+  @Get('health')
+  @Public()
+  health() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+
   @Get('debug-sentry')
   @Public()
   debugSentry(): never {

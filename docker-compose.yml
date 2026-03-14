@@ -6,7 +6,7 @@ services:
     container_name: second-bloom-redis
     restart: always
     ports:
-      - "6380:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:

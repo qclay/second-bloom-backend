@@ -6,6 +6,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { AuctionRepository } from './repositories/auction.repository';
 import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
@@ -17,6 +18,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { NotificationService } from '../notification/notification.service';
 import { ConversationService } from '../conversation/conversation.service';
+import { OrderService } from '../order/order.service';
 import {
   isTranslationRecord,
   resolveTranslation,
@@ -40,6 +42,7 @@ export class AuctionService {
     private readonly notificationService: NotificationService,
     private readonly auctionSchedulingService: AuctionSchedulingService,
     private readonly conversationService: ConversationService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   async createAuction(
@@ -460,46 +463,52 @@ export class AuctionService {
       );
     }
 
-    if (auction.status !== 'ENDED') {
+    if (auction.status !== 'ACTIVE' && auction.status !== 'ENDED') {
       throw new BadRequestException(
-        'Winner can only be set or changed for ended auctions',
+        'Winner can only be chosen for active or ended auctions',
       );
     }
 
     const winnerId = dto.winnerId ?? null;
 
-    let winnerLanguage: string | null = null;
-    if (winnerId) {
-      const userExists = await this.prisma.user.findUnique({
-        where: { id: winnerId },
-        select: { id: true, language: true },
-      });
-      if (!userExists) {
-        throw new BadRequestException(`User ${winnerId} not found`);
-      }
-      winnerLanguage = userExists.language ?? null;
-
-      const winnerBidCount = await this.prisma.bid.count({
-        where: {
-          auctionId: id,
-          bidderId: winnerId,
-          deletedAt: null,
-        },
-      });
-      if (winnerBidCount === 0) {
-        throw new BadRequestException(
-          'Chosen winner must have at least one bid on this auction',
-        );
-      }
+    if (!winnerId) {
+      throw new BadRequestException('Winner ID is required');
     }
 
-    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      await tx.bid.updateMany({
-        where: { auctionId: id },
-        data: { isWinning: false },
-      });
+    let winnerLanguage: string | null = null;
+    const userExists = await this.prisma.user.findUnique({
+      where: { id: winnerId },
+      select: { id: true, language: true },
+    });
+    if (!userExists) {
+      throw new BadRequestException(`User ${winnerId} not found`);
+    }
+    winnerLanguage = userExists.language ?? null;
 
-      if (winnerId) {
+    const winnerBidCount = await this.prisma.bid.count({
+      where: {
+        auctionId: id,
+        bidderId: winnerId,
+        deletedAt: null,
+      },
+    });
+    if (winnerBidCount === 0) {
+      throw new BadRequestException(
+        'Chosen winner must have at least one bid on this auction',
+      );
+    }
+
+    if (auction.status === 'ACTIVE') {
+      await this.safeCancelAuctionJob(id);
+    }
+
+    const winningBidData = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        await tx.bid.updateMany({
+          where: { auctionId: id },
+          data: { isWinning: false },
+        });
+
         const winningBid = await tx.bid.findFirst({
           where: {
             auctionId: id,
@@ -507,73 +516,122 @@ export class AuctionService {
             deletedAt: null,
           },
           orderBy: { amount: 'desc' },
-          select: { id: true },
+          select: { id: true, amount: true },
         });
-        if (winningBid) {
-          await tx.bid.update({
-            where: { id: winningBid.id },
-            data: { isWinning: true },
-          });
+        if (!winningBid) {
+          throw new BadRequestException('No bid found for winner');
         }
-      }
 
-      await tx.auction.update({
-        where: { id },
-        data: { winnerId },
-      });
-    });
+        await tx.bid.update({
+          where: { id: winningBid.id },
+          data: { isWinning: true },
+        });
 
-    this.logger.log(
-      `Auction ${id} winner set to ${winnerId ?? 'none'} by user ${userId}`,
+        await tx.auction.update({
+          where: { id },
+          data: { winnerId, status: 'ENDED' },
+        });
+
+        return { amount: Number(winningBid.amount) };
+      },
     );
 
-    if (winnerId) {
-      try {
-        const product = await this.productRepository.findById(
-          auction.productId,
+    const winningBidAmount = winningBidData.amount;
+
+    this.logger.log(
+      `Auction ${id} winner set to ${winnerId} by user ${userId}, status set to ENDED`,
+    );
+
+    let chatId: string | null = null;
+
+    try {
+      const product = await this.productRepository.findById(auction.productId);
+      if (!product || product.deletedAt) {
+        this.logger.warn(
+          `Skipping order/chat creation for auction ${id}: product not found or deleted`,
         );
-        if (!product || product.deletedAt) {
-          this.logger.warn(
-            `Skipping winner chat creation for auction ${id}: product not found or deleted`,
-          );
-        } else {
-          const localizedContent =
-            resolveTranslation(
-              AuctionService.WINNER_MESSAGES,
-              (winnerLanguage ?? undefined) as unknown as string,
-            ) ?? AuctionService.WINNER_MESSAGES.en!;
-          const conversation =
-            await this.conversationService.getOrCreateConversationByProduct(
-              product.id,
-              product.sellerId,
-              winnerId,
-              {
-                type: 'AUCTION_WINNER',
-                auctionId: id,
-                productId: product.id,
-              },
-            );
-          await this.conversationService.sendMessageAsSender(
-            conversation.id,
+      } else {
+        // eslint-disable-next-line @typescript-eslint/await-thenable
+        const orderService = await this.moduleRef.get(OrderService);
+        const order = await orderService.createOrderFromAuctionWinner({
+          auctionId: id,
+          productId: product.id,
+          buyerId: winnerId,
+          amount: winningBidAmount,
+        });
+
+        this.logger.log(
+          `Order ${order.id} created for auction winner ${winnerId}`,
+        );
+
+        const localizedContent =
+          resolveTranslation(
+            AuctionService.WINNER_MESSAGES,
+            (winnerLanguage ?? undefined) as unknown as string,
+          ) ?? AuctionService.WINNER_MESSAGES.en!;
+
+        const conversation =
+          await this.conversationService.getOrCreateConversationByProduct(
+            product.id,
             product.sellerId,
-            localizedContent,
+            winnerId,
             {
               type: 'AUCTION_WINNER',
               auctionId: id,
               productId: product.id,
+              orderId: order.id,
             },
-            MessageType.SYSTEM,
           );
+
+        chatId = conversation.id;
+
+        const existingConv = await this.prisma.conversation.findUnique({
+          where: { id: conversation.id },
+          select: { orderId: true },
+        });
+
+        if (!existingConv?.orderId) {
+          await this.prisma.conversation.update({
+            where: { id: conversation.id },
+            data: { orderId: order.id },
+          });
         }
-      } catch (error) {
-        this.logger.error(
-          `Failed to create winner conversation for auction ${id}`,
-          error instanceof Error ? error.stack : error,
+
+        await this.conversationService.sendMessageAsSender(
+          conversation.id,
+          product.sellerId,
+          localizedContent,
+          {
+            type: 'AUCTION_WINNER',
+            auctionId: id,
+            productId: product.id,
+            orderId: order.id,
+          },
+          MessageType.SYSTEM,
         );
+
+        await this.notificationService.notifyAuctionEndedForParticipant({
+          userId: winnerId,
+          auctionId: id,
+          productId: product.id,
+          productTitle: isTranslationRecord(product.title)
+            ? (resolveTranslation(product.title, winnerLanguage ?? 'en') ??
+              undefined)
+            : typeof product.title === 'string'
+              ? product.title
+              : undefined,
+          isWinner: true,
+        });
       }
+    } catch (error) {
+      this.logger.error(
+        `Failed to create order/chat for auction winner ${winnerId} in auction ${id}`,
+        error instanceof Error ? error.stack : error,
+      );
     }
 
-    return this.findById(id);
+    const auctionDto = await this.findById(id);
+    return { ...auctionDto, chatId };
   }
 
   async closeAuction(
@@ -696,21 +754,7 @@ export class AuctionService {
       const auctionIds = expiredAuctions.map((a) => a.id);
       const productIds = [...new Set(expiredAuctions.map((a) => a.productId))];
 
-      const [winningBids, products, allParticipants] = await Promise.all([
-        this.prisma.bid.findMany({
-          where: {
-            auctionId: { in: auctionIds },
-            isWinning: true,
-            isRetracted: false,
-          },
-          select: {
-            id: true,
-            bidderId: true,
-            auctionId: true,
-            createdAt: true,
-          },
-          orderBy: { createdAt: 'desc' },
-        }),
+      const [products, allParticipants] = await Promise.all([
         productIds.length > 0
           ? this.prisma.product.findMany({
               where: { id: { in: productIds } },
@@ -729,19 +773,6 @@ export class AuctionService {
           : [],
       ]);
 
-      const winningBidByAuctionId = new Map<
-        string,
-        { id: string; bidderId: string }
-      >();
-      for (const b of winningBids) {
-        if (!winningBidByAuctionId.has(b.auctionId)) {
-          winningBidByAuctionId.set(b.auctionId, {
-            id: b.id,
-            bidderId: b.bidderId,
-          });
-        }
-      }
-
       const productTitleByProductId = new Map(
         products.map((p) => [p.id, p.title]),
       );
@@ -757,36 +788,17 @@ export class AuctionService {
 
       for (const auction of expiredAuctions) {
         try {
-          const winningBid = winningBidByAuctionId.get(auction.id);
-
-          await this.prisma.$transaction(
-            async (tx: Prisma.TransactionClient) => {
-              await tx.auction.update({
-                where: { id: auction.id },
-                data: {
-                  status: 'ENDED',
-                  winnerId: winningBid?.bidderId ?? null,
-                },
-              });
-
-              if (winningBid) {
-                await tx.bid.updateMany({
-                  where: {
-                    auctionId: auction.id,
-                    id: { not: winningBid.id },
-                    isWinning: true,
-                  },
-                  data: {
-                    isWinning: false,
-                  },
-                });
-              }
+          await this.prisma.auction.update({
+            where: { id: auction.id },
+            data: {
+              status: 'ENDED',
+              winnerId: null,
             },
-          );
+          });
 
           endedCount++;
           this.logger.log(
-            `Auction ${auction.id} ended. Winner: ${winningBid?.bidderId ?? 'none'}`,
+            `Auction ${auction.id} ended automatically (no winner selected)`,
           );
 
           await this.safeCancelAuctionJob(auction.id);
@@ -801,7 +813,6 @@ export class AuctionService {
                   ? (resolveTranslation(productTitleRaw, 'en') ?? undefined)
                   : undefined;
             const participants = participantsByAuctionId.get(auction.id) ?? [];
-            const winnerId = winningBid?.bidderId ?? null;
 
             await Promise.all(
               participants.map((p) =>
@@ -810,7 +821,7 @@ export class AuctionService {
                   auctionId: auction.id,
                   productId: auction.productId,
                   productTitle,
-                  isWinner: winnerId !== null && p.bidderId === winnerId,
+                  isWinner: false,
                 }),
               ),
             );
@@ -889,15 +900,6 @@ export class AuctionService {
     auctionId: string,
     productId?: string | null,
   ): Promise<AuctionResponseDto> {
-    const winningBid = await this.prisma.bid.findFirst({
-      where: {
-        auctionId,
-        isWinning: true,
-        isRetracted: false,
-      },
-      select: { id: true, bidderId: true },
-    });
-
     let resolvedProductId = productId ?? null;
     if (!resolvedProductId) {
       const auctionRecord = await this.prisma.auction.findUnique({
@@ -907,25 +909,12 @@ export class AuctionService {
       resolvedProductId = auctionRecord?.productId ?? null;
     }
 
-    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      await tx.auction.update({
-        where: { id: auctionId },
-        data: {
-          status: 'ENDED',
-          winnerId: winningBid?.bidderId ?? null,
-        },
-      });
-
-      if (winningBid) {
-        await tx.bid.updateMany({
-          where: {
-            auctionId,
-            id: { not: winningBid.id },
-            isWinning: true,
-          },
-          data: { isWinning: false },
-        });
-      }
+    await this.prisma.auction.update({
+      where: { id: auctionId },
+      data: {
+        status: 'ENDED',
+        winnerId: null,
+      },
     });
 
     const participants = await this.prisma.bid.findMany({
@@ -949,8 +938,6 @@ export class AuctionService {
             : undefined;
     }
 
-    const winnerId = winningBid?.bidderId ?? null;
-
     if (resolvedProductId) {
       try {
         await Promise.all(
@@ -960,7 +947,7 @@ export class AuctionService {
               auctionId,
               productId: resolvedProductId,
               productTitle,
-              isWinner: winnerId !== null && p.bidderId === winnerId,
+              isWinner: false,
             }),
           ),
         );

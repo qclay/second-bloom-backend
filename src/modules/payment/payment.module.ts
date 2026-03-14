@@ -6,10 +6,14 @@ import { PaymentService } from './payment.service';
 import { PaymentRepository } from './repositories/payment.repository';
 import { PaymentGateway } from './gateways/payment.gateway';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   imports: [
     PrismaModule,
+    BullModule.registerQueue({
+      name: 'payment',
+    }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {

@@ -34,6 +34,88 @@ export class OrderService {
     @InjectQueue('conversation') private readonly conversationQueue: Queue,
   ) {}
 
+  async createOrderFromAuctionWinner(params: {
+    auctionId: string;
+    productId: string;
+    buyerId: string;
+    amount: number;
+  }): Promise<{ id: string; amount: number }> {
+    const { auctionId, productId, buyerId, amount } = params;
+
+    const existingOrder = await this.prisma.order.findFirst({
+      where: {
+        auctionId,
+        buyerId,
+        status: { not: 'CANCELLED' },
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (existingOrder) {
+      throw new ConflictException(
+        'Order already exists for this auction winner',
+      );
+    }
+
+    const auction = await this.auctionRepository.findById(auctionId);
+    if (!auction || auction.deletedAt) {
+      throw new NotFoundException('Auction not found');
+    }
+
+    if (auction.status !== 'ENDED') {
+      throw new BadRequestException('Auction must be ended to create order');
+    }
+
+    if (auction.winnerId !== buyerId) {
+      throw new BadRequestException(
+        'Buyer must be the auction winner to create this order',
+      );
+    }
+
+    const winningBid = await this.prisma.bid.findFirst({
+      where: {
+        auctionId,
+        bidderId: buyerId,
+        isWinning: true,
+        isRetracted: false,
+      },
+      orderBy: { amount: 'desc' },
+    });
+
+    if (!winningBid) {
+      throw new BadRequestException('No winning bid found for this buyer');
+    }
+
+    if (Number(winningBid.amount) !== amount) {
+      throw new BadRequestException(
+        `Order amount must match winning bid amount: ${Number(winningBid.amount)}`,
+      );
+    }
+
+    const orderNumber = await this.orderRepository.generateOrderNumber();
+
+    const order = await this.prisma.order.create({
+      data: {
+        orderNumber,
+        buyer: { connect: { id: buyerId } },
+        product: { connect: { id: productId } },
+        auction: { connect: { id: auctionId } },
+        amount,
+        status: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.PENDING,
+        shippingAddress: null,
+        notes: null,
+      },
+    });
+
+    this.logger.log(
+      `Order created from auction winner: ${order.id} (${orderNumber}) for auction ${auctionId}, buyer ${buyerId}, amount: ${amount}`,
+    );
+
+    return { id: order.id, amount };
+  }
+
   async createOrder(
     dto: CreateOrderDto,
     buyerId: string,

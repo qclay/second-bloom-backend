@@ -90,6 +90,9 @@ export class AuctionResponseDto {
     phoneNumber: string;
   } | null;
 
+  @ApiProperty({ nullable: true, required: false })
+  chatId?: string | null;
+
   static fromEntity(
     auction: Auction & {
       product?: {
