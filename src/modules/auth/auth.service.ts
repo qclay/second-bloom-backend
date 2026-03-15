@@ -37,7 +37,10 @@ export class AuthService {
         dto.countryCode,
         dto.phoneNumber,
         VerificationPurpose.SIGNUP,
-        { forAdminPanel: dto.forAdminPanel === true },
+        {
+          forAdminPanel: dto.forAdminPanel === true,
+          language: dto.language,
+        },
       );
       return {
         message: 'Verification code sent successfully',

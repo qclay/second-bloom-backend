@@ -22,19 +22,14 @@ import { OrderService } from '../order/order.service';
 import {
   isTranslationRecord,
   resolveTranslation,
-  type TranslationRecord,
 } from '../../common/i18n/translation.util';
 import { AuctionSchedulingService } from './auction-scheduling.service';
+import { API_MESSAGES } from '../../common/i18n/api-messages.i18n';
+import { t, type Locale } from '../../common/i18n/translation.util';
 
 @Injectable()
 export class AuctionService {
   private readonly logger = new Logger(AuctionService.name);
-  private static readonly WINNER_MESSAGES: TranslationRecord = {
-    en: 'You won the auction. Please coordinate the next steps with the seller.',
-    ru: 'Вы выиграли аукцион. Пожалуйста, согласуйте дальнейшие шаги с продавцом.',
-    uz: 'Siz auksionda g‘olib bo‘ldingiz. Keyingi qadamlarni sotuvchiga yozib kelishing.',
-  };
-
   constructor(
     private readonly auctionRepository: AuctionRepository,
     private readonly productRepository: ProductRepository,
@@ -566,11 +561,12 @@ export class AuctionService {
           `Order ${order.id} created for auction winner ${winnerId}`,
         );
 
-        const localizedContent =
-          resolveTranslation(
-            AuctionService.WINNER_MESSAGES,
-            (winnerLanguage ?? undefined) as unknown as string,
-          ) ?? AuctionService.WINNER_MESSAGES.en!;
+        const localizedContent = t(
+          API_MESSAGES,
+          'AUCTION_WINNER_CHAT',
+          {},
+          (winnerLanguage as Locale) || 'uz',
+        );
 
         const conversation =
           await this.conversationService.getOrCreateConversationByProduct(

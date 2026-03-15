@@ -43,4 +43,13 @@ export class SendOtpDto {
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   forAdminPanel?: boolean;
+  @ApiProperty({
+    example: 'ru',
+    description: 'Preferred language for the OTP message',
+    required: false,
+    default: 'uz',
+  })
+  @IsOptional()
+  @IsString()
+  language?: string;
 }

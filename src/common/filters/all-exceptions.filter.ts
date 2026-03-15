@@ -17,11 +17,7 @@ import {
 import { ApiErrorDetailDto } from '../dto/api-error-detail.dto';
 import { ConfigService } from '@nestjs/config';
 import { API_MESSAGES } from '../i18n/api-messages.i18n';
-import {
-  parseAcceptLanguage,
-  resolveTranslation,
-  type Locale,
-} from '../i18n/translation.util';
+import { parseAcceptLanguage, t, type Locale } from '../i18n/translation.util';
 
 type LoggerWithMeta = WinstonLogger & {
   error: (msg: string, meta?: object) => void;
@@ -42,6 +38,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    const locale: Locale =
+      parseAcceptLanguage(request.headers['accept-language']) || 'uz';
+
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
 
@@ -61,16 +60,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       status = this.handlePrismaError(exception);
-      message = this.getPrismaErrorMessage(exception);
+      message = this.getPrismaErrorMessage(exception, locale);
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
       status = HttpStatus.BAD_REQUEST;
-      message = 'Database validation error';
+      message = t(API_MESSAGES, 'Database validation error', {}, locale);
     } else if (exception instanceof Prisma.PrismaClientInitializationError) {
       status = HttpStatus.SERVICE_UNAVAILABLE;
-      message = 'Database connection error';
+      message = t(API_MESSAGES, 'Database connection error', {}, locale);
     } else if (exception instanceof Prisma.PrismaClientRustPanicError) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = 'Database engine error';
+      message = t(API_MESSAGES, 'Database engine error', {}, locale);
     } else if (exception instanceof Error) {
       message = exception.message;
       if (process.env.NODE_ENV !== 'development') {
@@ -101,34 +100,27 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const errorDetails: ApiErrorDetailDto[] | undefined = Array.isArray(message)
       ? message.map((msg) => ({
-          message: msg,
+          message: t(API_MESSAGES, msg, {}, locale),
           code: ErrorCode.VALIDATION_FAILED,
         }))
       : undefined;
 
-    let errorMessage = Array.isArray(message) ? 'Validation failed' : message;
+    let errorMessage = Array.isArray(message)
+      ? t(API_MESSAGES, 'Validation failed', {}, locale)
+      : t(API_MESSAGES, message, {}, locale);
     let finalErrorCode = errorCode;
 
     if (
       status >= HttpStatus.INTERNAL_SERVER_ERROR &&
       process.env.NODE_ENV === 'production'
     ) {
-      errorMessage = 'An internal server error occurred';
+      errorMessage = t(
+        API_MESSAGES,
+        'An internal server error occurred',
+        {},
+        locale,
+      );
       finalErrorCode = ErrorCode.INTERNAL_SERVER_ERROR;
-    }
-
-    const locale: Locale | null = parseAcceptLanguage(
-      request.headers['accept-language'],
-    );
-    if (locale) {
-      const translated = resolveTranslation(API_MESSAGES[errorMessage], locale);
-      if (translated) errorMessage = translated;
-      if (errorDetails?.length) {
-        errorDetails.forEach((d) => {
-          const t = resolveTranslation(API_MESSAGES[d.message], locale);
-          if (t) d.message = t;
-        });
-      }
     }
 
     const retryInfo = this.getRetryInfo(status);
@@ -210,20 +202,31 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   private getPrismaErrorMessage(
     error: Prisma.PrismaClientKnownRequestError,
+    locale: Locale,
   ): string {
     switch (error.code) {
       case 'P2002': {
         const target = (error.meta?.target as string[]) || [];
-        return `Duplicate entry: ${target.join(', ')} already exists`;
+        return t(
+          API_MESSAGES,
+          'Duplicate entry: {{target}} already exists',
+          { target: target.join(', ') },
+          locale,
+        );
       }
       case 'P2025':
-        return 'Record not found';
+        return t(API_MESSAGES, 'Record not found', {}, locale);
       case 'P2003':
-        return 'Invalid reference: related record does not exist';
+        return t(
+          API_MESSAGES,
+          'Invalid reference: related record does not exist',
+          {},
+          locale,
+        );
       case 'P2014':
-        return 'Required relation missing';
+        return t(API_MESSAGES, 'Required relation missing', {}, locale);
       default:
-        return 'Database operation failed';
+        return t(API_MESSAGES, 'Database operation failed', {}, locale);
     }
   }
 

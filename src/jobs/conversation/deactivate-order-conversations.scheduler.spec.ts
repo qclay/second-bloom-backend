@@ -42,7 +42,9 @@ describe('DeactivateOrderConversationsScheduler', () => {
       ],
     }).compile();
 
-    scheduler = module.get<DeactivateOrderConversationsScheduler>(DeactivateOrderConversationsScheduler);
+    scheduler = module.get<DeactivateOrderConversationsScheduler>(
+      DeactivateOrderConversationsScheduler,
+    );
     configService = module.get<ConfigService>(ConfigService);
     metricsService = module.get<MetricsService>(MetricsService);
   });

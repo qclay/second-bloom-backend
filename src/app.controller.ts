@@ -6,6 +6,8 @@ import { UserRole } from '@prisma/client';
 import { PrismaService } from './prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { TelegramService } from './infrastructure/telegram/telegram.service';
+import { TELEGRAM_MESSAGES } from './common/i18n/telegram.i18n';
+import { t, type Locale } from './common/i18n/translation.util';
 
 @ApiExcludeController()
 @Controller()
@@ -104,9 +106,15 @@ export class AppController {
       return { ok: true };
     }
 
+    const admin = await this.prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { language: true },
+    });
+    const locale = (admin?.language as Locale) || 'ru';
+
     const rejectionReasonText =
       action === 'reject'
-        ? 'Отклонено через бота Telegram (уточните причину в админке при необходимости)'
+        ? t(TELEGRAM_MESSAGES, 'REJECTION_REASON_TELEGRAM', {}, locale)
         : undefined;
 
     try {
@@ -124,8 +132,17 @@ export class AppController {
       const originalText: string = message.text ?? '';
       const statusLine =
         action === 'approve'
-          ? '\n\n✅ ОПУБЛИКОВАНО'
-          : `\n\n❌ ОТКЛОНЕНО \nПричина: ${rejectionReasonText ?? 'Не указана'}`;
+          ? t(TELEGRAM_MESSAGES, 'STATUS_PUBLISHED', {}, locale)
+          : t(
+              TELEGRAM_MESSAGES,
+              'STATUS_REJECTED',
+              {
+                reason:
+                  rejectionReasonText ||
+                  t(TELEGRAM_MESSAGES, 'REASON_NOT_SPECIFIED', {}, locale),
+              },
+              locale,
+            );
 
       await this.telegramService.editMessageText({
         chatId: message.chat.id,
@@ -138,15 +155,15 @@ export class AppController {
         await this.telegramService.answerCallbackQuery(
           callbackId,
           action === 'approve'
-            ? 'Товар опубликован'
-            : 'Товар отклонён через Telegram',
+            ? t(TELEGRAM_MESSAGES, 'CALLBACK_PUBLISHED', {}, locale)
+            : t(TELEGRAM_MESSAGES, 'CALLBACK_REJECTED', {}, locale),
         );
       }
     } catch {
       if (callbackId) {
         await this.telegramService.answerCallbackQuery(
           callbackId,
-          'Ошибка модерации',
+          t(TELEGRAM_MESSAGES, 'MODERATION_ERROR', {}, locale),
         );
       }
     }

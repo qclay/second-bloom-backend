@@ -79,3 +79,21 @@ export function resolveTranslationsInObject(
   }
   return value;
 }
+
+export function t(
+  dictionary: Record<string, TranslationRecord>,
+  key: string,
+  params: Record<string, string | number | undefined | null> = {},
+  locale: Locale = 'uz',
+): string {
+  const record = dictionary[key];
+  let text = resolveTranslation(record, locale) ?? key;
+
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null) {
+      text = text.replace(new RegExp(`{{${k}}}`, 'g'), String(v));
+    }
+  }
+
+  return text;
+}

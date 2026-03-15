@@ -5,6 +5,8 @@ import { firstValueFrom } from 'rxjs';
 import { ISmsService } from './sms-service.interface';
 import { retry, CircuitBreaker } from '../../common/utils/retry.util';
 import FormData from 'form-data';
+import { AUTH_MESSAGES } from '../../common/i18n/auth.i18n';
+import { t, type Locale } from '../../common/i18n/translation.util';
 
 interface EskizTokenResponse {
   data: {
@@ -46,8 +48,13 @@ export class SmsService implements ISmsService {
     this.circuitBreaker = new CircuitBreaker(5, 60000, this.logger);
   }
 
-  async sendOtp(phoneNumber: string, code: string): Promise<boolean> {
-    const message = `Код для входа в приложение SecondBloom: ${code}`;
+  async sendOtp(
+    phoneNumber: string,
+    code: string,
+    language?: string,
+  ): Promise<boolean> {
+    const locale = (language as Locale) || 'uz';
+    const message = t(AUTH_MESSAGES, 'SMS_VERIFICATION_CODE', { code }, locale);
     return this.sendMessage(phoneNumber, message);
   }
 

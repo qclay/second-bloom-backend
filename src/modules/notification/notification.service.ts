@@ -23,6 +23,8 @@ import {
 import { Inject } from '@nestjs/common';
 import { PresenceService } from '../../redis/presence.service';
 import { DeviceTokensService } from '../../redis/device-tokens.service';
+import { NOTIFICATION_MESSAGES } from '../../common/i18n/notifications.i18n';
+import { t, type Locale } from '../../common/i18n/translation.util';
 
 @Injectable()
 export class NotificationService {
@@ -114,7 +116,7 @@ export class NotificationService {
       | 'NEW_BID_SELLER'
       | 'BID_REJECTED'
       | 'AUCTION_EXTENDED',
-    lang: 'uz' | 'ru' | 'en',
+    lang: Locale,
     context: {
       productTitle?: string;
       amount?: number;
@@ -125,222 +127,50 @@ export class NotificationService {
       orderNumber?: string;
     } = {},
   ): { title: string; message: string } {
-    const titleKey = type;
     const amountText =
       context.amount !== undefined && context.currency
         ? `${context.amount} ${context.currency}`
         : '';
     const product = context.productTitle || '';
 
-    if (titleKey === 'OUTBID') {
-      if (lang === 'ru') {
-        return {
-          title: 'Вашу ставку перебили',
-          message:
-            `В аукционе по букету "${product}" вашу ставку перебили. Текущая ставка: ${amountText}`.trim(),
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'You have been outbid',
-          message:
-            `Your bid was outbid in the auction for "${product}". Current bid: ${amountText}`.trim(),
-        };
-      }
-      return {
-        title: 'Sizning stavkangiz oshirildi',
-        message:
-          `"${product}" buketi bo‘yicha auksionda stavkangiz oshirildi. Joriy stavka: ${amountText}`.trim(),
-      };
-    }
+    let key = type as string;
+    const params: Record<string, string | number | undefined> = {
+      product,
+      amountText,
+      orderNumber: context.orderNumber || '',
+    };
 
-    if (titleKey === 'NEW_BID_SELLER') {
-      if (lang === 'ru') {
-        return {
-          title: 'Новая ставка на ваш букет',
-          message:
-            `На ваш букет "${product}" сделана новая ставка: ${amountText}`.trim(),
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'New bid on your bouquet',
-          message:
-            `Your bouquet "${product}" received a new bid: ${amountText}`.trim(),
-        };
-      }
-      return {
-        title: 'Yangi stavka',
-        message:
-          `Sizning "${product}" buketingizga yangi stavka qo‘yildi: ${amountText}`.trim(),
-      };
-    }
-
-    if (titleKey === 'AUCTION_ENDED') {
-      const isWinner = !!context.isWinner;
-      if (lang === 'ru') {
-        return {
-          title: 'Аукцион завершён',
-          message: isWinner
-            ? `Вы выиграли аукцион по букету "${product}".`
-            : `Аукцион по букету "${product}" завершён.`.trim(),
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'Auction ended',
-          message: isWinner
-            ? `You won the auction for "${product}".`
-            : `The auction for "${product}" has ended.`,
-        };
-      }
-      return {
-        title: 'Auksion yakunlandi',
-        message: isWinner
-          ? `"${product}" buketi bo‘yicha auksionda g‘olib bo‘ldingiz.`
-          : `"${product}" buketi bo‘yicha auksion yakunlandi.`,
-      };
-    }
-
-    if (titleKey === 'AUCTION_EXTENDED') {
-      const formattedTime = context.newEndTime
+    if (key === 'AUCTION_ENDED') {
+      key = context.isWinner ? 'AUCTION_ENDED_WINNER' : 'AUCTION_ENDED';
+    } else if (key === 'AUCTION_EXTENDED') {
+      params.formattedTime = context.newEndTime
         ? new Date(context.newEndTime).toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
           })
         : '';
-      if (lang === 'ru') {
-        return {
-          title: 'Аукцион продлён',
-          message: `Аукцион продлён до ${formattedTime}`.trim(),
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'Auction extended',
-          message: `Auction extended until ${formattedTime}`.trim(),
-        };
-      }
-      return {
-        title: 'Auksion uzaytildi',
-        message: `Auksion ${formattedTime} ga qadar uzaytirildi.`.trim(),
+    } else if (key === 'BID_REJECTED') {
+      const amountSuffixes: Record<Locale, string> = {
+        ru: amountText ? ` на сумму ${amountText}` : '',
+        en: amountText ? ` of ${amountText}` : '',
+        uz: amountText ? ` ${amountText} miqdoridagi` : '',
       };
+      params.amountSuffix = amountSuffixes[lang] || '';
+    } else if (key === 'NEW_MESSAGE_SYSTEM') {
+      key = 'NEW_MESSAGE';
+      const defaultNames: Record<Locale, string> = {
+        ru: 'Пользователь',
+        en: 'User',
+        uz: 'Foydalanuvchi',
+      };
+      params.name = context.bidderName || defaultNames[lang] || 'User';
     }
 
-    if (titleKey === 'BID_REJECTED') {
-      if (lang === 'ru') {
-        return {
-          title: 'Ваша ставка отклонена',
-          message:
-            `Автор аукциона отклонил вашу ставку${amountText ? ` на сумму ${amountText}` : ''} по букету "${product}".`.trim(),
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'Your bid was rejected',
-          message:
-            `The auction owner rejected your bid${amountText ? ` of ${amountText}` : ''} for "${product}".`.trim(),
-        };
-      }
-      return {
-        title: 'Stavkangiz rad etildi',
-        message:
-          `Auksion muallifi "${product}" buketi bo'yicha${amountText ? ` ${amountText} miqdoridagi` : ''} stavkangizni rad etdi.`.trim(),
-      };
-    }
+    const config = NOTIFICATION_MESSAGES[key] || NOTIFICATION_MESSAGES.DEFAULT;
 
-    if (titleKey === 'ORDER_CONFIRMED') {
-      if (lang === 'ru') {
-        return {
-          title: 'Заказ подтверждён',
-          message: `Продавец подтвердил ваш заказ №${context.orderNumber || ''} по букету "${product}".`,
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'Order confirmed',
-          message: `Seller confirmed your order #${context.orderNumber || ''} for "${product}".`,
-        };
-      }
-      return {
-        title: 'Buyurtma tasdiqlandi',
-        message: `Sotuvchi "${product}" buketi bo'yicha #${context.orderNumber || ''} buyurtmangizni tasdiqladi.`,
-      };
-    }
-
-    if (titleKey === 'ORDER_SHIPPED') {
-      if (lang === 'ru') {
-        return {
-          title: 'Заказ отправлен',
-          message: `Ваш заказ №${context.orderNumber || ''} по букету "${product}" отправлен.`,
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'Order shipped',
-          message: `Your order #${context.orderNumber || ''} for "${product}" has been shipped.`,
-        };
-      }
-      return {
-        title: 'Buyurtma yuborildi',
-        message: `"${product}" buketi bo'yicha #${context.orderNumber || ''} buyurtmangiz yuborildi.`,
-      };
-    }
-
-    if (titleKey === 'ORDER_DELIVERED') {
-      if (lang === 'ru') {
-        return {
-          title: 'Заказ доставлен',
-          message: `Заказ №${context.orderNumber || ''} по букету "${product}" доставлен.`,
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'Order delivered',
-          message: `Order #${context.orderNumber || ''} for "${product}" has been delivered.`,
-        };
-      }
-      return {
-        title: 'Buyurtma yetkazildi',
-        message: `"${product}" buketi bo'yicha #${context.orderNumber || ''} buyurtma yetkazildi.`,
-      };
-    }
-
-    if (titleKey === 'NEW_MESSAGE_SYSTEM') {
-      const name = context.bidderName || '';
-      if (lang === 'ru') {
-        return {
-          title: 'Новое сообщение',
-          message: `${name || 'Пользователь'} отправил вам новое сообщение.`,
-        };
-      }
-      if (lang === 'en') {
-        return {
-          title: 'New message',
-          message: `${name || 'User'} sent you a new message.`,
-        };
-      }
-      return {
-        title: 'Yangi xabar',
-        message: `${name || 'Foydalanuvchi'} sizga yangi xabar yubordi.`,
-      };
-    }
-
-    if (lang === 'ru') {
-      return {
-        title: 'Уведомление',
-        message: 'У вас новое уведомление.',
-      };
-    }
-    if (lang === 'en') {
-      return {
-        title: 'Notification',
-        message: 'You have a new notification.',
-      };
-    }
     return {
-      title: 'Bildirishnoma',
-      message: 'Sizda yangi bildirishnoma bor.',
+      title: t({ [key]: config.title }, key, params, lang),
+      message: t({ [key]: config.message }, key, params, lang),
     };
   }
 

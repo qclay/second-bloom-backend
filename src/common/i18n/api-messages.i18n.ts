@@ -104,4 +104,14 @@ export const API_MESSAGES: Record<string, TranslationRecord> = {
     ru: 'Ошибка операции с базой данных',
     uz: "Ma'lumotlar bazasi operatsiyasi xatosi",
   },
+  'Duplicate entry: {{target}} already exists': {
+    en: 'Duplicate entry: {{target}} already exists',
+    ru: 'Дубликат записи: {{target}} уже существует',
+    uz: 'Bunday maʼlumot mavjud: {{target}} allaqachon bor',
+  },
+  AUCTION_WINNER_CHAT: {
+    en: 'You won the auction. Please coordinate the next steps with the seller.',
+    ru: 'Вы выиграли аукцион. Пожалуйста, согласуйте дальнейшие шаги с продавцом.',
+    uz: 'Siz auksionda g‘olib bo‘ldingiz. Keyingi qadamlarni sotuvchiga yozib kelishing.',
+  },
 };

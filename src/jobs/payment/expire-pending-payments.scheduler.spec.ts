@@ -43,7 +43,9 @@ describe('ExpirePendingPaymentsScheduler', () => {
       ],
     }).compile();
 
-    scheduler = module.get<ExpirePendingPaymentsScheduler>(ExpirePendingPaymentsScheduler);
+    scheduler = module.get<ExpirePendingPaymentsScheduler>(
+      ExpirePendingPaymentsScheduler,
+    );
     configService = module.get<ConfigService>(ConfigService);
     metricsService = module.get<MetricsService>(MetricsService);
   });

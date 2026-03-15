@@ -42,7 +42,9 @@ describe('CleanExpiredOtpsScheduler', () => {
       ],
     }).compile();
 
-    scheduler = module.get<CleanExpiredOtpsScheduler>(CleanExpiredOtpsScheduler);
+    scheduler = module.get<CleanExpiredOtpsScheduler>(
+      CleanExpiredOtpsScheduler,
+    );
     configService = module.get<ConfigService>(ConfigService);
     metricsService = module.get<MetricsService>(MetricsService);
   });

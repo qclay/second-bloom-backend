@@ -43,7 +43,9 @@ describe('EndExpiredAuctionsScheduler', () => {
       ],
     }).compile();
 
-    scheduler = module.get<EndExpiredAuctionsScheduler>(EndExpiredAuctionsScheduler);
+    scheduler = module.get<EndExpiredAuctionsScheduler>(
+      EndExpiredAuctionsScheduler,
+    );
     configService = module.get<ConfigService>(ConfigService);
     metricsService = module.get<MetricsService>(MetricsService);
   });
