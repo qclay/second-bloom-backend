@@ -22,7 +22,7 @@ export class DeactivateOrderConversationsScheduler extends AbstractCronJob {
     super(configService, metricsService);
   }
 
-  @Cron('*/30 * * * *', { name: 'deactivate-order-conversations' }) // Fallback 30 minutes
+  @Cron('*/30 * * * *', { name: 'deactivate-order-conversations' })
   async runDeactivateOrderConversationsSweep(): Promise<void> {
     await this.executeJob(async () => {
       await this.conversationQueue.add('deactivate-order-conversations', {

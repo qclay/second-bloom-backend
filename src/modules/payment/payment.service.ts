@@ -95,11 +95,10 @@ export class PaymentService {
       `Payment invoice created: ${payment.id} for user: ${userId}, type: ${paymentType}, quantity: ${quantity}, amount: ${totalAmount.toString()}`,
     );
 
-    // Schedule delayed expiration job
     const maxAgeMs = this.configService.get<number>(
       'cron.jobs.payments.maxAgeMs',
       3600000,
-    ); // Default 1 hour
+    );
     await this.paymentQueue.add(
       'expire-payment',
       { paymentId: payment.id },
@@ -357,7 +356,6 @@ export class PaymentService {
   ): Promise<{ expiredCount: number; hasMore: boolean }> {
     const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
 
-    // Find IDs first to limit batch size
     const paymentsToExpire = await this.prisma.payment.findMany({
       where: {
         status: PaymentStatus.PENDING,

@@ -24,7 +24,7 @@ export class ExpirePendingPaymentsProcessor {
 
     try {
       const batchSize = job.data.batchSize || 100;
-      const maxAgeMs = job.data.maxAgeMs || 24 * 60 * 60 * 1000; // default 24h
+      const maxAgeMs = job.data.maxAgeMs || 24 * 60 * 60 * 1000;
       const maxAgeHours = maxAgeMs / (1000 * 60 * 60);
 
       const { expiredCount, hasMore } =

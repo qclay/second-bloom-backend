@@ -36,7 +36,6 @@ export abstract class AbstractCronJob {
         `Successfully completed cron job: ${this.jobName} in ${duration}ms`,
       );
 
-      // We will record metrics here
       this.metricsService.recordCronRun(this.jobName, duration, true);
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -45,7 +44,6 @@ export abstract class AbstractCronJob {
         error.stack,
       );
 
-      // We will record failure metrics here
       this.metricsService.recordCronRun(this.jobName, duration, false);
     }
   }

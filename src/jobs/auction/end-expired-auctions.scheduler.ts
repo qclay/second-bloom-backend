@@ -20,7 +20,7 @@ export class EndExpiredAuctionsScheduler extends AbstractCronJob {
     super(configService, metricsService);
   }
 
-  @Cron('*/30 * * * * *', { name: 'end-expired-auctions' }) // Fallback, will be overridden by the system if we had dynamic cron
+  @Cron('*/30 * * * * *', { name: 'end-expired-auctions' })
   async scheduleEndExpiredAuctions(): Promise<void> {
     await this.executeJob(async () => {
       await this.auctionQueue.add('end-expired', {

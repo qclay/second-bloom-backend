@@ -10,8 +10,35 @@ import {
 
 type NameJson = { en?: string; ru?: string; uz?: string };
 
+function getPriorityScore(nameJson: NameJson | undefined): number {
+  if (!nameJson) return 0;
+  const en = (nameJson.en ?? '').toLowerCase();
+  const ru = (nameJson.ru ?? '').toLowerCase();
+  const uz = (nameJson.uz ?? '').toLowerCase();
+
+  const isTashkent =
+    en.includes('tashkent') ||
+    ru.includes('ташкент') ||
+    uz.includes('toshkent');
+  const isSamarkand =
+    en.includes('samarkand') ||
+    ru.includes('самарканд') ||
+    uz.includes('samarqand');
+
+  if (isTashkent) return 2;
+  if (isSamarkand) return 1;
+  return 0;
+}
+
 function sortByName<T extends { name: unknown }>(items: T[]): T[] {
   return [...items].sort((a, b) => {
+    const scoreA = getPriorityScore(a.name as NameJson);
+    const scoreB = getPriorityScore(b.name as NameJson);
+
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA;
+    }
+
     const na = (a.name as NameJson)?.en ?? '';
     const nb = (b.name as NameJson)?.en ?? '';
     return na.localeCompare(nb);

@@ -24,7 +24,6 @@ export class CleanExpiredOtpsProcessor {
       const batchSize = job.data.batchSize || 500;
       const now = new Date();
 
-      // Find IDs to delete first to limit the batch
       const otpsToDelete = await this.prisma.verificationCode.findMany({
         where: {
           OR: [{ expiresAt: { lt: now } }, { isUsed: true }],

@@ -40,7 +40,7 @@ export class EndExpiredAuctionsProcessor {
             batchSize,
           },
           { delay: 1000 },
-        ); // 1 second delay to yield event loop
+        );
       }
     } catch (error) {
       this.logger.error(

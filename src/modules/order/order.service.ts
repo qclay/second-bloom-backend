@@ -670,9 +670,6 @@ export class OrderService {
             err instanceof Error ? err.message : String(err),
           );
         });
-      // Schedule a job to deactivate conversations related to this order/product
-      // The old direct call: this.conversationService.deactivateConversationsForOrder(id)
-      // This logic was moved to a delayed job to distribute load
       this.conversationQueue
         .add('deactivate-conversation-by-order', {
           orderId: id,
