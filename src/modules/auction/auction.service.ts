@@ -13,7 +13,7 @@ import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { ChooseWinnerDto } from './dto/choose-winner.dto';
 import { AuctionQueryDto } from './dto/auction-query.dto';
 import { AuctionResponseDto } from './dto/auction-response.dto';
-import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
+import { Prisma, AuctionStatus, UserRole, MessageType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { NotificationService } from '../notification/notification.service';
@@ -24,6 +24,8 @@ import {
   resolveTranslation,
 } from '../../common/i18n/translation.util';
 import { AuctionSchedulingService } from './auction-scheduling.service';
+import { API_MESSAGES } from '../../common/i18n/api-messages.i18n';
+import { t, type Locale } from '../../common/i18n/translation.util';
 
 @Injectable()
 export class AuctionService {
@@ -609,6 +611,21 @@ export class AuctionService {
               data: { orderId: order.id },
             });
           }
+
+          const winnerMessage = t(
+            API_MESSAGES,
+            'AUCTION_WINNER_CHAT',
+            {},
+            (winnerLanguage as Locale) || 'uz',
+          );
+
+          await this.conversationService.sendMessageAsSender(
+            conversation.id,
+            winnerId,
+            winnerMessage,
+            undefined,
+            MessageType.SYSTEM,
+          );
 
           await this.notificationService.notifyAuctionEndedForParticipant({
             userId: winnerId,
