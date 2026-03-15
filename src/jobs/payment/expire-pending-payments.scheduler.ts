@@ -20,7 +20,7 @@ export class ExpirePendingPaymentsScheduler extends AbstractCronJob {
     super(configService, metricsService);
   }
 
-  @Cron('0 * * * *', { name: 'expire-pending-payments' }) // Fallback hourly
+  @Cron('0 * * * *', { name: 'expire-pending-payments' })
   async runExpirePendingPayments(): Promise<void> {
     await this.executeJob(async () => {
       await this.paymentQueue.add('expire-stale', {

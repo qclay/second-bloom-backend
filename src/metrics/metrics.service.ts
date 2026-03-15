@@ -64,7 +64,7 @@ export class MetricsService implements OnModuleInit {
       name: 'cron_duration_seconds',
       help: 'Duration of cron jobs in seconds',
       labelNames: ['job'],
-      buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300], // buckets from 100ms to 5 minutes
+      buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300],
       registers: [this.register],
     });
   }

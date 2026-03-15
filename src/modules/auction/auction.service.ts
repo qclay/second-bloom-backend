@@ -552,7 +552,9 @@ export class AuctionService {
         );
       } else {
         // eslint-disable-next-line @typescript-eslint/await-thenable
-        const orderService = await this.moduleRef.get(OrderService);
+        const orderService = await this.moduleRef.get(OrderService, {
+          strict: false,
+        });
         const order = await orderService.createOrderFromAuctionWinner({
           auctionId: id,
           productId: product.id,
