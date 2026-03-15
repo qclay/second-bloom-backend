@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
 import { EndExpiredAuctionsScheduler } from './end-expired-auctions.scheduler';
 import { MetricsService } from '../../metrics/metrics.service';
+import { Queue } from 'bull';
 
 describe('EndExpiredAuctionsScheduler', () => {
   let scheduler: EndExpiredAuctionsScheduler;
-  let queue: any;
+  let queue: Partial<Queue>;
   let configService: ConfigService;
   let metricsService: MetricsService;
 

@@ -6,7 +6,6 @@ import { of } from 'rxjs';
 
 describe('SmsService Localization', () => {
   let service: SmsService;
-  let httpService: HttpService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,17 +26,21 @@ describe('SmsService Localization', () => {
         {
           provide: HttpService,
           useValue: {
-            post: jest.fn().mockReturnValue(of({ status: 200, data: { status: 'success' } })),
+            post: jest
+              .fn()
+              .mockReturnValue(
+                of({ status: 200, data: { status: 'success' } }),
+              ),
           },
         },
       ],
     }).compile();
 
     service = module.get<SmsService>(SmsService);
-    httpService = module.get<HttpService>(HttpService);
 
-    (service as any).token = 'mock-token';
-    (service as any).tokenExpiresAt = Date.now() + 10000;
+    (service as unknown as { token: string }).token = 'mock-token';
+    (service as unknown as { tokenExpiresAt: number }).tokenExpiresAt =
+      Date.now() + 10000;
   });
 
   it('should be defined', () => {
@@ -46,35 +49,41 @@ describe('SmsService Localization', () => {
 
   describe('sendOtp', () => {
     it('should send localized OTP in Russian', async () => {
-      const sendMessageSpy = jest.spyOn(service, 'sendMessage').mockResolvedValue(true);
+      const sendMessageSpy = jest
+        .spyOn(service, 'sendMessage')
+        .mockResolvedValue(true);
 
       await service.sendOtp('+998901234567', '123456', 'ru');
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
         '+998901234567',
-        'Ваш код подтверждения Second Bloom: 123456'
+        'Ваш код подтверждения Second Bloom: 123456',
       );
     });
 
     it('should send localized OTP in Uzbek (default)', async () => {
-      const sendMessageSpy = jest.spyOn(service, 'sendMessage').mockResolvedValue(true);
+      const sendMessageSpy = jest
+        .spyOn(service, 'sendMessage')
+        .mockResolvedValue(true);
 
       await service.sendOtp('+998901234567', '123456', 'uz');
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
         '+998901234567',
-        'Second Bloom tasdiqlash kodi: 123456'
+        'Second Bloom tasdiqlash kodi: 123456',
       );
     });
 
     it('should send localized OTP in English', async () => {
-      const sendMessageSpy = jest.spyOn(service, 'sendMessage').mockResolvedValue(true);
+      const sendMessageSpy = jest
+        .spyOn(service, 'sendMessage')
+        .mockResolvedValue(true);
 
       await service.sendOtp('+998901234567', '123456', 'en');
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
         '+998901234567',
-        'Your Second Bloom verification code: 123456'
+        'Your Second Bloom verification code: 123456',
       );
     });
   });

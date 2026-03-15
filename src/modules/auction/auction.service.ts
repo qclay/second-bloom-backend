@@ -13,7 +13,7 @@ import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { ChooseWinnerDto } from './dto/choose-winner.dto';
 import { AuctionQueryDto } from './dto/auction-query.dto';
 import { AuctionResponseDto } from './dto/auction-response.dto';
-import { Prisma, AuctionStatus, UserRole, MessageType } from '@prisma/client';
+import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { NotificationService } from '../notification/notification.service';
@@ -24,8 +24,6 @@ import {
   resolveTranslation,
 } from '../../common/i18n/translation.util';
 import { AuctionSchedulingService } from './auction-scheduling.service';
-import { API_MESSAGES } from '../../common/i18n/api-messages.i18n';
-import { t, type Locale } from '../../common/i18n/translation.util';
 
 @Injectable()
 export class AuctionService {
@@ -540,8 +538,22 @@ export class AuctionService {
     let chatId: string | null = null;
 
     try {
-      const product = await this.productRepository.findById(auction.productId);
-      if (!product || product.deletedAt) {
+      const product = await this.prisma.product.findUnique({
+        where: { id: auction.productId },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          sellerId: true,
+          images: {
+            take: 1,
+            orderBy: { displayOrder: 'asc' as const },
+            select: { file: { select: { url: true } } },
+          },
+        },
+      });
+
+      if (!product) {
         this.logger.warn(
           `Skipping order/chat creation for auction ${id}: product not found or deleted`,
         );
@@ -550,76 +562,67 @@ export class AuctionService {
         const orderService = await this.moduleRef.get(OrderService, {
           strict: false,
         });
-        const order = await orderService.createOrderFromAuctionWinner({
+        const orderResult = await orderService.createOrderFromAuctionWinner({
           auctionId: id,
           productId: product.id,
           buyerId: winnerId,
           amount: winningBidAmount,
         });
 
-        this.logger.log(
-          `Order ${order.id} created for auction winner ${winnerId}`,
-        );
-
-        const localizedContent = t(
-          API_MESSAGES,
-          'AUCTION_WINNER_CHAT',
-          {},
-          (winnerLanguage as Locale) || 'uz',
-        );
-
-        const conversation =
-          await this.conversationService.getOrCreateConversationByProduct(
-            product.id,
-            product.sellerId,
-            winnerId,
-            {
-              type: 'AUCTION_WINNER',
-              auctionId: id,
-              productId: product.id,
-              orderId: order.id,
-            },
-          );
-
-        chatId = conversation.id;
-
-        const existingConv = await this.prisma.conversation.findUnique({
-          where: { id: conversation.id },
-          select: { orderId: true },
+        const order = await this.prisma.order.findUnique({
+          where: { id: orderResult.id },
+          select: { id: true, orderNumber: true, status: true },
         });
 
-        if (!existingConv?.orderId) {
-          await this.prisma.conversation.update({
-            where: { id: conversation.id },
-            data: { orderId: order.id },
-          });
-        }
+        this.logger.log(
+          `Order ${orderResult.id} created for auction winner ${winnerId}`,
+        );
 
-        await this.conversationService.sendMessageAsSender(
-          conversation.id,
-          product.sellerId,
-          localizedContent,
-          {
-            type: 'AUCTION_WINNER',
+        if (!order) {
+          this.logger.warn(
+            `Order ${orderResult.id} not found after creation, skipping banner notification`,
+          );
+        } else {
+          const conversation =
+            await this.conversationService.getOrCreateConversationByProduct(
+              product.id,
+              product.sellerId,
+              winnerId,
+              {
+                type: 'AUCTION_WINNER',
+                auctionId: id,
+                productId: product.id,
+                orderId: order.id,
+              },
+            );
+
+          chatId = conversation.id;
+
+          const existingConv = await this.prisma.conversation.findUnique({
+            where: { id: conversation.id },
+            select: { orderId: true },
+          });
+
+          if (!existingConv?.orderId) {
+            await this.prisma.conversation.update({
+              where: { id: conversation.id },
+              data: { orderId: order.id },
+            });
+          }
+
+          await this.notificationService.notifyAuctionEndedForParticipant({
+            userId: winnerId,
             auctionId: id,
             productId: product.id,
-            orderId: order.id,
-          },
-          MessageType.SYSTEM,
-        );
-
-        await this.notificationService.notifyAuctionEndedForParticipant({
-          userId: winnerId,
-          auctionId: id,
-          productId: product.id,
-          productTitle: isTranslationRecord(product.title)
-            ? (resolveTranslation(product.title, winnerLanguage ?? 'en') ??
-              undefined)
-            : typeof product.title === 'string'
-              ? product.title
-              : undefined,
-          isWinner: true,
-        });
+            productTitle: isTranslationRecord(product.title)
+              ? (resolveTranslation(product.title, winnerLanguage ?? 'en') ??
+                undefined)
+              : typeof product.title === 'string'
+                ? product.title
+                : undefined,
+            isWinner: true,
+          });
+        }
       }
     } catch (error) {
       this.logger.error(

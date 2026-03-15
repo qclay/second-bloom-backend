@@ -3,11 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bull';
 import { CleanExpiredOtpsScheduler } from './clean-expired-otps.scheduler';
 import { MetricsService } from '../../metrics/metrics.service';
+import { Queue } from 'bull';
 
 describe('CleanExpiredOtpsScheduler', () => {
   let scheduler: CleanExpiredOtpsScheduler;
-  let queue: any;
-  let configService: ConfigService;
+  let queue: Partial<Queue>;
   let metricsService: MetricsService;
 
   beforeEach(async () => {
@@ -45,7 +45,6 @@ describe('CleanExpiredOtpsScheduler', () => {
     scheduler = module.get<CleanExpiredOtpsScheduler>(
       CleanExpiredOtpsScheduler,
     );
-    configService = module.get<ConfigService>(ConfigService);
     metricsService = module.get<MetricsService>(MetricsService);
   });
 

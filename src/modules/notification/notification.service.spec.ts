@@ -34,7 +34,9 @@ describe('NotificationService Localization', () => {
         {
           provide: FIREBASE_SERVICE_TOKEN,
           useValue: {
-            sendNotificationToMultiple: jest.fn().mockResolvedValue({ success: 1, failure: 0 }),
+            sendNotificationToMultiple: jest
+              .fn()
+              .mockResolvedValue({ success: 1, failure: 0 }),
           },
         },
         {
@@ -60,10 +62,16 @@ describe('NotificationService Localization', () => {
 
     service = module.get<NotificationService>(NotificationService);
     prisma = module.get<PrismaService>(PrismaService);
-    notificationRepository = module.get<NotificationRepository>(NotificationRepository);
+    notificationRepository = module.get<NotificationRepository>(
+      NotificationRepository,
+    );
 
-    (service as any).isNotificationEnabled = jest.fn().mockReturnValue(true);
-    (service as any).getDeliveryModeForType = jest.fn().mockResolvedValue('ALWAYS');
+    (
+      service as unknown as { isNotificationEnabled: jest.Mock }
+    ).isNotificationEnabled = jest.fn().mockReturnValue(true);
+    (
+      service as unknown as { getDeliveryModeForType: jest.Mock }
+    ).getDeliveryModeForType = jest.fn().mockResolvedValue('ALWAYS');
   });
 
   it('should be defined', () => {

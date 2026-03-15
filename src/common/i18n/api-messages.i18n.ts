@@ -114,4 +114,9 @@ export const API_MESSAGES: Record<string, TranslationRecord> = {
     ru: 'Вы выиграли аукцион. Пожалуйста, согласуйте дальнейшие шаги с продавцом.',
     uz: 'Siz auksionda g‘olib bo‘ldingiz. Keyingi qadamlarni sotuvchiga yozib kelishing.',
   },
+  AUCTION_WINNER_NOTIFICATION: {
+    en: 'Congratulations! You won the auction.',
+    ru: 'Поздравляем! Вы выиграли аукцион.',
+    uz: `Tabriklaymiz! Siz auksionda g'olib bo'ldingiz.`,
+  },
 };

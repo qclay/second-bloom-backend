@@ -3,11 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bull';
 import { DeactivateOrderConversationsScheduler } from './deactivate-order-conversations.scheduler';
 import { MetricsService } from '../../metrics/metrics.service';
+import { Queue } from 'bull';
 
 describe('DeactivateOrderConversationsScheduler', () => {
   let scheduler: DeactivateOrderConversationsScheduler;
-  let queue: any;
-  let configService: ConfigService;
+  let queue: Partial<Queue>;
   let metricsService: MetricsService;
 
   beforeEach(async () => {
@@ -45,7 +45,6 @@ describe('DeactivateOrderConversationsScheduler', () => {
     scheduler = module.get<DeactivateOrderConversationsScheduler>(
       DeactivateOrderConversationsScheduler,
     );
-    configService = module.get<ConfigService>(ConfigService);
     metricsService = module.get<MetricsService>(MetricsService);
   });
 

@@ -1,4 +1,9 @@
-import { resolveTranslation, isTranslationRecord, parseAcceptLanguage, t } from './translation.util';
+import {
+  resolveTranslation,
+  isTranslationRecord,
+  parseAcceptLanguage,
+  t,
+} from './translation.util';
 
 describe('Translation Utilities', () => {
   describe('resolveTranslation', () => {
@@ -97,7 +102,7 @@ describe('Translation Utilities', () => {
 
     it('should handle multiple placeholders', () => {
       const dict = {
-        MSG: { en: '{{a}} + {{b}} = {{c}}' }
+        MSG: { en: '{{a}} + {{b}} = {{c}}' },
       };
       const result = t(dict, 'MSG', { a: 1, b: 2, c: 3 }, 'en');
       expect(result).toBe('1 + 2 = 3');
@@ -113,7 +118,7 @@ describe('Translation Utilities', () => {
     });
 
     it('should handle null/undefined parameters gracefully', () => {
-      const result = t(dictionary, 'WELCOME', { name: null as any }, 'en');
+      const result = t(dictionary, 'WELCOME', { name: null }, 'en');
       expect(result).toBe('Welcome, {{name}}!');
     });
   });

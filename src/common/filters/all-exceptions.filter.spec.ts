@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AllExceptionsFilter } from './all-exceptions.filter';
-import { WinstonLogger, WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { SentryService } from '../services/sentry.service';
 import { ConfigService } from '@nestjs/config';
 import { HttpStatus, ArgumentsHost } from '@nestjs/common';
@@ -9,9 +9,6 @@ import { Response, Request } from 'express';
 
 describe('AllExceptionsFilter', () => {
   let filter: AllExceptionsFilter;
-  let logger: WinstonLogger;
-  let sentry: SentryService;
-  let configService: ConfigService;
 
   const mockResponse = {
     status: jest.fn().mockReturnThis(),
@@ -24,13 +21,6 @@ describe('AllExceptionsFilter', () => {
     headers: {},
     id: 'req-123',
   } as unknown as Request;
-
-  const mockArgumentsHost = {
-    switchToHttp: () => ({
-      getResponse: () => mockResponse,
-      getRequest: () => mockRequest,
-    }),
-  } as unknown as ArgumentsHost;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -63,9 +53,6 @@ describe('AllExceptionsFilter', () => {
     }).compile();
 
     filter = module.get<AllExceptionsFilter>(AllExceptionsFilter);
-    logger = module.get<WinstonLogger>(WINSTON_MODULE_PROVIDER);
-    sentry = module.get<SentryService>(SentryService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
@@ -80,13 +67,16 @@ describe('AllExceptionsFilter', () => {
         meta: { target: ['email'] },
       });
 
-      const requestWithLang = { ...mockRequest, headers: { 'accept-language': 'ru' } } as any;
+      const requestWithLang = {
+        ...mockRequest,
+        headers: { 'accept-language': 'ru' },
+      } as Request;
       const host = {
         switchToHttp: () => ({
           getResponse: () => mockResponse,
           getRequest: () => requestWithLang,
         }),
-      } as any;
+      } as unknown as ArgumentsHost;
 
       filter.catch(exception, host);
 
@@ -107,13 +97,16 @@ describe('AllExceptionsFilter', () => {
         meta: { target: ['phone'] },
       });
 
-      const requestWithLang = { ...mockRequest, headers: { 'accept-language': 'uz' } } as any;
+      const requestWithLang = {
+        ...mockRequest,
+        headers: { 'accept-language': 'uz' },
+      } as Request;
       const host = {
         switchToHttp: () => ({
           getResponse: () => mockResponse,
           getRequest: () => requestWithLang,
         }),
-      } as any;
+      } as unknown as ArgumentsHost;
 
       filter.catch(exception, host);
 
@@ -133,13 +126,16 @@ describe('AllExceptionsFilter', () => {
         clientVersion: '1.0',
       });
 
-      const requestWithLang = { ...mockRequest, headers: { 'accept-language': 'en' } } as any;
+      const requestWithLang = {
+        ...mockRequest,
+        headers: { 'accept-language': 'en' },
+      } as Request;
       const host = {
         switchToHttp: () => ({
           getResponse: () => mockResponse,
           getRequest: () => requestWithLang,
         }),
-      } as any;
+      } as unknown as ArgumentsHost;
 
       filter.catch(exception, host);
 
@@ -156,16 +152,21 @@ describe('AllExceptionsFilter', () => {
 
   describe('General HTTP Exceptions', () => {
     it('should translate generic record not found error', () => {
-      const exception = { message: 'Record not found', getStatus: () => 404, getResponse: () => 'Record not found' };
-      const requestWithLang = { ...mockRequest, headers: { 'accept-language': 'ru' } } as any;
+      const requestWithLang = {
+        ...mockRequest,
+        headers: { 'accept-language': 'ru' },
+      } as Request;
       const host = {
         switchToHttp: () => ({
           getResponse: () => mockResponse,
           getRequest: () => requestWithLang,
         }),
-      } as any;
+      } as unknown as ArgumentsHost;
 
-      const httpException = new Prisma.PrismaClientKnownRequestError('Not Found', { code: 'P2025', clientVersion: '0' });
+      const httpException = new Prisma.PrismaClientKnownRequestError(
+        'Not Found',
+        { code: 'P2025', clientVersion: '0' },
+      );
       filter.catch(httpException, host);
 
       expect(mockResponse.json).toHaveBeenCalledWith(

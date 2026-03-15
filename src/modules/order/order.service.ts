@@ -11,7 +11,13 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
-import { Prisma, OrderStatus, PaymentStatus, UserRole } from '@prisma/client';
+import {
+  Prisma,
+  OrderStatus,
+  PaymentStatus,
+  UserRole,
+  MessageType,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProductRepository } from '../product/repositories/product.repository';
 import { AuctionRepository } from '../auction/repositories/auction.repository';
@@ -268,6 +274,19 @@ export class OrderService {
           `Failed to create chat for order ${order.id}: ${err?.message ?? err}`,
         );
       });
+
+    try {
+      await this.sendOrderBannerNotification(
+        order.id,
+        product,
+        buyerId,
+        product.sellerId,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to send order banner notification for order ${order.id}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
 
     return this.findById(order.id);
   }
@@ -724,6 +743,114 @@ export class OrderService {
     await this.orderRepository.softDelete(id, userId);
 
     this.logger.log(`Order ${id} deleted by user ${userId}`);
+  }
+
+  private async sendOrderBannerNotification(
+    orderId: string,
+    product: {
+      title?: unknown;
+      price: unknown;
+      images?: { file?: { url: string } }[];
+    },
+    buyerId: string,
+    sellerId: string,
+  ): Promise<void> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        buyer: {
+          select: {
+            id: true,
+            username: true,
+            phoneNumber: true,
+            phoneCountryCode: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      this.logger.warn(`Order ${orderId} not found for banner notification`);
+      return;
+    }
+
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { orderId, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!conversation) {
+      this.logger.warn(`Conversation not found for order ${orderId}`);
+      return;
+    }
+
+    const productTitle =
+      typeof product.title === 'object' && product.title
+        ? ((product.title as Record<string, string>).ru ??
+          (product.title as Record<string, string>).en ??
+          (product.title as Record<string, string>).uz ??
+          (Object.values(
+            product.title as Record<string, unknown>,
+          )[0] as string) ??
+          '')
+        : typeof product.title === 'string'
+          ? product.title
+          : '';
+
+    const productPrice =
+      typeof product.price === 'object' &&
+      product.price &&
+      'toNumber' in product.price
+        ? (product.price as { toNumber: () => number }).toNumber()
+        : Number(product.price);
+
+    const productImage = product.images?.[0]?.file?.url ?? null;
+
+    const buyerPhone = order.buyer.phoneCountryCode
+      ? `${order.buyer.phoneCountryCode}${order.buyer.phoneNumber}`
+      : order.buyer.phoneNumber;
+
+    const bannerMetadata = {
+      type: 'ORDER_CREATED',
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      productId: order.productId,
+      status: order.status,
+      sellerId,
+      product: {
+        title: productTitle,
+        price: productPrice,
+        image: productImage,
+      },
+      buyer: {
+        username: order.buyer.username ?? null,
+        firstName: order.buyer.firstName,
+        lastName: order.buyer.lastName,
+        phone: buyerPhone,
+      },
+    };
+
+    await this.conversationService.sendMessageAsSender(
+      conversation.id,
+      sellerId,
+      `Новый заказ #${order.orderNumber}`,
+      bannerMetadata,
+      MessageType.SYSTEM,
+    );
+
+    await this.conversationService.sendMessageAsSender(
+      conversation.id,
+      buyerId,
+      `Заказ #${order.orderNumber} принят`,
+      bannerMetadata,
+      MessageType.SYSTEM,
+    );
+
+    this.logger.log(
+      `Order banner notification sent for order ${orderId} in conversation ${conversation.id} to both seller and buyer`,
+    );
   }
 
   private getProductTitleForNotify(product: { title?: unknown }): string {

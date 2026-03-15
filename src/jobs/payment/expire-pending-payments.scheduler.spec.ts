@@ -3,11 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bull';
 import { ExpirePendingPaymentsScheduler } from './expire-pending-payments.scheduler';
 import { MetricsService } from '../../metrics/metrics.service';
+import { Queue } from 'bull';
 
 describe('ExpirePendingPaymentsScheduler', () => {
   let scheduler: ExpirePendingPaymentsScheduler;
-  let queue: any;
-  let configService: ConfigService;
+  let queue: Partial<Queue>;
   let metricsService: MetricsService;
 
   beforeEach(async () => {
@@ -46,7 +46,6 @@ describe('ExpirePendingPaymentsScheduler', () => {
     scheduler = module.get<ExpirePendingPaymentsScheduler>(
       ExpirePendingPaymentsScheduler,
     );
-    configService = module.get<ConfigService>(ConfigService);
     metricsService = module.get<MetricsService>(MetricsService);
   });
 
