@@ -420,7 +420,6 @@ export class ConversationService {
     const existingConversation = await this.prisma.conversation.findFirst({
       where: {
         productId,
-        orderId: null,
         deletedAt: null,
         participants: {
           every: {
