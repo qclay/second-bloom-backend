@@ -103,16 +103,16 @@ describe('Auction Winner Selection (e2e)', () => {
     await prisma.message.deleteMany();
     await prisma.conversationParticipant.deleteMany();
     await prisma.conversation.deleteMany();
+    await prisma.payment.deleteMany();
     await prisma.bid.deleteMany();
     await prisma.order.deleteMany();
     await prisma.auction.deleteMany();
     await prisma.productImage.deleteMany();
+    await prisma.favorite.deleteMany();
     await prisma.product.deleteMany();
     await prisma.category.deleteMany();
-    await prisma.favorite.deleteMany();
     await prisma.notification.deleteMany();
     await prisma.notificationPreference.deleteMany();
-    await prisma.payment.deleteMany();
     await prisma.verificationCode.deleteMany();
     await prisma.user.deleteMany();
   }
@@ -190,11 +190,12 @@ describe('Auction Winner Selection (e2e)', () => {
           auctionId: auction.id,
           bidderId: buyer.id,
           amount: 90000,
+          isWinning: true,
         },
       });
     });
 
-    it('should allow choosing winner from ACTIVE auction', async () => {
+    it('should allow choosing winner, end the auction, and create an order', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/auctions/${auction.id}/winner`)
         .set('Authorization', `Bearer ${token}`)
@@ -203,13 +204,6 @@ describe('Auction Winner Selection (e2e)', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.winnerId).toBe(buyer.id);
       expect(res.body.data.status).toBe('ENDED');
-    });
-
-    it('should create order when winner is chosen', async () => {
-      await request(app.getHttpServer())
-        .patch(`/auctions/${auction.id}/winner`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({ winnerId: buyer.id });
 
       const order = await prisma.order.findFirst({
         where: { productId: product.id, buyerId: buyer.id },
@@ -236,6 +230,32 @@ describe('Auction Winner Selection (e2e)', () => {
         .send({ winnerId: otherBuyer.id });
 
       expect(res.status).toBe(400);
+    });
+
+    it('should resolve conversation with winner after choosing them', async () => {
+      await request(app.getHttpServer())
+        .patch(`/auctions/${auction.id}/winner`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ winnerId: buyer.id })
+        .expect(200);
+
+      const resolveRes = await request(app.getHttpServer())
+        .post('/conversations/resolve')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          context: 'AUCTION_BID',
+          productId: product.id,
+          targetUserId: buyer.id,
+        });
+
+      expect(resolveRes.status).toBe(201);
+      expect(resolveRes.body.data.flowerId).toBe(product.id);
+      const participantIds = resolveRes.body.data.participants.map((p: any) => p.userId);
+      expect(participantIds).toContain(seller.id);
+      expect(participantIds).toContain(buyer.id);
+
+      const endedAuction = await prisma.auction.findUnique({ where: { id: auction.id } });
+      expect(endedAuction?.status).toBe(AuctionStatus.ENDED);
     });
   });
 

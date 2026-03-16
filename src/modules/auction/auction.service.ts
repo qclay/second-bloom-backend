@@ -484,7 +484,8 @@ export class AuctionService {
       where: {
         auctionId: id,
         bidderId: winnerId,
-        deletedAt: null,
+        isRetracted: false,
+        rejectedAt: null,
       },
     });
     if (winnerBidCount === 0) {
@@ -508,13 +509,17 @@ export class AuctionService {
           where: {
             auctionId: id,
             bidderId: winnerId,
-            deletedAt: null,
+            isRetracted: false,
+            rejectedAt: null,
           },
           orderBy: { amount: 'desc' },
           select: { id: true, amount: true },
         });
         if (!winningBid) {
-          throw new BadRequestException('No bid found for winner');
+          // This should ideally not happen due to the check outside the transaction
+          throw new BadRequestException(
+            'No valid bid found for the chosen winner.',
+          );
         }
 
         await tx.bid.update({

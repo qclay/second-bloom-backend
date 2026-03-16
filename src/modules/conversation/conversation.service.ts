@@ -31,7 +31,15 @@ import { toISOString } from '../../common/utils/date.util';
 
 const CONVERSATION_INCLUDE = {
   participants: {
-    include: {
+    select: {
+      id: true,
+      conversationId: true,
+      userId: true,
+      unreadCount: true,
+      isArchived: true,
+      isBlocked: true,
+      lastSeenAt: true,
+      createdAt: true,
       user: {
         select: {
           id: true,
@@ -48,7 +56,12 @@ const CONVERSATION_INCLUDE = {
   },
   lastMessage: true,
   product: {
-    include: {
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      price: true,
+      currency: true,
       seller: {
         select: {
           id: true,
@@ -67,7 +80,13 @@ const CONVERSATION_INCLUDE = {
     },
   },
   order: {
-    include: {
+    select: {
+      id: true,
+      orderNumber: true,
+      amount: true,
+      status: true,
+      shippedAt: true,
+      deliveredAt: true,
       buyer: {
         select: {
           id: true,
@@ -393,28 +412,16 @@ export class ConversationService {
     }
 
     if (targetUserId) {
-      const targetUser = await this.prisma.user.findUnique({
-        where: { id: targetUserId },
-        select: { id: true },
-      });
-      if (!targetUser) {
-        throw new NotFoundException('Target user not found');
-      }
-
-      const bid = await this.prisma.bid.findFirst({
+      const auction = await this.prisma.auction.findFirst({
         where: {
-          bidderId: targetUserId,
-          auction: {
-            productId,
-          },
+          productId,
+          status: 'ENDED',
+          deletedAt: null,
         },
+        select: { winnerId: true },
+        orderBy: { endTime: 'desc' },
       });
 
-      if (!bid) {
-        throw new BadRequestException(
-          'Target user is not a participant in this auction',
-        );
-      }
     }
 
     const existingConversation = await this.prisma.conversation.findFirst({
@@ -422,24 +429,10 @@ export class ConversationService {
         productId,
         deletedAt: null,
         participants: {
-          every: {
-            userId: {
-              in: [userId, otherParticipantId],
-            },
-          },
           some: {
             userId,
           },
         },
-        AND: [
-          {
-            participants: {
-              some: {
-                userId: otherParticipantId,
-              },
-            },
-          },
-        ],
       },
       include: CONVERSATION_INCLUDE,
       orderBy: {
@@ -448,10 +441,17 @@ export class ConversationService {
     });
 
     if (existingConversation) {
-      return this.mapConversationToDto(
-        existingConversation as ConversationWithRelations,
-        userId,
-      );
+      const hasBothParticipants =
+        existingConversation.participants.some((p) => p.userId === userId) &&
+        existingConversation.participants.some(
+          (p) => p.userId === otherParticipantId,
+        );
+      if (hasBothParticipants) {
+        return this.mapConversationToDto(
+          existingConversation as ConversationWithRelations,
+          userId,
+        );
+      }
     }
 
     const createdConversation = await this.prisma.conversation.create({
