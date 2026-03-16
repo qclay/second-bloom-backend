@@ -411,19 +411,6 @@ export class ConversationService {
       );
     }
 
-    if (targetUserId) {
-      const auction = await this.prisma.auction.findFirst({
-        where: {
-          productId,
-          status: 'ENDED',
-          deletedAt: null,
-        },
-        select: { winnerId: true },
-        orderBy: { endTime: 'desc' },
-      });
-
-    }
-
     const existingConversation = await this.prisma.conversation.findFirst({
       where: {
         productId,
