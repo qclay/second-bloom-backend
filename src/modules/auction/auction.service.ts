@@ -69,9 +69,9 @@ export class AuctionService {
       );
     }
 
-    if (product.status !== 'PUBLISHED') {
+    if (!['PUBLISHED', 'PENDING'].includes(product.status)) {
       throw new BadRequestException(
-        'Product must be active to create an auction',
+        'Product must be active or pending to create an auction',
       );
     }
 
@@ -560,8 +560,7 @@ export class AuctionService {
           `Skipping order/chat creation for auction ${id}: product not found or deleted`,
         );
       } else {
-        // eslint-disable-next-line @typescript-eslint/await-thenable
-        const orderService = await this.moduleRef.get(OrderService, {
+        const orderService = this.moduleRef.get(OrderService, {
           strict: false,
         });
         const orderResult = await orderService.createOrderFromAuctionWinner({

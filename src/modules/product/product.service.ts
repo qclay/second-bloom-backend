@@ -213,8 +213,7 @@ export class ProductService {
         autoExtend: dto.auction?.autoExtend ?? true,
         extendMinutes: dto.auction?.extendMinutes ?? 5,
       };
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      const auctionService = await this.moduleRef.get(AuctionService);
+      const auctionService = this.moduleRef.get(AuctionService);
       await auctionService.createAuction(auctionDto, sellerId);
       this.logger.log(
         `Auction created for product ${product.id} (seller: ${sellerId})`,
@@ -1549,8 +1548,7 @@ export class ProductService {
         autoExtend: dto.auction?.autoExtend ?? true,
         extendMinutes: dto.auction?.extendMinutes ?? 5,
       };
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      const auctionService = await this.moduleRef.get(AuctionService);
+      const auctionService = this.moduleRef.get(AuctionService);
       await auctionService.createAuction(auctionDto, userId, userRole);
       this.logger.log(
         `Auction created for product ${id} via update (caller: ${userId})`,

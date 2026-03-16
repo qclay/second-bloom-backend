@@ -400,6 +400,21 @@ export class ConversationService {
       if (!targetUser) {
         throw new NotFoundException('Target user not found');
       }
+
+      const bid = await this.prisma.bid.findFirst({
+        where: {
+          bidderId: targetUserId,
+          auction: {
+            productId,
+          },
+        },
+      });
+
+      if (!bid) {
+        throw new BadRequestException(
+          'Target user is not a participant in this auction',
+        );
+      }
     }
 
     const existingConversation = await this.prisma.conversation.findFirst({
