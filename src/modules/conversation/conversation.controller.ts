@@ -19,6 +19,7 @@ import { SearchMessagesQueryDto } from './dto/search-messages-query.dto';
 import { SearchMessagesResponseDto } from './dto/search-messages-response.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { ResolveConversationDto } from './dto/resolve-conversation.dto';
+import { MarkMessagesReadBodyDto } from './dto/mark-messages-read.dto';
 import { ConversationResponseDto } from './dto/conversation-response.dto';
 import { ConversationMessageResponseDto } from './dto/message-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -169,6 +170,7 @@ export class ConversationController {
   }
 
   @Post(':conversationId/read')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark messages in a conversation as read' })
   @ApiCommonErrorResponses({ notFound: false, conflict: false })
   @ApiResponse({
@@ -178,12 +180,12 @@ export class ConversationController {
   async markAsRead(
     @Param('conversationId') conversationId: string,
     @CurrentUser('id') userId: string,
-    @Body() body?: { messageIds?: string[] },
+    @Body() body: MarkMessagesReadBodyDto,
   ) {
     return this.conversationService.markMessagesAsRead(
       {
         conversationId,
-        messageIds: body?.messageIds,
+        messageIds: body.messageIds,
       },
       userId,
     );
