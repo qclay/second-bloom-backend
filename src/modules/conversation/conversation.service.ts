@@ -744,10 +744,15 @@ export class ConversationService {
     );
 
     if (participant.unreadCount > 0) {
+      const newUnreadCount =
+        dto.messageIds && dto.messageIds.length > 0
+          ? Math.max(0, participant.unreadCount - result.count)
+          : 0;
+
       await this.prisma.conversationParticipant.update({
         where: { id: participant.id },
         data: {
-          unreadCount: Math.max(0, participant.unreadCount - result.count),
+          unreadCount: newUnreadCount,
           lastSeenAt: new Date(),
         },
       });

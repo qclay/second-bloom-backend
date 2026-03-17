@@ -74,14 +74,13 @@ export class CreateProductDto {
   @MaxLength(3)
   currency?: string = 'UZS';
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Category ID (from GET /categories).',
     example: 'clx1234567890abcdef',
-    required: true,
   })
   @IsString()
-  @IsNotEmpty()
-  categoryId!: string;
+  @IsOptional()
+  categoryId?: string;
 
   @ApiPropertyOptional({
     description: 'Tags for filtering/search',

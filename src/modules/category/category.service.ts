@@ -160,7 +160,9 @@ export class CategoryService {
 
     const countMap = new Map<string, number>();
     for (const row of productCounts) {
-      countMap.set(row.categoryId, row._count._all);
+      if (row.categoryId) {
+        countMap.set(row.categoryId, row._count._all);
+      }
     }
 
     const result = {

@@ -167,4 +167,25 @@ export class ConversationController {
   ): Promise<ConversationMessageResponseDto> {
     return this.conversationService.deleteMessage(id, userId);
   }
+
+  @Post(':conversationId/read')
+  @ApiOperation({ summary: 'Mark messages in a conversation as read' })
+  @ApiCommonErrorResponses({ notFound: false, conflict: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Messages marked as read',
+  })
+  async markAsRead(
+    @Param('conversationId') conversationId: string,
+    @CurrentUser('id') userId: string,
+    @Body() body?: { messageIds?: string[] },
+  ) {
+    return this.conversationService.markMessagesAsRead(
+      {
+        conversationId,
+        messageIds: body?.messageIds,
+      },
+      userId,
+    );
+  }
 }

@@ -47,8 +47,8 @@ export class ProductResponseDto {
   @ApiProperty({ example: 'UZS' })
   currency!: string;
 
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440010' })
-  categoryId!: string;
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440010' })
+  categoryId?: string | null;
 
   @ApiProperty({ type: [String], example: ['roses', 'bouquet', 'romantic'] })
   tags!: string[];
@@ -217,7 +217,7 @@ export class ProductResponseDto {
 
   static fromEntity(
     product: Product & {
-      category?: { id: string; name: unknown; slug: string };
+      category?: { id: string; name: unknown; slug: string } | null;
       condition?: { id: string; name: unknown; slug: string } | null;
       size?: { id: string; name: unknown; slug: string } | null;
       seller?: {

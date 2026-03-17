@@ -78,9 +78,11 @@ export class ProductService {
       }
     }
 
-    const category = await this.categoryRepository.findById(dto.categoryId);
-    if (!category || category.deletedAt || !category.isActive) {
-      throw new NotFoundException('Category not found or inactive');
+    if (dto.categoryId) {
+      const category = await this.categoryRepository.findById(dto.categoryId);
+      if (!category || category.deletedAt || !category.isActive) {
+        throw new NotFoundException('Category not found or inactive');
+      }
     }
 
     const condition = await this.prisma.condition.findFirst({
@@ -164,9 +166,9 @@ export class ProductService {
               : undefined,
             price: effectivePrice,
             currency: dto.currency ?? 'UZS',
-            category: {
-              connect: { id: dto.categoryId },
-            },
+            category: dto.categoryId
+              ? { connect: { id: dto.categoryId } }
+              : undefined,
             tags: dto.tags ?? [],
             type: dto.type ?? 'FRESH',
             condition: { connect: { id: dto.conditionId } },
