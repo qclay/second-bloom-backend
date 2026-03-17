@@ -57,7 +57,7 @@ describe('SmsService Localization', () => {
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
         '+998901234567',
-        'Ваш код подтверждения Second Bloom: 123456',
+        'Код для входа в приложение SecondBloom: 123456',
       );
     });
 
@@ -70,7 +70,7 @@ describe('SmsService Localization', () => {
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
         '+998901234567',
-        'Second Bloom tasdiqlash kodi: 123456',
+        'Код для входа в приложение SecondBloom: 123456',
       );
     });
 
@@ -83,7 +83,7 @@ describe('SmsService Localization', () => {
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
         '+998901234567',
-        'Your Second Bloom verification code: 123456',
+        'Код для входа в приложение SecondBloom: 123456',
       );
     });
   });

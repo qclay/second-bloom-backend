@@ -5,8 +5,6 @@ import { firstValueFrom } from 'rxjs';
 import { ISmsService } from './sms-service.interface';
 import { retry, CircuitBreaker } from '../../common/utils/retry.util';
 import FormData from 'form-data';
-import { AUTH_MESSAGES } from '../../common/i18n/auth.i18n';
-import { t, type Locale } from '../../common/i18n/translation.util';
 
 interface EskizTokenResponse {
   data: {
@@ -143,7 +141,6 @@ export class SmsService implements ISmsService {
         );
       });
     } catch (error: unknown) {
-      // Log detailed HTTP error information when available
       if (
         error &&
         typeof error === 'object' &&
