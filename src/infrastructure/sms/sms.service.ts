@@ -77,6 +77,7 @@ export class SmsService implements ISmsService {
     }
 
     try {
+      this.logger.debug(`Circuit breaker state: ${this.circuitBreaker.getState()}`);
       return await this.circuitBreaker.execute(async () => {
         return retry(
           async () => {
@@ -125,6 +126,7 @@ export class SmsService implements ISmsService {
             this.logger.warn(
               `Eskiz API returned non-success status: ${response.data.status || 'unknown'}`,
             );
+            this.logger.debug('Eskiz response data:', response.data);
             return false;
           },
           {
@@ -141,18 +143,23 @@ export class SmsService implements ISmsService {
         );
       });
     } catch (error: unknown) {
-      this.logger.error(`Failed to send SMS to ${phoneNumber}`, error);
+      // Log detailed HTTP error information when available
       if (
         error &&
         typeof error === 'object' &&
         'response' in error &&
-        error.response &&
-        typeof error.response === 'object' &&
-        'status' in error.response &&
-        error.response.status === 401
+        (error as any).response
       ) {
-        this.token = null;
-        this.tokenExpiresAt = 0;
+        const resp = (error as any).response;
+        this.logger.error(
+          `Failed to send SMS to ${phoneNumber}. HTTP ${resp.status}: ${JSON.stringify(resp.data)}`,
+        );
+        if (resp.status === 401) {
+          this.token = null;
+          this.tokenExpiresAt = 0;
+        }
+      } else {
+        this.logger.error(`Failed to send SMS to ${phoneNumber}`, error);
       }
       return false;
     }
