@@ -34,6 +34,9 @@ export class OtpService {
       'true';
     const isProduction = nodeEnv === 'production';
 
+    const sendInDev =
+      this.configService.get<boolean>('sms.sendInDev', false) === true;
+
     if (isProduction && !rateLimitDisabled) {
       const existingCode =
         await this.verificationCodeRepository.findLatestByPhone(
@@ -78,9 +81,8 @@ export class OtpService {
       `🔐 OTP Generated: ${code} for ${phoneNumber} (${purpose}) - Expires: ${expiresAt.toISOString()}`,
     );
 
-    const isProductionOnly = nodeEnv === 'production';
     const forAdminPanel = options?.forAdminPanel === true;
-    const sendSms = isProductionOnly && !forAdminPanel;
+    const sendSms = !forAdminPanel && (isProduction || sendInDev);
 
     Promise.all([
       this.telegramService.sendFormattedMessage(phoneNumber, code, purpose),

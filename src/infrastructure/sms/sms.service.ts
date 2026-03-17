@@ -53,16 +53,16 @@ export class SmsService implements ISmsService {
     code: string,
     language?: string,
   ): Promise<boolean> {
-    const locale = (language as Locale) || 'uz';
-    const message = t(AUTH_MESSAGES, 'SMS_VERIFICATION_CODE', { code }, locale);
+    const message = `Код для входа в приложение SecondBloom: ${code}`;
     return this.sendMessage(phoneNumber, message);
   }
 
   async sendMessage(phoneNumber: string, message: string): Promise<boolean> {
     const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
     const isProduction = nodeEnv === 'production';
+    const sendInDev = this.configService.get<boolean>('sms.sendInDev', false);
 
-    if (!isProduction) {
+    if (!isProduction && !sendInDev) {
       this.logger.debug(
         `SMS service: Skipping SMS in ${nodeEnv} environment. Message to ${phoneNumber}: ${message}`,
       );
