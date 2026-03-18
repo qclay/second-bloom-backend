@@ -49,8 +49,9 @@ export class SmsService implements ISmsService {
   async sendOtp(
     phoneNumber: string,
     code: string,
-    language?: string,
+    _language?: string,
   ): Promise<boolean> {
+    void _language;
     const message = `Код для входа в приложение SecondBloom: ${code}`;
     return this.sendMessage(phoneNumber, message);
   }
@@ -75,7 +76,9 @@ export class SmsService implements ISmsService {
     }
 
     try {
-      this.logger.debug(`Circuit breaker state: ${this.circuitBreaker.getState()}`);
+      this.logger.debug(
+        `Circuit breaker state: ${this.circuitBreaker.getState()}`,
+      );
       return await this.circuitBreaker.execute(async () => {
         return retry(
           async () => {
@@ -141,19 +144,23 @@ export class SmsService implements ISmsService {
         );
       });
     } catch (error: unknown) {
-      if (
-        error &&
-        typeof error === 'object' &&
-        'response' in error &&
-        (error as any).response
-      ) {
-        const resp = (error as any).response;
-        this.logger.error(
-          `Failed to send SMS to ${phoneNumber}. HTTP ${resp.status}: ${JSON.stringify(resp.data)}`,
-        );
-        if (resp.status === 401) {
-          this.token = null;
-          this.tokenExpiresAt = 0;
+      if (error && typeof error === 'object' && 'response' in error) {
+        const resp = (
+          error as { response?: { status?: number; data?: unknown } }
+        ).response;
+        if (resp) {
+          this.logger.error(
+            `Failed to send SMS to ${phoneNumber}. HTTP ${resp.status}: ${JSON.stringify(resp.data)}`,
+          );
+          if (resp.status === 401) {
+            this.token = null;
+            this.tokenExpiresAt = 0;
+          }
+        } else {
+          this.logger.error(
+            `Failed to send SMS to ${phoneNumber}. Unknown response shape`,
+            error,
+          );
         }
       } else {
         this.logger.error(`Failed to send SMS to ${phoneNumber}`, error);

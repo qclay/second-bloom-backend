@@ -130,6 +130,12 @@ export class ConversationLastMessageDto {
 
   @ApiProperty({ example: false })
   isRead!: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Optional payload, e.g. for SYSTEM messages like ORDER_CREATED',
+  })
+  metadata?: Record<string, unknown> | null;
 }
 
 export class ConversationResponseDto {

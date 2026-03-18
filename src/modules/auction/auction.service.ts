@@ -516,7 +516,6 @@ export class AuctionService {
           select: { id: true, amount: true },
         });
         if (!winningBid) {
-          // This should ideally not happen due to the check outside the transaction
           throw new BadRequestException(
             'No valid bid found for the chosen winner.',
           );
@@ -654,6 +653,70 @@ export class AuctionService {
 
     const auctionDto = await this.findById(id);
     return { ...auctionDto, chatId };
+  }
+
+  async cancelWinner(
+    id: string,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<AuctionResponseDto> {
+    const auction = await this.auctionRepository.findById(id);
+
+    if (!auction || auction.deletedAt) {
+      throw new NotFoundException(`Auction with ID ${id} not found`);
+    }
+
+    if (auction.creatorId !== userId && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'You can only cancel winner for your own auctions',
+      );
+    }
+
+    if (auction.status !== 'ENDED') {
+      throw new BadRequestException(
+        'Winner can only be cancelled for ended auctions',
+      );
+    }
+
+    const currentWinnerId = auction.winnerId;
+
+    if (!currentWinnerId) {
+      throw new BadRequestException('Auction does not have a winner to cancel');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.bid.updateMany({
+        where: { auctionId: id, isWinning: true },
+        data: { isWinning: false, rejectedAt: new Date() },
+      });
+
+      await tx.auction.update({
+        where: { id },
+        data: { winnerId: null },
+      });
+
+      const order = await tx.order.findFirst({
+        where: { auctionId: id, buyerId: currentWinnerId },
+      });
+
+      if (order && order.status !== 'CANCELLED') {
+        await tx.order.update({
+          where: { id: order.id },
+          data: {
+            status: 'CANCELLED',
+            cancelledAt: new Date(),
+            cancelledBy: userId,
+            cancellationReason: 'Auction winner cancelled',
+          },
+        });
+      }
+    });
+
+    this.logger.log(
+      `Auction ${id} winner ${currentWinnerId} cancelled by user ${userId}`,
+    );
+
+    return this.findById(id);
   }
 
   async closeAuction(

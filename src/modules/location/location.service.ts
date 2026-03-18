@@ -16,6 +16,25 @@ function getPriorityScore(nameJson: NameJson | undefined): number {
   const ru = (nameJson.ru ?? '').toLowerCase();
   const uz = (nameJson.uz ?? '').toLowerCase();
 
+  const isUzbekistan =
+    en.includes('uzbekistan') ||
+    ru.includes('узбекистан') ||
+    uz.includes("o'zbekiston") ||
+    uz.includes('ozbekiston');
+
+  const isKazakhstan =
+    en.includes('kazakhstan') ||
+    ru.includes('казахстан') ||
+    uz.includes("qozog'iston") ||
+    uz.includes('qozogiston');
+
+  const isDubai =
+    en.includes('dubai') ||
+    ru.includes('дубай') ||
+    uz.includes('dubay') ||
+    en.includes('uae') ||
+    ru.includes('оаэ');
+
   const isTashkent =
     en.includes('tashkent') ||
     ru.includes('ташкент') ||
@@ -25,8 +44,11 @@ function getPriorityScore(nameJson: NameJson | undefined): number {
     ru.includes('самарканд') ||
     uz.includes('samarqand');
 
-  if (isTashkent) return 2;
-  if (isSamarkand) return 1;
+  if (isUzbekistan) return 500;
+  if (isKazakhstan) return 400;
+  if (isDubai) return 300;
+  if (isTashkent) return 200;
+  if (isSamarkand) return 100;
   return 0;
 }
 
@@ -88,11 +110,15 @@ export class LocationService {
     );
   }
 
-  async getCities(regionId?: string): Promise<CityResponseDto[]> {
+  async getCities(
+    regionId?: string,
+    countryId?: string,
+  ): Promise<CityResponseDto[]> {
     const cities = await this.prisma.city.findMany({
       where: {
         isActive: true,
         ...(regionId && { regionId }),
+        ...(countryId && { region: { countryId } }),
       },
       select: {
         id: true,

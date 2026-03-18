@@ -60,12 +60,17 @@ export class LocationController {
   @ApiOperation({
     summary: 'List cities',
     description:
-      'Returns cities, optionally filtered by regionId. Use for product location and filters.',
+      'Returns cities, optionally filtered by regionId or countryId. Use for product location and filters.',
   })
   @ApiQuery({
     name: 'regionId',
     required: false,
     description: 'Filter cities by region ID',
+  })
+  @ApiQuery({
+    name: 'countryId',
+    required: false,
+    description: 'Filter cities by country ID',
   })
   @ApiResponse({
     status: 200,
@@ -75,8 +80,9 @@ export class LocationController {
   })
   async getCities(
     @Query('regionId') regionId?: string,
+    @Query('countryId') countryId?: string,
   ): Promise<CityResponseDto[]> {
-    return this.locationService.getCities(regionId);
+    return this.locationService.getCities(regionId, countryId);
   }
 
   @Get('districts')

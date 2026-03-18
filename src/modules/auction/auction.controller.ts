@@ -257,7 +257,7 @@ export class AuctionController {
     description:
       'Manually select the winner for an ACTIVE or ENDED auction. Only auction owner or admin. Winner must have at least one bid. ' +
       'When called on ACTIVE auction: cancels cron job and immediately ends the auction. ' +
-      'Automatically creates: (1) Order with PENDING status, (2) Conversation/chat between seller and winner, (3) System message in chat. ' +
+      'Automatically creates: (1) Order with PENDING status, (2) Conversation/chat between seller and winner, (3) Simple system message in chat. ' +
       'Returns chatId in response for frontend to redirect user to the conversation. ' +
       'Sends push notification to winner with isWinner: true.',
   })
@@ -276,6 +276,30 @@ export class AuctionController {
     @CurrentUser('role') role: UserRole,
   ): Promise<AuctionResponseDto> {
     return await this.auctionService.chooseWinner(id, dto, userId, role);
+  }
+
+  @Delete(':id/winner')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Cancel auction winner',
+    description:
+      'Cancel the manually or automatically selected winner for an ENDED auction. Only auction owner or admin. ' +
+      'Automatically rejects the winning bid, sets auction winner to null, and unlinks/cancels the created Order.',
+  })
+  @ApiParam({ name: 'id', description: 'Auction UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Auction with cleared winner',
+    type: AuctionResponseDto,
+  })
+  @ApiCommonErrorResponses({ conflict: false })
+  async cancelWinner(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: UserRole,
+  ): Promise<AuctionResponseDto> {
+    return await this.auctionService.cancelWinner(id, userId, role);
   }
 
   @Patch(':id')

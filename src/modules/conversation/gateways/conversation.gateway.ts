@@ -8,7 +8,13 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, Injectable, UseGuards } from '@nestjs/common';
+import {
+  Logger,
+  Injectable,
+  UseGuards,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ConversationService } from '../conversation.service';
@@ -51,11 +57,23 @@ export class ConversationGateway
   private readonly userSockets = new Map<string, Set<string>>();
 
   constructor(
+    @Inject(forwardRef(() => ConversationService))
     private readonly conversationService: ConversationService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly wsRateLimitGuard: WsRateLimitGuard,
   ) {}
+
+  broadcastNewMessage(
+    conversationId: string,
+    message: ConversationMessageResponseDto,
+  ) {
+    if (this.server) {
+      this.server
+        .to(`conversation:${conversationId}`)
+        .emit(CONVERSATION_EVENTS.NEW_MESSAGE, message);
+    }
+  }
 
   async handleConnection(client: AuthenticatedSocket) {
     try {

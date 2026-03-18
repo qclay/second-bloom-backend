@@ -4,6 +4,8 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { ConversationRepository } from './repositories/conversation.repository';
 import { MessageRepository } from './repositories/message.repository';
@@ -21,6 +23,7 @@ import {
 import { ConversationMessageResponseDto } from './dto/message-response.dto';
 import { Prisma, MessageType, DeliveryStatus, UserRole } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { ConversationGateway } from './gateways/conversation.gateway';
 import { ResolveConversationDto } from './dto/resolve-conversation.dto';
 import { ConversationContextType } from './constants/conversation-context.enum';
 import {
@@ -139,6 +142,8 @@ export class ConversationService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => ConversationGateway))
+    private readonly conversationGateway: ConversationGateway,
   ) {}
 
   async createConversationForOrder(orderId: string): Promise<void> {
@@ -547,16 +552,45 @@ export class ConversationService {
       }
     }
 
+    if (dto.messageType === MessageType.VIDEO_NOTE) {
+      if (!dto.fileId) {
+        throw new BadRequestException('Video notes require a file attachment');
+      }
+      if (dto.duration && dto.duration > 15) {
+        throw new BadRequestException('Video note cannot exceed 15 seconds');
+      }
+    }
+
+    if (
+      !dto.content &&
+      !(
+        [
+          MessageType.IMAGE,
+          MessageType.FILE,
+          MessageType.VIDEO_NOTE,
+          MessageType.VOICE,
+        ] as MessageType[]
+      ).includes(dto.messageType || MessageType.TEXT)
+    ) {
+      throw new BadRequestException('Content is required for text messages');
+    }
+
+    let metadata: Prisma.InputJsonValue | undefined = undefined;
+    if (dto.duration !== undefined) {
+      metadata = { duration: dto.duration };
+    }
+
     const message = await tx.message.create({
       data: {
         conversation: { connect: { id: dto.conversationId } },
         sender: { connect: { id: userId } },
         messageType: dto.messageType || MessageType.TEXT,
-        content: dto.content,
+        content: dto.content ?? '',
         ...(dto.fileId && { file: { connect: { id: dto.fileId } } }),
         ...(dto.replyToMessageId && {
           replyTo: { connect: { id: dto.replyToMessageId } },
         }),
+        ...(metadata && { metadata }),
         deliveryStatus: DeliveryStatus.SENT,
       },
       include: {
@@ -1332,6 +1366,12 @@ export class ConversationService {
             messageType: conversation.lastMessage.messageType,
             createdAt: toISOString(conversation.lastMessage.createdAt) ?? '',
             isRead: conversation.lastMessage.isRead,
+            metadata:
+              (
+                conversation.lastMessage as {
+                  metadata?: Record<string, unknown> | null;
+                }
+              ).metadata ?? null,
           }
         : null,
       createdAt: toISOString(conversation.createdAt) ?? '',
@@ -1440,7 +1480,7 @@ export class ConversationService {
     metadata?: Record<string, unknown>,
     messageType: MessageType = MessageType.TEXT,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const newMessage = await this.prisma.$transaction(async (tx) => {
       const conv = await tx.conversation.findUnique({
         where: { id: conversationId },
         include: { participants: { select: { userId: true } } },
@@ -1461,6 +1501,27 @@ export class ConversationService {
           deliveryStatus: DeliveryStatus.SENT,
           ...(metadata && { metadata: metadata as Prisma.InputJsonValue }),
         },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              phoneNumber: true,
+              firstName: true,
+              lastName: true,
+              avatar: { select: { url: true } },
+              isAdministrationChat: true,
+            },
+          },
+          file: {
+            select: {
+              id: true,
+              url: true,
+              filename: true,
+              mimeType: true,
+              size: true,
+            },
+          },
+        },
       });
       await tx.conversation.update({
         where: { id: conversationId },
@@ -1475,7 +1536,13 @@ export class ConversationService {
           data: { unreadCount: { increment: 1 } },
         });
       }
+      return message;
     });
+
+    const mappedDto = this.mapMessageToDto(
+      newMessage as unknown as MessageWithRelations,
+    );
+    this.conversationGateway.broadcastNewMessage?.(conversationId, mappedDto);
   }
 
   async notifyProductModerationRejected(

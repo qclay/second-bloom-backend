@@ -24,12 +24,12 @@ export class SendMessageDto {
     description: 'Message content',
     example: 'Hello, is this product still available?',
     maxLength: 5000,
-    required: true,
+    required: false,
   })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(5000)
-  content!: string;
+  content?: string;
 
   @ApiProperty({
     description: 'Message type',
@@ -43,7 +43,7 @@ export class SendMessageDto {
   messageType?: MessageType = MessageType.TEXT;
 
   @ApiProperty({
-    description: 'File ID for attachments (images, files)',
+    description: 'File ID for attachments (images, files, video notes)',
     example: 'clx1234567890abcdef',
     required: false,
   })
@@ -51,6 +51,14 @@ export class SendMessageDto {
   @IsUUID()
   @IsOptional()
   fileId?: string;
+
+  @ApiProperty({
+    description: 'Duration for Video Notes or Voice in seconds',
+    example: 15,
+    required: false,
+  })
+  @IsOptional()
+  duration?: number;
 
   @ApiProperty({
     description: 'ID of message being replied to',
