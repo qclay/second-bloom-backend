@@ -119,6 +119,48 @@ export class OrderService {
       `Order created from auction winner: ${order.id} (${orderNumber}) for auction ${auctionId}, buyer ${buyerId}, amount: ${amount}`,
     );
 
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        sellerId: true,
+        title: true,
+        price: true,
+        images: {
+          take: 1,
+          orderBy: { displayOrder: 'asc' as const },
+          select: { file: { select: { url: true } } },
+        },
+      },
+    });
+
+    if (!product || !product.sellerId) {
+      this.logger.warn(
+        `Product ${productId} not found after auction order creation ${order.id}, skipping order banner notification`,
+      );
+      return { id: order.id, amount };
+    }
+
+    await this.conversationService
+      .createConversationForOrder(order.id)
+      .catch((err) => {
+        this.logger.warn(
+          `Failed to create chat for auction order ${order.id}: ${err?.message ?? err}`,
+        );
+      });
+
+    try {
+      await this.sendOrderBannerNotification(
+        order.id,
+        product,
+        buyerId,
+        product.sellerId,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to send order banner notification for auction order ${order.id}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+
     return { id: order.id, amount };
   }
 
