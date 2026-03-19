@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { ConfigService } from '@nestjs/config';
 import { FirebaseService } from '../src/infrastructure/firebase/firebase.service';
+import { EndExpiredAuctionsScheduler } from '../src/jobs/auction/end-expired-auctions.scheduler';
 
 describe('Jobs (e2e)', () => {
     let app: INestApplication;
@@ -12,6 +12,7 @@ describe('Jobs (e2e)', () => {
     let authQueue: any;
     let conversationQueue: any;
     let paymentQueue: any;
+    let auctionsScheduler: EndExpiredAuctionsScheduler;
 
     beforeAll(async () => {
         process.env.CRON_ENABLED = 'true';
@@ -42,6 +43,7 @@ describe('Jobs (e2e)', () => {
             .overrideProvider('BullQueue_auction')
             .useValue({
                 add: jest.fn().mockResolvedValue({}),
+                getRepeatableJobs: jest.fn().mockResolvedValue([]),
                 getJob: jest.fn().mockResolvedValue(null),
                 process: jest.fn(),
                 on: jest.fn(),
@@ -84,6 +86,7 @@ describe('Jobs (e2e)', () => {
         authQueue = app.get('BullQueue_auth');
         conversationQueue = app.get('BullQueue_conversation');
         paymentQueue = app.get('BullQueue_payment');
+        auctionsScheduler = app.get(EndExpiredAuctionsScheduler);
     });
 
     afterAll(async () => {
@@ -94,7 +97,6 @@ describe('Jobs (e2e)', () => {
         const jobs = schedulerRegistry.getCronJobs();
 
         const expectedJobs = [
-            'end-expired-auctions',
             'clean-expired-otps',
             'deactivate-order-conversations',
             'expire-pending-payments'
@@ -108,12 +110,28 @@ describe('Jobs (e2e)', () => {
     });
 
     describe('Job Execution', () => {
-        it('end-expired-auctions should add job to auction queue', async () => {
-            const job = schedulerRegistry.getCronJob('end-expired-auctions');
-            // @ts-ignore
-            await (job as any).fireOnTick();
+        it('end-expired-auctions should register repeatable queue job and support manual trigger', async () => {
+            expect(auctionQueue.add).toHaveBeenCalledWith(
+                'end-expired',
+                {
+                    batchSize: expect.any(Number),
+                },
+                {
+                    jobId: 'end-expired-auctions-repeatable',
+                    repeat: {
+                        cron: expect.any(String),
+                    },
+                },
+            );
 
-            expect(auctionQueue.add).toHaveBeenCalledWith('end-expired', expect.any(Object));
+            await auctionsScheduler.scheduleEndExpiredAuctions();
+
+            expect(auctionQueue.add).toHaveBeenCalledWith(
+                'end-expired',
+                {
+                    batchSize: expect.any(Number),
+                },
+            );
         });
 
         it('clean-expired-otps should add job to auth queue', async () => {

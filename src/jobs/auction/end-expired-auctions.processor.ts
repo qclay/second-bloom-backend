@@ -1,4 +1,11 @@
-import { Processor, Process, InjectQueue } from '@nestjs/bull';
+import {
+  Processor,
+  Process,
+  InjectQueue,
+  OnQueueFailed,
+  OnQueueError,
+  OnQueueStalled,
+} from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job, Queue } from 'bull';
 import { AuctionService } from '../../modules/auction/auction.service';
@@ -13,11 +20,9 @@ export class EndExpiredAuctionsProcessor {
   ) {}
 
   @Process('end-expired')
-  async handleEndExpired(
-    job: Job<{ timestamp: number; batchSize?: number }>,
-  ): Promise<void> {
-    this.logger.log(
-      `Processing end expired auctions job ${job.id} at ${new Date(job.data.timestamp).toISOString()}`,
+  async handleEndExpired(job: Job<{ batchSize?: number }>): Promise<void> {
+    this.logger.debug(
+      `Processing end expired auctions job ${job.id} at ${new Date(job.timestamp).toISOString()}`,
     );
 
     try {
@@ -25,18 +30,21 @@ export class EndExpiredAuctionsProcessor {
       const { endedCount, hasMore } =
         await this.auctionService.endExpiredAuctions(batchSize);
 
-      this.logger.log(
-        `Successfully ended ${endedCount} expired auctions (Job ${job.id})`,
-      );
+      if (endedCount > 0) {
+        this.logger.log(
+          `Successfully ended ${endedCount} expired auctions (Job ${job.id})`,
+        );
+      } else {
+        this.logger.debug(`No expired auctions to end (Job ${job.id})`);
+      }
 
       if (hasMore) {
-        this.logger.log(
+        this.logger.warn(
           `More expired auctions found. Rescheduling job ${job.id}`,
         );
         await this.auctionQueue.add(
           'end-expired',
           {
-            timestamp: Date.now(),
             batchSize,
           },
           { delay: 1000 },
@@ -49,5 +57,26 @@ export class EndExpiredAuctionsProcessor {
       );
       throw error;
     }
+  }
+
+  @OnQueueFailed()
+  onFailed(job: Job<{ batchSize?: number }>, error: Error): void {
+    this.logger.error(
+      `Auction queue job failed: ${job.name}#${job.id}`,
+      error?.stack || error?.message,
+    );
+  }
+
+  @OnQueueStalled()
+  onStalled(job: Job<{ batchSize?: number }>): void {
+    this.logger.warn(`Auction queue job stalled: ${job.name}#${job.id}`);
+  }
+
+  @OnQueueError()
+  onQueueError(error: Error): void {
+    this.logger.error(
+      'Auction queue encountered an error',
+      error?.stack || error?.message,
+    );
   }
 }

@@ -14,6 +14,7 @@ describe('EndExpiredAuctionsScheduler', () => {
   beforeEach(async () => {
     queue = {
       add: jest.fn().mockResolvedValue({}),
+      getRepeatableJobs: jest.fn().mockResolvedValue([]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -58,7 +59,6 @@ describe('EndExpiredAuctionsScheduler', () => {
     await scheduler.scheduleEndExpiredAuctions();
 
     expect(queue.add).toHaveBeenCalledWith('end-expired', {
-      timestamp: expect.any(Number),
       batchSize: 50,
     });
     expect(metricsService.recordCronRun).toHaveBeenCalledWith(
@@ -66,6 +66,38 @@ describe('EndExpiredAuctionsScheduler', () => {
       expect.any(Number),
       true,
     );
+  });
+
+  it('should register repeatable sweep on module init', async () => {
+    await scheduler.onModuleInit();
+
+    expect(queue.getRepeatableJobs).toHaveBeenCalled();
+    expect(queue.add).toHaveBeenCalledWith(
+      'end-expired',
+      {
+        batchSize: 50,
+      },
+      {
+        jobId: 'end-expired-auctions-repeatable',
+        repeat: {
+          cron: '*/30 * * * * *',
+        },
+      },
+    );
+  });
+
+  it('should not re-register repeatable sweep when already present', async () => {
+    (queue.getRepeatableJobs as jest.Mock).mockResolvedValue([
+      {
+        name: 'end-expired',
+        cron: '*/30 * * * * *',
+        id: 'end-expired-auctions-repeatable',
+      },
+    ]);
+
+    await scheduler.onModuleInit();
+
+    expect(queue.add).not.toHaveBeenCalled();
   });
 
   it('should not add job if cron is disabled globally', async () => {
