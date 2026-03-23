@@ -483,7 +483,7 @@ export class ProductService {
           {
             orders: {
               some: {
-                status: OrderStatus.DELIVERED,
+                status: OrderStatus.DELIVERY,
                 deletedAt: null,
               },
             },
@@ -501,11 +501,7 @@ export class ProductService {
         where.orders = {
           some: {
             status: {
-              in: [
-                OrderStatus.CONFIRMED,
-                OrderStatus.PROCESSING,
-                OrderStatus.SHIPPED,
-              ],
+              in: [OrderStatus.PROCESSING, OrderStatus.SHIPPED],
             },
             deletedAt: null,
           },
@@ -516,7 +512,7 @@ export class ProductService {
     if (salePhase !== 'sold' && salePhase !== 'in_delivery') {
       where.orders = {
         none: {
-          status: OrderStatus.DELIVERED,
+          status: OrderStatus.DELIVERY,
           deletedAt: null,
         },
       };
@@ -700,10 +696,9 @@ export class ProductService {
         } else if (activeAuction?.status === 'ENDED') {
           saleStatus = 'sold';
         } else if (lastOrder) {
-          if (lastOrder.status === OrderStatus.DELIVERED) {
+          if (lastOrder.status === OrderStatus.DELIVERY) {
             saleStatus = 'sold';
           } else if (
-            lastOrder.status === OrderStatus.CONFIRMED ||
             lastOrder.status === OrderStatus.PROCESSING ||
             lastOrder.status === OrderStatus.SHIPPED
           ) {
@@ -759,7 +754,7 @@ export class ProductService {
         {
           orders: {
             some: {
-              status: OrderStatus.DELIVERED,
+              status: OrderStatus.DELIVERY,
               deletedAt: null,
             },
           },
@@ -777,11 +772,7 @@ export class ProductService {
       where.orders = {
         some: {
           status: {
-            in: [
-              OrderStatus.CONFIRMED,
-              OrderStatus.PROCESSING,
-              OrderStatus.SHIPPED,
-            ],
+            in: [OrderStatus.PROCESSING, OrderStatus.SHIPPED],
           },
           deletedAt: null,
         },
@@ -920,7 +911,7 @@ export class ProductService {
 
     where.orders = {
       none: {
-        status: OrderStatus.DELIVERED,
+        status: OrderStatus.DELIVERY,
         deletedAt: null,
       },
     };
@@ -1085,10 +1076,9 @@ export class ProductService {
         } else if (activeAuction?.status === 'ENDED') {
           saleStatus = 'sold';
         } else if (lastOrder) {
-          if (lastOrder.status === OrderStatus.DELIVERED) {
+          if (lastOrder.status === OrderStatus.DELIVERY) {
             saleStatus = 'sold';
           } else if (
-            lastOrder.status === OrderStatus.CONFIRMED ||
             lastOrder.status === OrderStatus.PROCESSING ||
             lastOrder.status === OrderStatus.SHIPPED
           ) {
@@ -1311,10 +1301,9 @@ export class ProductService {
     } else if (activeAuction?.status === 'ENDED') {
       saleStatus = 'sold';
     } else if (lastOrder) {
-      if (lastOrder.status === OrderStatus.DELIVERED) {
+      if (lastOrder.status === OrderStatus.DELIVERY) {
         saleStatus = 'sold';
       } else if (
-        lastOrder.status === OrderStatus.CONFIRMED ||
         lastOrder.status === OrderStatus.PROCESSING ||
         lastOrder.status === OrderStatus.SHIPPED
       ) {

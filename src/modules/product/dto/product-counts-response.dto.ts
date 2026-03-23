@@ -16,14 +16,14 @@ export class ProductCountsResponseDto {
 
   @ApiProperty({
     description:
-      'Number of products that are considered sold (order delivered or auction ended).',
+      'Number of products that are considered sold (order in DELIVERY status or auction ended).',
     example: 5,
   })
   sold!: number;
 
   @ApiProperty({
     description:
-      'Number of products with orders awaiting delivery (confirmed / processing / shipped).',
+      'Number of products with orders awaiting delivery (processing / shipped).',
     example: 2,
   })
   inDelivery!: number;

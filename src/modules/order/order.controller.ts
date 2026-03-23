@@ -115,7 +115,7 @@ export class OrderController {
   @ApiOperation({
     summary: 'Update order status',
     description:
-      'Updates order status (e.g., accept/reject purchase request, mark as shipped/delivered). Sellers can accept/reject, admins can update any status.',
+      'Updates order status (PROCESSING, SHIPPED, DELIVERY, CANCELLED). Sellers can update shipping/delivery states; admins can update any status.',
   })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({
@@ -144,7 +144,7 @@ export class OrderController {
   @ApiOperation({
     summary: 'Delete order',
     description:
-      'Soft deletes an order. Cannot delete delivered orders. Only buyers or admins can delete orders.',
+      'Soft deletes an order. Cannot delete orders already in DELIVERY status. Only buyers or admins can delete orders.',
   })
   @ApiCommonErrorResponses({ conflict: false })
   @ApiResponse({

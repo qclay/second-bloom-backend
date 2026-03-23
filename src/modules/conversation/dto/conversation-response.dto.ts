@@ -69,15 +69,8 @@ export class PinnedProductDto {
 
 export class PinnedOrderProgressDto {
   @ApiProperty({
-    example: 'PENDING',
-    enum: [
-      'PENDING',
-      'CONFIRMED',
-      'PROCESSING',
-      'SHIPPED',
-      'DELIVERED',
-      'CANCELLED',
-    ],
+    example: 'PROCESSING',
+    enum: ['PROCESSING', 'DELIVERY', 'SHIPPED', 'CANCELLED'],
   })
   status!: string;
 
@@ -92,6 +85,12 @@ export class PinnedOrderDto {
   @ApiProperty({ example: 'clx1234567890abcdef' })
   id!: string;
 
+  @ApiPropertyOptional({
+    example: 'clxauction1234567890',
+    description: 'Auction ID if this order was created from auction winner',
+  })
+  auctionId?: string | null;
+
   @ApiProperty({ example: 'ORD-ABC123' })
   orderNumber!: string;
 
@@ -99,15 +98,8 @@ export class PinnedOrderDto {
   amount!: number;
 
   @ApiProperty({
-    example: 'PENDING',
-    enum: [
-      'PENDING',
-      'CONFIRMED',
-      'PROCESSING',
-      'SHIPPED',
-      'DELIVERED',
-      'CANCELLED',
-    ],
+    example: 'PROCESSING',
+    enum: ['PROCESSING', 'DELIVERY', 'SHIPPED', 'CANCELLED'],
   })
   status!: string;
 
@@ -174,7 +166,7 @@ export class ConversationResponseDto {
   @ApiProperty({
     example: true,
     description:
-      'False when order is delivered or message was sent after delivery (conversation closed for new activity)',
+      'False when order reaches DELIVERY status or message was sent after delivery timestamp (conversation closed for new activity)',
   })
   isActive!: boolean;
 

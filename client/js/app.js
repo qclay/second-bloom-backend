@@ -63,11 +63,12 @@
       order_update_status: 'Change status',
       order_reject: 'Reject order',
       order_customer_details: 'Customer details',
-      order_status_pending: 'Pending',
-      order_status_confirmed: 'Confirmed',
+      order_status_pending: 'Processing',
+      order_status_confirmed: 'Processing',
       order_status_processing: 'Processing',
       order_status_shipped: 'In delivery',
-      order_status_delivered: 'Delivered',
+      order_status_delivered: 'Delivery',
+      order_status_delivery: 'Delivery',
       order_status_cancelled: 'Cancelled',
       buy_product: 'Buy product',
       all: 'All',
@@ -103,6 +104,10 @@
       chat_role_consumer: 'Consumer',
       order_chat_label: 'Order',
       open_chat: 'Open chat',
+      open_auction: 'Open auction',
+      cancel_winner: 'Cancel winner',
+      cancel_winner_confirm: 'Cancel the auction winner and linked order?',
+      winner_cancelled: 'Winner cancelled',
       tab_notifications_title: 'Notifications',
       mark_all_read: 'Mark all read',
       unread: 'Unread',
@@ -253,11 +258,12 @@
       order_update_status: 'Holatni o\'zgartirish',
       order_reject: 'Buyurtmani rad etish',
       order_customer_details: 'Mijoz ma\'lumotlari',
-      order_status_pending: 'Kutilmoqda',
-      order_status_confirmed: 'Tasdiqlandi',
+      order_status_pending: 'Qayta ishlanmoqda',
+      order_status_confirmed: 'Qayta ishlanmoqda',
       order_status_processing: 'Qayta ishlanmoqda',
       order_status_shipped: 'Yetkazilmoqda',
-      order_status_delivered: 'Yetkazildi',
+      order_status_delivered: 'Yetkazib berish',
+      order_status_delivery: 'Yetkazib berish',
       order_status_cancelled: 'Bekor qilindi',
       buy_product: 'Mahsulotni sotib olish',
       all: 'Hammasi',
@@ -293,6 +299,10 @@
       chat_role_consumer: 'Xaridor',
       order_chat_label: 'Buyurtma',
       open_chat: 'Chatni ochish',
+      open_auction: 'Auktsionni ochish',
+      cancel_winner: 'G\'olibni bekor qilish',
+      cancel_winner_confirm: 'Auktsion g\'olibi va bog\'langan buyurtmani bekor qilinsinmi?',
+      winner_cancelled: 'G\'olib bekor qilindi',
       mark_all_read: 'Hammasini o\'qilgan deb belgilash',
       unread: 'O\'qilmagan',
       no_notifications: 'Hali bildirishnomalar yo\'q.',
@@ -442,11 +452,12 @@
       order_update_status: 'Изменить статус',
       order_reject: 'Сделать отказ',
       order_customer_details: 'Данные заказчика',
-      order_status_pending: 'Ожидает',
-      order_status_confirmed: 'Подтверждён',
+      order_status_pending: 'В обработке',
+      order_status_confirmed: 'В обработке',
       order_status_processing: 'В обработке',
       order_status_shipped: 'В процессе доставки',
-      order_status_delivered: 'Доставлен',
+      order_status_delivered: 'Доставка',
+      order_status_delivery: 'Доставка',
       order_status_cancelled: 'Отменён',
       buy_product: 'Купить товар',
       all: 'Все',
@@ -482,6 +493,10 @@
       chat_role_consumer: 'Покупатель',
       order_chat_label: 'Заказ',
       open_chat: 'Открыть чат',
+      open_auction: 'Открыть аукцион',
+      cancel_winner: 'Отменить победителя',
+      cancel_winner_confirm: 'Отменить победителя аукциона и связанный заказ?',
+      winner_cancelled: 'Победитель отменен',
       mark_all_read: 'Прочитать все',
       unread: 'Непрочитанные',
       no_notifications: 'Уведомлений пока нет.',
@@ -699,6 +714,115 @@
       PENDING_MODERATION: 'product_status_pending_moderation',
     }[status || ''];
     return key ? t(key) : (status || '');
+  }
+
+  function orderStatusLabel(status) {
+    const key = {
+      PENDING: 'order_status_pending',
+      CONFIRMED: 'order_status_confirmed',
+      PROCESSING: 'order_status_processing',
+      SHIPPED: 'order_status_shipped',
+      DELIVERED: 'order_status_delivered',
+      DELIVERY: 'order_status_delivery',
+      CANCELLED: 'order_status_cancelled',
+    }[status || ''];
+    return key ? t(key) : (status || '');
+  }
+
+  function orderStatusClass(status) {
+    if (status === 'CANCELLED') return 'status-cancelled';
+    if (status === 'DELIVERY' || status === 'DELIVERED') return 'status-delivered';
+    return 'status-pending';
+  }
+
+  function renderChatOrderCard(conv) {
+    const cardEl = $('chat-order-card');
+    const statusEl = $('chat-order-status-label');
+    const productEl = $('chat-order-product');
+    const numberEl = $('chat-order-number');
+    const dateEl = $('chat-order-date');
+    const amountEl = $('chat-order-amount');
+    const customerEl = $('chat-order-customer');
+    const actionsEl = $('chat-order-actions');
+    const dropdownEl = $('chat-order-status-dropdown');
+
+    if (!cardEl || !statusEl || !productEl || !numberEl || !dateEl || !amountEl || !customerEl || !actionsEl || !dropdownEl) {
+      return;
+    }
+
+    actionsEl.innerHTML = '';
+    dropdownEl.classList.add('hidden');
+    dropdownEl.innerHTML = '';
+
+    const order = conv?.pinnedOrder;
+    if (!order) {
+      hide(cardEl);
+      return;
+    }
+
+    show(cardEl);
+
+    const statusClass = orderStatusClass(order.status);
+    statusEl.className = `chat-order-card-status ${statusClass}`;
+    statusEl.innerHTML = `<span class=\"status-dot\"></span>${escapeHtml(orderStatusLabel(order.status))}`;
+
+    const productImageUrl = conv?.pinnedProduct?.imageUrl || '';
+    productEl.innerHTML = productImageUrl
+      ? `<img src=\"${escapeHtml(productImageUrl)}\" alt=\"\" />`
+      : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#8b98a5;font-size:.75rem">—</div>';
+
+    numberEl.textContent = `${t('order_number')} ${order.orderNumber || order.id || ''}`;
+    const progressDate = order.progress?.deliveredAt || order.progress?.shippedAt || conv?.updatedAt || null;
+    dateEl.textContent = progressDate ? formatDate(progressDate) : '';
+    amountEl.textContent = formatPrice(order.amount, conv?.pinnedProduct?.currency || 'UZS');
+
+    const isSeller = !!(currentUser?.id && conv?.seller?.id && currentUser.id === conv.seller.id);
+    const buyer = conv?.buyer;
+    if (isSeller && buyer) {
+      const buyerName = [buyer.firstName, buyer.lastName].filter(Boolean).join(' ') || buyer.phoneNumber || '';
+      customerEl.innerHTML =
+        `<span class=\"customer-label\">${escapeHtml(t('order_customer_details'))}</span>` +
+        `<div class=\"customer-row\">${escapeHtml(buyerName)}</div>`;
+    } else {
+      customerEl.innerHTML = '';
+    }
+
+    if (order.auctionId) {
+      const openAuctionBtn = document.createElement('button');
+      openAuctionBtn.type = 'button';
+      openAuctionBtn.className = 'btn secondary small';
+      openAuctionBtn.textContent = t('open_auction');
+      openAuctionBtn.addEventListener('click', () => {
+        window._goToAuction(order.auctionId);
+      });
+      actionsEl.appendChild(openAuctionBtn);
+    }
+
+    const canCancelWinner = !!order.auctionId && (isSeller || currentUser?.role === 'ADMIN');
+    if (canCancelWinner) {
+      const cancelWinnerBtn = document.createElement('button');
+      cancelWinnerBtn.type = 'button';
+      cancelWinnerBtn.className = 'btn danger small';
+      cancelWinnerBtn.textContent = t('cancel_winner');
+      cancelWinnerBtn.addEventListener('click', () => {
+        if (!confirm(t('cancel_winner_confirm'))) return;
+        cancelWinnerBtn.disabled = true;
+        api(`/auctions/${order.auctionId}/winner`, { method: 'DELETE' })
+          .then(() => {
+            showToast(t('winner_cancelled'), 'success');
+            loadConversations();
+            if (currentConversationId) {
+              const currentConv = conversationsCache.find((c) => c.id === currentConversationId);
+              if (currentConv) renderChatOrderCard(currentConv);
+            }
+          })
+          .catch((err) => showToast(err.message, 'error'))
+          .finally(() => {
+            cancelWinnerBtn.disabled = false;
+          });
+      });
+      actionsEl.appendChild(cancelWinnerBtn);
+    }
   }
 
   function getBidRowHtml(b, currency, opts) {
@@ -2579,8 +2703,8 @@
       AUCTION_STARTED: 'Started',
       NEW_BID: 'New Bid',
       BID_REJECTED: 'Bid Rejected',
-      ORDER_CONFIRMED: 'Confirmed',
-      ORDER_DELIVERED: 'Delivered',
+      ORDER_CONFIRMED: 'Processing',
+      ORDER_DELIVERED: 'Delivery',
       ORDER_SHIPPED: 'Shipped',
       OUTBID: 'Outbid',
       SYSTEM: 'System',

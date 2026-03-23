@@ -78,14 +78,14 @@ export const NOTIFICATION_MESSAGES: Record<
   },
   ORDER_CONFIRMED: {
     title: {
-      en: 'Order confirmed',
-      ru: 'Заказ подтверждён',
-      uz: 'Buyurtma tasdiqlandi',
+      en: 'Order processing',
+      ru: 'Заказ в обработке',
+      uz: 'Buyurtma qayta ishlanmoqda',
     },
     message: {
-      en: 'Seller confirmed your order #{{orderNumber}} for "{{product}}".',
-      ru: 'Продавец подтвердил ваш заказ №{{orderNumber}} по букету "{{product}}".',
-      uz: 'Sotuvchi "{{product}}" buketi bo\'yicha #{{orderNumber}} buyurtmangizni tasdiqladi.',
+      en: 'Your order #{{orderNumber}} for "{{product}}" is now processing.',
+      ru: 'Ваш заказ №{{orderNumber}} по букету "{{product}}" перешёл в обработку.',
+      uz: '"{{product}}" buketi bo\'yicha #{{orderNumber}} buyurtmangiz qayta ishlash bosqichiga o\'tdi.',
     },
   },
   ORDER_SHIPPED: {
@@ -102,14 +102,14 @@ export const NOTIFICATION_MESSAGES: Record<
   },
   ORDER_DELIVERED: {
     title: {
-      en: 'Order delivered',
-      ru: 'Заказ доставлен',
-      uz: 'Buyurtma yetkazildi',
+      en: 'Order delivery completed',
+      ru: 'Доставка заказа завершена',
+      uz: 'Buyurtma yetkazib berildi',
     },
     message: {
-      en: 'Order #{{orderNumber}} for "{{product}}" has been delivered.',
-      ru: 'Заказ №{{orderNumber}} по букету "{{product}}" доставлен.',
-      uz: '"{{product}}" buketi bo\'yicha #{{orderNumber}} buyurtma yetkazildi.',
+      en: 'Delivery for order #{{orderNumber}} ("{{product}}") is completed.',
+      ru: 'Доставка заказа №{{orderNumber}} по букету "{{product}}" завершена.',
+      uz: '"{{product}}" buketi bo\'yicha #{{orderNumber}} buyurtma yetkazib berildi.',
     },
   },
   NEW_MESSAGE: {

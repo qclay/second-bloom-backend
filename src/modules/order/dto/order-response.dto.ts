@@ -25,7 +25,7 @@ export class OrderResponseDto {
   @ApiProperty({
     enum: OrderStatus,
     description: 'Order status',
-    example: 'PENDING',
+    example: 'PROCESSING',
   })
   status!: string;
 

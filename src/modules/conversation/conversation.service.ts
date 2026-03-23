@@ -85,6 +85,7 @@ const CONVERSATION_INCLUDE = {
   order: {
     select: {
       id: true,
+      auctionId: true,
       orderNumber: true,
       amount: true,
       status: true,
@@ -511,7 +512,7 @@ export class ConversationService {
 
     if (!conversation.isActive) {
       throw new BadRequestException(
-        'Conversation is inactive (order delivered or closed)',
+        'Conversation is inactive (order in DELIVERY status or closed)',
       );
     }
 
@@ -631,7 +632,7 @@ export class ConversationService {
       });
       if (
         order &&
-        (order.status === 'DELIVERED' || order.deliveredAt != null)
+        (order.status === 'DELIVERY' || order.deliveredAt != null)
       ) {
         await tx.conversation.update({
           where: { id: dto.conversationId },
@@ -1265,6 +1266,7 @@ export class ConversationService {
       };
       order?: {
         id: string;
+        auctionId: string | null;
         orderNumber: string;
         amount: { toNumber?: () => number };
         status: string;
@@ -1318,6 +1320,7 @@ export class ConversationService {
       }
       pinnedOrder = {
         id: o.id,
+        auctionId: o.auctionId,
         orderNumber: o.orderNumber,
         amount,
         status: o.status,
@@ -1598,7 +1601,7 @@ export class ConversationService {
     });
     if (result.count > 0) {
       this.logger.log(
-        `Deactivated ${result.count} conversation(s) for delivered order ${orderId}`,
+        `Deactivated ${result.count} conversation(s) for completed delivery order ${orderId}`,
       );
     }
   }
@@ -1641,7 +1644,7 @@ export class ConversationService {
       .filter((c) => {
         const order = c.order;
         if (!order) return false;
-        if (order.status === 'DELIVERED') return true;
+        if (order.status === 'DELIVERY') return true;
         if (
           order.deliveredAt &&
           c.lastMessageAt &&

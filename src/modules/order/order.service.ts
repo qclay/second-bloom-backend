@@ -108,7 +108,7 @@ export class OrderService {
         product: { connect: { id: productId } },
         auction: { connect: { id: auctionId } },
         amount,
-        status: OrderStatus.PENDING,
+        status: OrderStatus.PROCESSING,
         paymentStatus: PaymentStatus.PENDING,
         shippingAddress: null,
         notes: null,
@@ -258,19 +258,19 @@ export class OrderService {
             );
           }
         } else {
-          const existingPendingOrder = await tx.order.findFirst({
+          const existingProcessingOrder = await tx.order.findFirst({
             where: {
               productId: dto.productId,
               buyerId,
-              status: 'PENDING',
+              status: 'PROCESSING',
               deletedAt: null,
             },
             select: { id: true },
           });
 
-          if (existingPendingOrder) {
+          if (existingProcessingOrder) {
             throw new ConflictException(
-              'You already have a pending purchase request for this product',
+              'You already have an active processing order for this product',
             );
           }
         }
@@ -290,7 +290,7 @@ export class OrderService {
                 }
               : undefined,
             amount,
-            status: OrderStatus.PENDING,
+            status: OrderStatus.PROCESSING,
             paymentStatus: PaymentStatus.PENDING,
             shippingAddress: dto.shippingAddress,
             notes: dto.notes,
@@ -615,15 +615,15 @@ export class OrderService {
         );
       }
 
-      if (order.status === 'DELIVERED' && dto.status !== 'DELIVERED') {
+      if (order.status === 'DELIVERY' && dto.status !== 'DELIVERY') {
         throw new BadRequestException(
-          'Cannot change status of delivered order',
+          'Cannot change status of completed delivery order',
         );
       }
 
-      if (dto.status === 'CONFIRMED' && !isSeller && !isAdmin) {
+      if (dto.status === 'PROCESSING' && !isSeller && !isAdmin) {
         throw new ForbiddenException(
-          'Only seller can confirm purchase requests',
+          'Only seller can move order to processing',
         );
       }
 
@@ -631,8 +631,10 @@ export class OrderService {
         throw new ForbiddenException('Only seller can mark order as shipped');
       }
 
-      if (dto.status === 'DELIVERED' && !isSeller && !isAdmin) {
-        throw new ForbiddenException('Only seller can mark order as delivered');
+      if (dto.status === 'DELIVERY' && !isSeller && !isAdmin) {
+        throw new ForbiddenException(
+          'Only seller can mark order as delivery completed',
+        );
       }
 
       if (dto.status === 'CANCELLED') {
@@ -643,7 +645,7 @@ export class OrderService {
         }
       }
 
-      if (dto.status === 'DELIVERED') {
+      if (dto.status === 'DELIVERY') {
         updateData.deliveredAt = new Date();
         updateData.completedAt = new Date();
       }
@@ -675,19 +677,19 @@ export class OrderService {
         throw new ForbiddenException('Only seller can update shipped date');
       }
       updateData.shippedAt = new Date(dto.shippedAt);
-      if (order.status !== 'SHIPPED' && order.status !== 'DELIVERED') {
+      if (order.status !== 'SHIPPED' && order.status !== 'DELIVERY') {
         updateData.status = 'SHIPPED';
       }
     }
 
     if (dto.deliveredAt !== undefined) {
       if (!isSeller && !isAdmin) {
-        throw new ForbiddenException('Only seller can update delivered date');
+        throw new ForbiddenException('Only seller can update delivery date');
       }
       updateData.deliveredAt = new Date(dto.deliveredAt);
       updateData.completedAt = new Date(dto.deliveredAt);
-      if (order.status !== 'DELIVERED') {
-        updateData.status = 'DELIVERED';
+      if (order.status !== 'DELIVERY') {
+        updateData.status = 'DELIVERY';
       }
     }
 
@@ -698,6 +700,8 @@ export class OrderService {
     await this.orderRepository.update(id, updateData);
 
     const newStatus = (updateData.status as OrderStatus) ?? order.status;
+    const statusChanged =
+      updateData.status !== undefined && newStatus !== order.status;
     const notifyParams = {
       buyerId: order.buyerId,
       orderId: id,
@@ -706,7 +710,7 @@ export class OrderService {
       productTitle: this.getProductTitleForNotify(product),
     };
 
-    if (newStatus === 'CONFIRMED') {
+    if (statusChanged && newStatus === 'PROCESSING') {
       this.notificationService
         .notifyOrderConfirmed(notifyParams)
         .catch((err) => {
@@ -715,14 +719,14 @@ export class OrderService {
             err instanceof Error ? err.message : String(err),
           );
         });
-    } else if (newStatus === 'SHIPPED') {
+    } else if (statusChanged && newStatus === 'SHIPPED') {
       this.notificationService.notifyOrderShipped(notifyParams).catch((err) => {
         this.logger.warn(
           `Failed to send ORDER_SHIPPED notification for order ${id}`,
           err instanceof Error ? err.message : String(err),
         );
       });
-    } else if (newStatus === 'DELIVERED') {
+    } else if (statusChanged && newStatus === 'DELIVERY') {
       this.notificationService
         .notifyOrderDelivered(notifyParams)
         .catch((err) => {
@@ -778,8 +782,8 @@ export class OrderService {
       );
     }
 
-    if (order.status === 'DELIVERED') {
-      throw new BadRequestException('Cannot delete delivered orders');
+    if (order.status === 'DELIVERY') {
+      throw new BadRequestException('Cannot delete completed delivery orders');
     }
 
     await this.orderRepository.softDelete(id, userId);
@@ -906,11 +910,9 @@ export class OrderService {
     newStatus: OrderStatus,
   ): void {
     const validTransitions: Record<OrderStatus, OrderStatus[]> = {
-      PENDING: ['CONFIRMED', 'CANCELLED', 'PROCESSING'],
-      CONFIRMED: ['PROCESSING', 'SHIPPED', 'CANCELLED'],
       PROCESSING: ['SHIPPED', 'CANCELLED'],
-      SHIPPED: ['DELIVERED', 'CANCELLED'],
-      DELIVERED: [],
+      SHIPPED: ['DELIVERY', 'CANCELLED'],
+      DELIVERY: [],
       CANCELLED: [],
     };
 

@@ -260,7 +260,7 @@ model Order {
   productId          String
   auctionId          String?
   amount             Decimal        @db.Decimal(10, 2)
-  status             OrderStatus    @default(PENDING)
+  status             OrderStatus    @default(PROCESSING)
   paymentStatus      PaymentStatus  @default(PENDING)
   shippingAddress    String?
   notes              String?
@@ -701,9 +701,7 @@ enum NotificationType {
 
 enum OrderStatus {
   CANCELLED
-  CONFIRMED
-  DELIVERED
-  PENDING
+  DELIVERY
   PROCESSING
   SHIPPED
 }
