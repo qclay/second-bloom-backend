@@ -70,7 +70,7 @@ export class PinnedProductDto {
 export class PinnedOrderProgressDto {
   @ApiProperty({
     example: 'PROCESSING',
-    enum: ['PROCESSING', 'DELIVERY', 'SHIPPED', 'CANCELLED'],
+    enum: ['PROCESSING', 'DELIVERED', 'SHIPPED', 'CANCELLED'],
   })
   status!: string;
 
@@ -99,7 +99,7 @@ export class PinnedOrderDto {
 
   @ApiProperty({
     example: 'PROCESSING',
-    enum: ['PROCESSING', 'DELIVERY', 'SHIPPED', 'CANCELLED'],
+    enum: ['PROCESSING', 'DELIVERED', 'SHIPPED', 'CANCELLED'],
   })
   status!: string;
 

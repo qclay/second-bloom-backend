@@ -632,7 +632,7 @@ export class ConversationService {
       });
       if (
         order &&
-        (order.status === 'DELIVERY' || order.deliveredAt != null)
+        (order.status === 'DELIVERED' || order.deliveredAt != null)
       ) {
         await tx.conversation.update({
           where: { id: dto.conversationId },
@@ -1644,7 +1644,7 @@ export class ConversationService {
       .filter((c) => {
         const order = c.order;
         if (!order) return false;
-        if (order.status === 'DELIVERY') return true;
+        if (order.status === 'DELIVERED') return true;
         if (
           order.deliveredAt &&
           c.lastMessageAt &&

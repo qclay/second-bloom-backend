@@ -483,7 +483,7 @@ export class ProductService {
           {
             orders: {
               some: {
-                status: OrderStatus.DELIVERY,
+                status: OrderStatus.DELIVERED,
                 deletedAt: null,
               },
             },
@@ -512,7 +512,7 @@ export class ProductService {
     if (salePhase !== 'sold' && salePhase !== 'in_delivery') {
       where.orders = {
         none: {
-          status: OrderStatus.DELIVERY,
+          status: OrderStatus.DELIVERED,
           deletedAt: null,
         },
       };
@@ -696,7 +696,7 @@ export class ProductService {
         } else if (activeAuction?.status === 'ENDED') {
           saleStatus = 'sold';
         } else if (lastOrder) {
-          if (lastOrder.status === OrderStatus.DELIVERY) {
+          if (lastOrder.status === OrderStatus.DELIVERED) {
             saleStatus = 'sold';
           } else if (
             lastOrder.status === OrderStatus.PROCESSING ||
@@ -754,7 +754,7 @@ export class ProductService {
         {
           orders: {
             some: {
-              status: OrderStatus.DELIVERY,
+              status: OrderStatus.DELIVERED,
               deletedAt: null,
             },
           },
@@ -911,7 +911,7 @@ export class ProductService {
 
     where.orders = {
       none: {
-        status: OrderStatus.DELIVERY,
+        status: OrderStatus.DELIVERED,
         deletedAt: null,
       },
     };
@@ -1076,7 +1076,7 @@ export class ProductService {
         } else if (activeAuction?.status === 'ENDED') {
           saleStatus = 'sold';
         } else if (lastOrder) {
-          if (lastOrder.status === OrderStatus.DELIVERY) {
+          if (lastOrder.status === OrderStatus.DELIVERED) {
             saleStatus = 'sold';
           } else if (
             lastOrder.status === OrderStatus.PROCESSING ||
@@ -1301,7 +1301,7 @@ export class ProductService {
     } else if (activeAuction?.status === 'ENDED') {
       saleStatus = 'sold';
     } else if (lastOrder) {
-      if (lastOrder.status === OrderStatus.DELIVERY) {
+      if (lastOrder.status === OrderStatus.DELIVERED) {
         saleStatus = 'sold';
       } else if (
         lastOrder.status === OrderStatus.PROCESSING ||

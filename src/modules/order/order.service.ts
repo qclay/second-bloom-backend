@@ -615,7 +615,7 @@ export class OrderService {
         );
       }
 
-      if (order.status === 'DELIVERY' && dto.status !== 'DELIVERY') {
+      if (order.status === 'DELIVERED' && dto.status !== 'DELIVERED') {
         throw new BadRequestException(
           'Cannot change status of completed delivery order',
         );
@@ -631,7 +631,7 @@ export class OrderService {
         throw new ForbiddenException('Only seller can mark order as shipped');
       }
 
-      if (dto.status === 'DELIVERY' && !isSeller && !isAdmin) {
+      if (dto.status === 'DELIVERED' && !isSeller && !isAdmin) {
         throw new ForbiddenException(
           'Only seller can mark order as delivery completed',
         );
@@ -645,7 +645,7 @@ export class OrderService {
         }
       }
 
-      if (dto.status === 'DELIVERY') {
+      if (dto.status === 'DELIVERED') {
         updateData.deliveredAt = new Date();
         updateData.completedAt = new Date();
       }
@@ -677,7 +677,7 @@ export class OrderService {
         throw new ForbiddenException('Only seller can update shipped date');
       }
       updateData.shippedAt = new Date(dto.shippedAt);
-      if (order.status !== 'SHIPPED' && order.status !== 'DELIVERY') {
+      if (order.status !== 'SHIPPED' && order.status !== 'DELIVERED') {
         updateData.status = 'SHIPPED';
       }
     }
@@ -688,8 +688,8 @@ export class OrderService {
       }
       updateData.deliveredAt = new Date(dto.deliveredAt);
       updateData.completedAt = new Date(dto.deliveredAt);
-      if (order.status !== 'DELIVERY') {
-        updateData.status = 'DELIVERY';
+      if (order.status !== 'DELIVERED') {
+        updateData.status = 'DELIVERED';
       }
     }
 
@@ -726,7 +726,7 @@ export class OrderService {
           err instanceof Error ? err.message : String(err),
         );
       });
-    } else if (statusChanged && newStatus === 'DELIVERY') {
+    } else if (statusChanged && newStatus === 'DELIVERED') {
       this.notificationService
         .notifyOrderDelivered(notifyParams)
         .catch((err) => {
@@ -782,7 +782,7 @@ export class OrderService {
       );
     }
 
-    if (order.status === 'DELIVERY') {
+    if (order.status === 'DELIVERED') {
       throw new BadRequestException('Cannot delete completed delivery orders');
     }
 
@@ -911,8 +911,8 @@ export class OrderService {
   ): void {
     const validTransitions: Record<OrderStatus, OrderStatus[]> = {
       PROCESSING: ['SHIPPED', 'CANCELLED'],
-      SHIPPED: ['DELIVERY', 'CANCELLED'],
-      DELIVERY: [],
+      SHIPPED: ['DELIVERED', 'CANCELLED'],
+      DELIVERED: [],
       CANCELLED: [],
     };
 
