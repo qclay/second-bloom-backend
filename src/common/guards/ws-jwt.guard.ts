@@ -8,6 +8,8 @@ import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../prisma/prisma.service';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 export interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -20,6 +22,7 @@ export class WsJwtGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -39,13 +42,33 @@ export class WsJwtGuard implements CanActivate {
         throw new Error('JWT_SECRET is not configured');
       }
 
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
         secret: jwtSecret,
       });
 
-      const userId = payload.sub || payload.id;
+      const userId = payload.sub;
       if (!userId || typeof userId !== 'string') {
         throw new Error('Invalid user ID in token');
+      }
+
+      if (typeof payload.tokenVersion !== 'number') {
+        throw new Error('Missing token version in token payload');
+      }
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          isActive: true,
+          refreshTokenVersion: true,
+        },
+      });
+
+      if (!user || !user.isActive) {
+        throw new Error('User not found or inactive');
+      }
+
+      if (user.refreshTokenVersion !== payload.tokenVersion) {
+        throw new Error('Token has been revoked');
       }
 
       client.userId = userId;

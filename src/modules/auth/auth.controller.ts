@@ -61,7 +61,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Verify OTP and authenticate',
     description:
-      'Verifies the OTP code and authenticates the user. Automatically creates a new account for first-time users or logs in existing users. Returns JWT access and refresh tokens.',
+      'Verifies the OTP code and authenticates the user. Automatically creates a new account for first-time users or logs in existing users. For existing users, previous sessions are revoked so only the latest login remains active. Returns JWT access and refresh tokens.',
   })
   @ApiBody({ type: VerifyOtpDto })
   @ApiPublicErrorResponses()
@@ -126,7 +126,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Logout user',
     description:
-      'Invalidates all refresh tokens for the current user and logs them out from all devices. The current access token will remain valid until it expires.',
+      'Invalidates all refresh/access sessions for the current user by rotating token version, clears stored push tokens, and logs the user out from all devices.',
   })
   @ApiAuthErrorResponses()
   @ApiResponse({

@@ -19,6 +19,7 @@ import { ConversationService } from '../conversation/conversation.service';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ErrorCode } from '../../common/constants/error-codes.constant';
 import type { JwtSignOptions } from '@nestjs/jwt';
+import { DeviceTokensService } from '../../redis/device-tokens.service';
 
 @Injectable()
 export class AuthService {
@@ -29,6 +30,7 @@ export class AuthService {
     private readonly verificationCodeRepository: VerificationCodeRepository,
     private readonly otpService: OtpService,
     private readonly conversationService: ConversationService,
+    private readonly deviceTokensService: DeviceTokensService,
   ) {}
 
   async sendOtp(dto: SendOtpDto): Promise<MessageResponseDto> {
@@ -69,6 +71,7 @@ export class AuthService {
 
     const phoneCountryCode = dto.countryCode;
     const phoneNumber = dto.phoneNumber;
+    let existingUser = false;
 
     let user = await this.prisma.user.findUnique({
       where: {
@@ -84,6 +87,8 @@ export class AuthService {
         where: { phoneNumber: phoneCountryCode + phoneNumber },
       });
     }
+
+    existingUser = Boolean(user);
 
     if (!user) {
       user = await this.prisma.user.create({
@@ -103,13 +108,27 @@ export class AuthService {
           deletedBy: null,
           isActive: true,
           isVerified: true,
+          fcmToken: null,
+          refreshTokenVersion: {
+            increment: 1,
+          },
         },
       });
     } else {
       user = await this.prisma.user.update({
         where: { id: user.id },
-        data: { isVerified: true },
+        data: {
+          isVerified: true,
+          fcmToken: null,
+          refreshTokenVersion: {
+            increment: 1,
+          },
+        },
       });
+    }
+
+    if (existingUser) {
+      await this.deviceTokensService.clearAllTokens(user.id);
     }
 
     await this.conversationService.ensureAdministrationConversationAndSendWelcome(
@@ -189,8 +208,11 @@ export class AuthService {
         refreshTokenVersion: {
           increment: 1,
         },
+        fcmToken: null,
       },
     });
+
+    await this.deviceTokensService.clearAllTokens(userId);
 
     return { message: 'Logged out successfully' };
   }

@@ -9,6 +9,8 @@ import { Logger, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PAYMENT_EVENTS } from '../constants/payment-events.constants';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { JwtPayload } from '../../../common/interfaces/jwt-payload.interface';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -53,6 +55,7 @@ export class PaymentGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket): Promise<void> {
@@ -69,14 +72,16 @@ export class PaymentGateway
         throw new Error('JWT_SECRET is not configured');
       }
 
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
         secret: jwtSecret,
       });
 
-      const userId = payload.sub || payload.id;
+      const userId = payload.sub;
       if (!userId || typeof userId !== 'string') {
         throw new Error('Invalid user ID in token');
       }
+
+      await this.ensureActiveSession(userId, payload.tokenVersion);
 
       client.userId = userId;
       this.addUserSocket(userId, client.id);
@@ -150,5 +155,30 @@ export class PaymentGateway
     const queryToken = client.handshake.query?.token;
     if (queryToken && typeof queryToken === 'string') return queryToken;
     return null;
+  }
+
+  private async ensureActiveSession(
+    userId: string,
+    tokenVersion: number,
+  ): Promise<void> {
+    if (typeof tokenVersion !== 'number') {
+      throw new Error('Missing token version in token payload');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        isActive: true,
+        refreshTokenVersion: true,
+      },
+    });
+
+    if (!user || !user.isActive) {
+      throw new Error('User not found or inactive');
+    }
+
+    if (user.refreshTokenVersion !== tokenVersion) {
+      throw new Error('Token has been revoked');
+    }
   }
 }

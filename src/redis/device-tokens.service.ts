@@ -38,4 +38,9 @@ export class DeviceTokensService {
     const tokens = Object.values(current).filter(Boolean);
     return Array.from(new Set(tokens));
   }
+
+  async clearAllTokens(userId: string): Promise<void> {
+    const key = this.key(userId);
+    await this.redis.del(key);
+  }
 }

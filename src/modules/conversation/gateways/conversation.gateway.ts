@@ -24,6 +24,8 @@ import { JoinConversationDto } from '../dto/join-conversation.dto';
 import { CONVERSATION_EVENTS } from '../constants/conversation-events.constants';
 import { WsJwtGuard } from '../../../common/guards/ws-jwt.guard';
 import { WsRateLimitGuard } from '../../../common/guards/ws-rate-limit.guard';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { JwtPayload } from '../../../common/interfaces/jwt-payload.interface';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -62,6 +64,7 @@ export class ConversationGateway
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly wsRateLimitGuard: WsRateLimitGuard,
+    private readonly prisma: PrismaService,
   ) {}
 
   broadcastNewMessage(
@@ -89,14 +92,17 @@ export class ConversationGateway
         throw new Error('JWT_SECRET is not configured');
       }
 
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
         secret: jwtSecret,
       });
 
-      const userId = payload.sub || payload.id;
+      const userId = payload.sub;
       if (!userId || typeof userId !== 'string') {
         throw new Error('Invalid user ID in token');
       }
+
+      await this.ensureActiveSession(userId, payload.tokenVersion);
+
       client.userId = userId;
       this.addUserSocket(userId, client.id);
 
@@ -489,5 +495,30 @@ export class ConversationGateway
     const queryToken = client.handshake.query?.token;
     if (queryToken && typeof queryToken === 'string') return queryToken;
     return null;
+  }
+
+  private async ensureActiveSession(
+    userId: string,
+    tokenVersion: number,
+  ): Promise<void> {
+    if (typeof tokenVersion !== 'number') {
+      throw new Error('Missing token version in token payload');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        isActive: true,
+        refreshTokenVersion: true,
+      },
+    });
+
+    if (!user || !user.isActive) {
+      throw new Error('User not found or inactive');
+    }
+
+    if (user.refreshTokenVersion !== tokenVersion) {
+      throw new Error('Token has been revoked');
+    }
   }
 }

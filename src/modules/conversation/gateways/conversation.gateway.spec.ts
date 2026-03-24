@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { WsRateLimitGuard } from '../../../common/guards/ws-rate-limit.guard';
 import { CONVERSATION_EVENTS } from '../constants/conversation-events.constants';
 import { ConversationMessageResponseDto } from '../dto/message-response.dto';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 type MockSocketServer = {
   to: jest.Mock<MockSocketServer, [string]>;
@@ -42,6 +43,10 @@ describe('ConversationGateway', () => {
           useValue: {
             canActivate: jest.fn(() => true),
           },
+        },
+        {
+          provide: PrismaService,
+          useValue: {},
         },
       ],
     }).compile();
