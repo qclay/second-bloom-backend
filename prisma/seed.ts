@@ -126,10 +126,6 @@ async function main() {
   const citiesData: { name: ReturnType<typeof tr>; regionId: string }[] = [
     {
       name: tr('Tashkent', 'Ташкент', 'Toshkent'),
-      regionId: tashkentRegion.id,
-    },
-    {
-      name: tr('Tashkent', 'Ташкент', 'Toshkent'),
       regionId: tashkentCityRegion.id,
     },
     { name: tr('Andijan', 'Андижан', 'Andijon'), regionId: andijanRegion.id },
