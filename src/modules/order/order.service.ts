@@ -880,7 +880,7 @@ export class OrderService {
 
     await this.conversationService.sendMessageAsSender(
       conversation.id,
-      sellerId,
+      buyerId,
       `Новый заказ #${order.orderNumber}`,
       bannerMetadata,
       MessageType.SYSTEM,
@@ -888,7 +888,7 @@ export class OrderService {
 
     await this.conversationService.sendMessageAsSender(
       conversation.id,
-      buyerId,
+      sellerId,
       `Заказ #${order.orderNumber} принят`,
       bannerMetadata,
       MessageType.SYSTEM,
