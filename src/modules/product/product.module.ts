@@ -6,6 +6,7 @@ import { CategoryModule } from '../category/category.module';
 import { AuctionModule } from '../auction/auction.module';
 import { TranslationModule } from '../translation/translation.module';
 import { ConversationModule } from '../conversation/conversation.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ConversationModule } from '../conversation/conversation.module';
     forwardRef(() => AuctionModule),
     TranslationModule,
     ConversationModule,
+    forwardRef(() => NotificationModule),
   ],
   controllers: [ProductController],
   providers: [ProductService, ProductRepository],

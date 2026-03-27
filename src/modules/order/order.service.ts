@@ -746,6 +746,15 @@ export class OrderService {
             err instanceof Error ? err.message : err,
           );
         });
+    } else if (statusChanged && newStatus === 'CANCELLED') {
+      this.notificationService
+        .notifyOrderCancelled(notifyParams)
+        .catch((err) => {
+          this.logger.warn(
+            `Failed to send ORDER_CANCELLED notification for order ${id}`,
+            err instanceof Error ? err.message : String(err),
+          );
+        });
     }
 
     this.logger.log(

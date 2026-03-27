@@ -124,6 +124,42 @@ export const NOTIFICATION_MESSAGES: Record<
       uz: '{{name}} sizga yangi xabar yubordi.',
     },
   },
+  ORDER_CANCELLED: {
+    title: {
+      en: 'Order cancelled',
+      ru: 'Заказ отменен',
+      uz: 'Buyurtma bekor qilindi',
+    },
+    message: {
+      en: 'Order #{{orderNumber}} ("{{product}}") has been cancelled.',
+      ru: 'Заказ №{{orderNumber}} по букету "{{product}}" был отменен.',
+      uz: '"{{product}}" buketi bo\'yicha #{{orderNumber}} buyurtma bekor qilindi.',
+    },
+  },
+  PRODUCT_APPROVED: {
+    title: {
+      en: 'Product approved',
+      ru: 'Товар одобрен',
+      uz: 'Mahsulot tasdiqlandi',
+    },
+    message: {
+      en: 'Your product "{{product}}" has passed moderation and is now published.',
+      ru: 'Ваш товар "{{product}}" прошел модерацию и опубликован.',
+      uz: '"{{product}}" mahsulotingiz moderatsiyadan o\'tdi va e\'lon qilindi.',
+    },
+  },
+  PRODUCT_REJECTED: {
+    title: {
+      en: 'Product rejected',
+      ru: 'Товар отклонен',
+      uz: 'Mahsulot rad etildi',
+    },
+    message: {
+      en: 'Your product "{{product}}" did not pass moderation. Reason: {{reason}}',
+      ru: 'Ваш товар "{{product}}" не прошел модерацию. Причина: {{reason}}',
+      uz: '"{{product}}" mahsulotingiz moderatsiyadan o\'tmadi. Sabab: {{reason}}',
+    },
+  },
   DEFAULT: {
     title: {
       en: 'Notification',

@@ -26,6 +26,7 @@ import {
 import { TranslationService } from '../translation/translation.service';
 import { ConversationService } from '../conversation/conversation.service';
 import { TelegramService } from '../../infrastructure/telegram/telegram.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class ProductService {
@@ -40,6 +41,8 @@ export class ProductService {
     private readonly translationService: TranslationService,
     private readonly conversationService: ConversationService,
     private readonly telegramService: TelegramService,
+    @Inject(forwardRef(() => NotificationService))
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createProduct(
@@ -1152,6 +1155,22 @@ export class ProductService {
           moderationRejectedById: null,
         },
       });
+
+      const title =
+        resolveTranslation(product.title as Record<string, string>, null) ?? '';
+      
+      try {
+        await this.notificationService.notifyProductApproved({
+          sellerId: product.sellerId,
+          productId: product.id,
+          productTitle: title || undefined,
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Failed to send moderation approval push for product ${id}: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+
       return this.findById(id);
     }
 
@@ -1186,9 +1205,16 @@ export class ProductService {
         },
         dto.rejectionReason?.trim() ?? 'Not specified',
       );
+
+      await this.notificationService.notifyProductRejected({
+        sellerId: product.sellerId,
+        productId: product.id,
+        productTitle: title || undefined,
+        reason: dto.rejectionReason?.trim() ?? 'Not specified',
+      });
     } catch (err) {
       this.logger.warn(
-        `Failed to send moderation rejection chat message for product ${id}: ${err instanceof Error ? err.message : err}`,
+        `Failed to send moderation rejection for product ${id}: ${err instanceof Error ? err.message : err}`,
       );
     }
     return this.findById(id);

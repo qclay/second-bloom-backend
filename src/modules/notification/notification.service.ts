@@ -115,7 +115,10 @@ export class NotificationService {
       | 'NEW_MESSAGE_SYSTEM'
       | 'NEW_BID_SELLER'
       | 'BID_REJECTED'
-      | 'AUCTION_EXTENDED',
+      | 'AUCTION_EXTENDED'
+      | 'ORDER_CANCELLED'
+      | 'PRODUCT_APPROVED'
+      | 'PRODUCT_REJECTED',
     lang: Locale,
     context: {
       productTitle?: string;
@@ -125,6 +128,7 @@ export class NotificationService {
       bidderName?: string;
       isWinner?: boolean;
       orderNumber?: string;
+      reason?: string;
     } = {},
   ): { title: string; message: string } {
     const amountText =
@@ -164,6 +168,8 @@ export class NotificationService {
         uz: 'Foydalanuvchi',
       };
       params.name = context.bidderName || defaultNames[lang] || 'User';
+    } else if (key === 'PRODUCT_REJECTED') {
+      params.reason = context.reason || '';
     }
 
     const config = NOTIFICATION_MESSAGES[key] || NOTIFICATION_MESSAGES.DEFAULT;
@@ -646,6 +652,108 @@ export class NotificationService {
       title,
       message,
       { orderId: params.orderId, productId: params.productId },
+    );
+  }
+
+  async notifyOrderCancelled(params: {
+    buyerId: string;
+    orderId: string;
+    orderNumber: string;
+    productId: string;
+    productTitle?: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.buyerId },
+      select: {
+        id: true,
+        fcmToken: true,
+        language: true,
+        notificationPreference: true,
+      },
+    });
+    if (!user) return;
+    const prefs = user.notificationPreference;
+    if (!this.isNotificationEnabled(prefs, 'system')) return;
+    const lang = this.getUserLanguage(user);
+    const { title, message } = this.getLocalizedText(
+      'ORDER_CANCELLED',
+      lang,
+      {
+        productTitle: params.productTitle,
+        orderNumber: params.orderNumber,
+      },
+    );
+    await this.persistAndPush(
+      { id: user.id, fcmToken: user.fcmToken },
+      NotificationType.SYSTEM,
+      title,
+      message,
+      { event: 'ORDER_CANCELLED', orderId: params.orderId, productId: params.productId },
+    );
+  }
+
+  async notifyProductApproved(params: {
+    sellerId: string;
+    productId: string;
+    productTitle?: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.sellerId },
+      select: {
+        id: true,
+        fcmToken: true,
+        language: true,
+        notificationPreference: true,
+      },
+    });
+    if (!user) return;
+    const prefs = user.notificationPreference;
+    if (!this.isNotificationEnabled(prefs, 'system')) return;
+    const lang = this.getUserLanguage(user);
+    const { title, message } = this.getLocalizedText(
+      'PRODUCT_APPROVED',
+      lang,
+      { productTitle: params.productTitle },
+    );
+    await this.persistAndPush(
+      { id: user.id, fcmToken: user.fcmToken },
+      NotificationType.SYSTEM,
+      title,
+      message,
+      { event: 'PRODUCT_APPROVED', productId: params.productId },
+    );
+  }
+
+  async notifyProductRejected(params: {
+    sellerId: string;
+    productId: string;
+    productTitle?: string;
+    reason: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.sellerId },
+      select: {
+        id: true,
+        fcmToken: true,
+        language: true,
+        notificationPreference: true,
+      },
+    });
+    if (!user) return;
+    const prefs = user.notificationPreference;
+    if (!this.isNotificationEnabled(prefs, 'system')) return;
+    const lang = this.getUserLanguage(user);
+    const { title, message } = this.getLocalizedText(
+      'PRODUCT_REJECTED',
+      lang,
+      { productTitle: params.productTitle, reason: params.reason },
+    );
+    await this.persistAndPush(
+      { id: user.id, fcmToken: user.fcmToken },
+      NotificationType.SYSTEM,
+      title,
+      message,
+      { event: 'PRODUCT_REJECTED', productId: params.productId, reason: params.reason },
     );
   }
 

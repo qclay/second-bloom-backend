@@ -11,6 +11,7 @@ import { BidQueryDto } from './dto/bid-query.dto';
 import { BidResponseDto } from './dto/bid-response.dto';
 import { Prisma, AuctionStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { resolveTranslation } from '../../common/i18n/translation.util';
 import { AuctionRepository } from '../auction/repositories/auction.repository';
 import { NotificationService } from '../notification/notification.service';
 import type { Request } from 'express';
@@ -627,6 +628,28 @@ export class BidService {
     this.logger.log(
       `Bid ${id} ${isOwner ? 'removed by owner' : userId === bid.bidderId ? 'retracted by bidder' : 'retracted by admin'}`,
     );
+
+    if (isOwner) {
+      const product = await this.prisma.product.findUnique({
+        where: { id: auction.productId },
+        select: { title: true, currency: true }
+      });
+      await this.notificationService.notifyBidRejected({
+        userId: bid.bidderId,
+        auctionId: bid.auctionId,
+        productId: auction.productId,
+        productTitle: (product as { title?: unknown })?.title
+          ? resolveTranslation(
+              (product as { title: Record<string, string> }).title,
+              null,
+            ) || undefined
+          : undefined,
+        amount: typeof bid.amount === 'object' && bid.amount && 'toNumber' in (bid.amount as any)
+          ? (bid.amount as any).toNumber()
+          : Number(bid.amount),
+        currency: product?.currency || 'USD',
+      });
+    }
 
     await this.applyPlatformBanIfNeeded(bid.bidderId);
   }
