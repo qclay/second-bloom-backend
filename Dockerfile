@@ -1,7 +1,7 @@
 FROM node:22-slim AS build
 WORKDIR /app
 
-RUN npm install -g npm@latest
+#RUN npm install -g npm@latest
 
 # OpenSSL required for Prisma client generation (detection + native/WASM modules)
 RUN apt-get update -y && \
@@ -21,7 +21,7 @@ RUN npx prisma generate && npm run build
 FROM node:22-slim AS production
 WORKDIR /app
 
-RUN npm install -g npm@latest
+#RUN npm install -g npm@latest
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends dumb-init openssl ca-certificates && \
