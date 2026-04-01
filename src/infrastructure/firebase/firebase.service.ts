@@ -34,7 +34,7 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
       const privateKey = firebaseConfig?.privateKey as string | undefined;
       const clientEmail = firebaseConfig?.clientEmail as string | undefined;
 
-      this.logger.debug(
+      this.logger.log(
         `Firebase config presence: projectId=${Boolean(projectId)}, privateKey=${Boolean(privateKey)}, clientEmail=${Boolean(clientEmail)}`,
       );
 
@@ -134,7 +134,7 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
                   },
             };
 
-            this.logger.debug(
+            this.logger.log(
               `Sending FCM ${isDataOnly ? 'data-only' : 'notification'} message to token ${token.substring(0, 10)}... dataKeys=${data ? Object.keys(data).length : 0}`,
             );
 
@@ -250,7 +250,7 @@ export class FirebaseService implements IFirebaseService, OnModuleInit {
             },
       };
 
-      this.logger.debug(
+      this.logger.log(
         `Sending FCM ${isDataOnly ? 'data-only' : 'notification'} multicast to ${tokens.length} token(s), dataKeys=${data ? Object.keys(data).length : 0}`,
       );
 

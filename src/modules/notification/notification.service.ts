@@ -60,12 +60,12 @@ export class NotificationService {
       type === NotificationType.AUCTION_STARTED
     ) {
       const online = await this.presenceService.isOnline(userId);
-      this.logger.debug(
+      this.logger.log(
         `Delivery mode decision for user ${userId}, type ${type}: ${online ? 'data-only' : 'notification'} (online=${online})`,
       );
       return online ? 'data-only' : 'notification';
     }
-    this.logger.debug(
+    this.logger.log(
       `Delivery mode decision for user ${userId}, type ${type}: notification (default for type)`,
     );
     return 'notification';
@@ -196,7 +196,7 @@ export class NotificationService {
     message: string,
     data?: Record<string, unknown>,
   ): Promise<NotificationResponseDto> {
-    this.logger.debug(
+    this.logger.log(
       `persistAndPush started for user ${user.id}, type ${type}`,
     );
 
@@ -222,7 +222,7 @@ export class NotificationService {
           ? [user.fcmToken]
           : [];
 
-    this.logger.debug(
+    this.logger.log(
       `Notification ${notification.id}: token sources for user ${user.id} -> deviceTokens=${deviceTokens.length}, legacyTokenPresent=${Boolean(user.fcmToken)}, chosenTokens=${tokens.length}`,
     );
 
@@ -244,7 +244,7 @@ export class NotificationService {
         };
 
         const deliveryMode = await this.getDeliveryModeForType(type, user.id);
-        this.logger.debug(
+        this.logger.log(
           `Notification ${notification.id}: sending via Firebase for user ${user.id} with deliveryMode=${deliveryMode}, tokens=${tokens.length}`,
         );
 
@@ -290,7 +290,7 @@ export class NotificationService {
         }
       }
     } else {
-      this.logger.debug(
+      this.logger.log(
         `Notification ${notification.id}: user ${user.id} has no FCM token. Push notification skipped.`,
       );
     }
@@ -346,7 +346,7 @@ export class NotificationService {
 
     const prefs = user.notificationPreference;
     if (!this.isNotificationEnabled(prefs, 'outbid')) {
-      this.logger.debug(
+      this.logger.log(
         `notifyOutbid skipped for user ${params.userId}: notification preference disabled`,
       );
       return;
@@ -402,7 +402,7 @@ export class NotificationService {
 
     const prefs = user.notificationPreference;
     if (!this.isNotificationEnabled(prefs, 'newBid')) {
-      this.logger.debug(
+      this.logger.log(
         `notifyNewBidForSeller skipped for user ${params.sellerId}: notification preference disabled`,
       );
       return;
@@ -458,7 +458,7 @@ export class NotificationService {
 
     const prefs = user.notificationPreference;
     if (!this.isNotificationEnabled(prefs, 'outbid')) {
-      this.logger.debug(
+      this.logger.log(
         `notifyBidRejected skipped for user ${params.userId}: notification preference disabled`,
       );
       return;
@@ -513,7 +513,7 @@ export class NotificationService {
 
     const prefs = user.notificationPreference;
     if (!this.isNotificationEnabled(prefs, 'auctionEnded')) {
-      this.logger.debug(
+      this.logger.log(
         `notifyAuctionEndedForParticipant skipped for user ${params.userId}: notification preference disabled`,
       );
       return;
@@ -561,7 +561,7 @@ export class NotificationService {
     if (!user) return;
     const prefs = user.notificationPreference;
     if (!this.isNotificationEnabled(prefs, 'auctionEndingSoon')) {
-      this.logger.debug(
+      this.logger.log(
         `notifyAuctionExtendedForParticipant skipped for user ${params.userId}: notification preference disabled`,
       );
       return;
