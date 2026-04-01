@@ -36,6 +36,9 @@ import {
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
 import { PresenceService } from '../../redis/presence.service';
+import { NotificationService } from '../notification/notification.service';
+import { UpdateNotificationPreferenceDto } from '../notification/dto/update-notification-preference.dto';
+import { NotificationPreferenceResponseDto } from '../notification/dto/notification-preference-response.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -43,6 +46,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly presenceService: PresenceService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   @Post()
@@ -266,5 +270,45 @@ export class UserController {
     @Body() verifyPhoneChangeDto: VerifyPhoneChangeDto,
   ): Promise<UserResponseDto> {
     return this.userService.verifyPhoneChange(user.id, verifyPhoneChangeDto);
+  }
+
+  @Get('profile/notifications/preferences')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get notification preferences for current user' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification preferences',
+    type: NotificationPreferenceResponseDto,
+  })
+  async getNotificationPreferences(
+    @CurrentUser() user: { id: string },
+  ): Promise<NotificationPreferenceResponseDto> {
+    const prefs = await this.notificationService.getNotificationPreference(
+      user.id,
+    );
+    return NotificationPreferenceResponseDto.fromEntity(prefs);
+  }
+
+  @Patch('profile/notifications/preferences')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update notification preferences for current user' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification preferences updated',
+    type: NotificationPreferenceResponseDto,
+  })
+  async updateNotificationPreferences(
+    @CurrentUser() user: { id: string },
+    @Body() updateDto: UpdateNotificationPreferenceDto,
+  ): Promise<NotificationPreferenceResponseDto> {
+    const prefs = await this.notificationService.updateNotificationPreference(
+      user.id,
+      updateDto,
+    );
+    return NotificationPreferenceResponseDto.fromEntity(prefs);
   }
 }

@@ -6,9 +6,10 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { FileModule } from '../file/file.module';
 import { FirebaseModule } from '../../infrastructure/firebase/firebase.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-  imports: [PrismaModule, FileModule, FirebaseModule, AuthModule],
+  imports: [PrismaModule, FileModule, FirebaseModule, AuthModule, NotificationModule],
   controllers: [UserController],
   providers: [UserService, UserRepository],
   exports: [UserService, UserRepository],

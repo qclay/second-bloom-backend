@@ -1022,4 +1022,60 @@ export class NotificationService {
 
     this.logger.log(`Notification ${id} deleted by user ${userId}`);
   }
+
+  async getNotificationPreference(userId: string): Promise<NotificationPreference> {
+    let prefs = await this.prisma.notificationPreference.findUnique({
+      where: { userId },
+    });
+
+    if (!prefs) {
+      prefs = await this.prisma.notificationPreference.create({
+        data: {
+          userId,
+          auctionEndingSoon: true,
+          auctionEnded: true,
+          auctionStarted: true,
+          newBid: true,
+          outbid: true,
+          orderConfirmed: true,
+          orderShipped: true,
+          orderDelivered: true,
+          reviewReceived: true,
+          newMessage: true,
+          system: true,
+          pushEnabled: true,
+          isActive: true,
+        },
+      });
+      this.logger.log(`Created default notification preferences for user ${userId}`);
+    }
+
+    return prefs;
+  }
+
+  async updateNotificationPreference(
+    userId: string,
+    updateDto: any,
+  ): Promise<NotificationPreference> {
+    let prefs = await this.prisma.notificationPreference.findUnique({
+      where: { userId },
+    });
+
+    if (!prefs) {
+      prefs = await this.getNotificationPreference(userId);
+    }
+
+    const updated = await this.prisma.notificationPreference.update({
+      where: { userId },
+      data: {
+        pushEnabled: updateDto.pushEnabled,
+      },
+    });
+
+    this.logger.log(
+      `Updated notification preferences for user ${userId}: pushEnabled=${updateDto.pushEnabled}`,
+    );
+
+    return updated;
+  }
 }
