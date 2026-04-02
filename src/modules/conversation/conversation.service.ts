@@ -1379,10 +1379,10 @@ export class ConversationService {
         : null,
       createdAt: toISOString(conversation.createdAt) ?? '',
       updatedAt: toISOString(conversation.updatedAt) ?? '',
-      seller: seller ?? undefined,
-      buyer: buyer ?? undefined,
-      pinnedProduct: pinnedProduct ?? undefined,
-      pinnedOrder: pinnedOrder ?? undefined,
+      seller: seller ?? null,
+      buyer: buyer ?? null,
+      pinnedProduct: pinnedProduct ?? null,
+      pinnedOrder: pinnedOrder ?? null,
     };
   }
 
