@@ -632,7 +632,7 @@ export class BidService {
     if (isOwner) {
       const product = await this.prisma.product.findUnique({
         where: { id: auction.productId },
-        select: { title: true, currency: true }
+        select: { title: true, currency: true },
       });
       await this.notificationService.notifyBidRejected({
         userId: bid.bidderId,
@@ -644,9 +644,13 @@ export class BidService {
               null,
             ) || undefined
           : undefined,
-        amount: typeof bid.amount === 'object' && bid.amount && 'toNumber' in (bid.amount as any)
-          ? (bid.amount as any).toNumber()
-          : Number(bid.amount),
+        amount:
+          typeof bid.amount === 'object' &&
+          bid.amount !== null &&
+          'toNumber' in bid.amount &&
+          typeof (bid.amount as { toNumber?: unknown }).toNumber === 'function'
+            ? (bid.amount as { toNumber: () => number }).toNumber()
+            : Number(bid.amount),
         currency: product?.currency || 'USD',
       });
     }

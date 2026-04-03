@@ -7,6 +7,7 @@ import {
 import { NotificationRepository } from './repositories/notification.repository';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
+import { UpdateNotificationPreferenceDto } from './dto/update-notification-preference.dto';
 import { NotificationQueryDto } from './dto/notification-query.dto';
 import { NotificationResponseDto } from './dto/notification-response.dto';
 import {
@@ -196,9 +197,7 @@ export class NotificationService {
     message: string,
     data?: Record<string, unknown>,
   ): Promise<NotificationResponseDto> {
-    this.logger.log(
-      `persistAndPush started for user ${user.id}, type ${type}`,
-    );
+    this.logger.log(`persistAndPush started for user ${user.id}, type ${type}`);
 
     const notification = await this.notificationRepository.create({
       user: {
@@ -717,20 +716,20 @@ export class NotificationService {
     const prefs = user.notificationPreference;
     if (!this.isNotificationEnabled(prefs, 'system')) return;
     const lang = this.getUserLanguage(user);
-    const { title, message } = this.getLocalizedText(
-      'ORDER_CANCELLED',
-      lang,
-      {
-        productTitle: params.productTitle,
-        orderNumber: params.orderNumber,
-      },
-    );
+    const { title, message } = this.getLocalizedText('ORDER_CANCELLED', lang, {
+      productTitle: params.productTitle,
+      orderNumber: params.orderNumber,
+    });
     await this.persistAndPush(
       { id: user.id, fcmToken: user.fcmToken },
       NotificationType.SYSTEM,
       title,
       message,
-      { event: 'ORDER_CANCELLED', orderId: params.orderId, productId: params.productId },
+      {
+        event: 'ORDER_CANCELLED',
+        orderId: params.orderId,
+        productId: params.productId,
+      },
     );
   }
 
@@ -752,11 +751,9 @@ export class NotificationService {
     const prefs = user.notificationPreference;
     if (!this.isNotificationEnabled(prefs, 'system')) return;
     const lang = this.getUserLanguage(user);
-    const { title, message } = this.getLocalizedText(
-      'PRODUCT_APPROVED',
-      lang,
-      { productTitle: params.productTitle },
-    );
+    const { title, message } = this.getLocalizedText('PRODUCT_APPROVED', lang, {
+      productTitle: params.productTitle,
+    });
     await this.persistAndPush(
       { id: user.id, fcmToken: user.fcmToken },
       NotificationType.SYSTEM,
@@ -785,17 +782,20 @@ export class NotificationService {
     const prefs = user.notificationPreference;
     if (!this.isNotificationEnabled(prefs, 'system')) return;
     const lang = this.getUserLanguage(user);
-    const { title, message } = this.getLocalizedText(
-      'PRODUCT_REJECTED',
-      lang,
-      { productTitle: params.productTitle, reason: params.reason },
-    );
+    const { title, message } = this.getLocalizedText('PRODUCT_REJECTED', lang, {
+      productTitle: params.productTitle,
+      reason: params.reason,
+    });
     await this.persistAndPush(
       { id: user.id, fcmToken: user.fcmToken },
       NotificationType.SYSTEM,
       title,
       message,
-      { event: 'PRODUCT_REJECTED', productId: params.productId, reason: params.reason },
+      {
+        event: 'PRODUCT_REJECTED',
+        productId: params.productId,
+        reason: params.reason,
+      },
     );
   }
 
@@ -1023,7 +1023,9 @@ export class NotificationService {
     this.logger.log(`Notification ${id} deleted by user ${userId}`);
   }
 
-  async getNotificationPreference(userId: string): Promise<NotificationPreference> {
+  async getNotificationPreference(
+    userId: string,
+  ): Promise<NotificationPreference> {
     let prefs = await this.prisma.notificationPreference.findUnique({
       where: { userId },
     });
@@ -1047,7 +1049,9 @@ export class NotificationService {
           isActive: true,
         },
       });
-      this.logger.log(`Created default notification preferences for user ${userId}`);
+      this.logger.log(
+        `Created default notification preferences for user ${userId}`,
+      );
     }
 
     return prefs;
@@ -1055,7 +1059,7 @@ export class NotificationService {
 
   async updateNotificationPreference(
     userId: string,
-    updateDto: any,
+    updateDto: UpdateNotificationPreferenceDto,
   ): Promise<NotificationPreference> {
     let prefs = await this.prisma.notificationPreference.findUnique({
       where: { userId },

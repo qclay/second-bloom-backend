@@ -1158,7 +1158,7 @@ export class ProductService {
 
       const title =
         resolveTranslation(product.title as Record<string, string>, null) ?? '';
-      
+
       try {
         await this.notificationService.notifyProductApproved({
           sellerId: product.sellerId,

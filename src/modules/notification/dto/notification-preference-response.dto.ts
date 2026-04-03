@@ -18,7 +18,9 @@ export class NotificationPreferenceResponseDto {
   @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
   updatedAt!: string;
 
-  static fromEntity(pref: NotificationPreference): NotificationPreferenceResponseDto {
+  static fromEntity(
+    pref: NotificationPreference,
+  ): NotificationPreferenceResponseDto {
     return {
       id: pref.id,
       userId: pref.userId,
