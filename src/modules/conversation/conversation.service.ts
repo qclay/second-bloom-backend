@@ -65,6 +65,11 @@ const CONVERSATION_INCLUDE = {
       title: true,
       price: true,
       currency: true,
+      auctions: {
+        take: 1,
+        orderBy: { createdAt: 'desc' as const },
+        select: { id: true },
+      },
       seller: {
         select: {
           id: true,
@@ -1254,6 +1259,7 @@ export class ConversationService {
         title: unknown;
         price: { toNumber?: () => number };
         currency: string;
+        auctions?: { id: string }[];
         seller?: {
           id: string;
           firstName: string | null;
@@ -1295,11 +1301,8 @@ export class ConversationService {
             avatar: p.seller.avatar ? { url: p.seller.avatar.url } : null,
           })
         : null;
-      // Get auctionId from order if available (product linked to auction through order)
-      let productAuctionId: string | null = null;
-      if (conv.order?.auctionId) {
-        productAuctionId = conv.order.auctionId;
-      }
+      const productAuctionId =
+        conv.order?.auctionId ?? conv.product?.auctions?.[0]?.id ?? null;
       pinnedProduct = {
         id: p.id,
         slug: p.slug,
