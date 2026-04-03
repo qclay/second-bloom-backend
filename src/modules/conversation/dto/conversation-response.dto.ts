@@ -65,6 +65,12 @@ export class PinnedProductDto {
 
   @ApiPropertyOptional({ example: 'https://cdn.example.com/rose.jpg' })
   imageUrl?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'clxauction1234567890',
+    description: 'Auction ID if this product is/was part of an auction',
+  })
+  auctionId?: string | null;
 }
 
 export class PinnedOrderProgressDto {

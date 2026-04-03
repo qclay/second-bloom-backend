@@ -1295,6 +1295,11 @@ export class ConversationService {
             avatar: p.seller.avatar ? { url: p.seller.avatar.url } : null,
           })
         : null;
+      // Get auctionId from order if available (product linked to auction through order)
+      let productAuctionId: string | null = null;
+      if (conv.order?.auctionId) {
+        productAuctionId = conv.order.auctionId;
+      }
       pinnedProduct = {
         id: p.id,
         slug: p.slug,
@@ -1303,6 +1308,7 @@ export class ConversationService {
         price,
         currency: p.currency,
         imageUrl: p.images?.[0]?.file?.url ?? null,
+        auctionId: productAuctionId,
       };
     }
 
