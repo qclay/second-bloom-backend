@@ -47,3 +47,28 @@ export class DistrictResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440002' })
   cityId!: string;
 }
+
+export class CountrySelectionCityResponseDto {
+  @ApiProperty({ example: 'tashkent' })
+  id!: string;
+
+  @ApiProperty({ example: 'Tashkent' })
+  name!: string;
+}
+
+export class CountrySelectionResponseDto {
+  @ApiProperty({ example: 'uzbekistan' })
+  id!: string;
+
+  @ApiProperty({ example: 'Uzbekistan' })
+  name!: string;
+
+  @ApiProperty({ example: 'UZ' })
+  countryCode!: string;
+
+  @ApiProperty({ example: '+998' })
+  dialCode!: string;
+
+  @ApiProperty({ type: CountrySelectionCityResponseDto, isArray: true })
+  cities!: CountrySelectionCityResponseDto[];
+}

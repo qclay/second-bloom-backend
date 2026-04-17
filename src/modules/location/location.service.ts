@@ -6,7 +6,25 @@ import {
   RegionResponseDto,
   CityResponseDto,
   DistrictResponseDto,
+  CountrySelectionResponseDto,
 } from './dto/location-response.dto';
+
+const COUNTRY_SELECTION_OPTIONS: CountrySelectionResponseDto[] = [
+  {
+    id: 'uzbekistan',
+    name: 'Uzbekistan',
+    countryCode: 'UZ',
+    dialCode: '+998',
+    cities: [{ id: 'tashkent', name: 'Tashkent' }],
+  },
+  {
+    id: 'kazakhstan',
+    name: 'Kazakhstan',
+    countryCode: 'KZ',
+    dialCode: '+7',
+    cities: [{ id: 'almaty', name: 'Almaty' }],
+  },
+];
 
 type NameJson = { en?: string; ru?: string; uz?: string };
 
@@ -70,6 +88,43 @@ function sortByName<T extends { name: unknown }>(items: T[]): T[] {
 @Injectable()
 export class LocationService {
   constructor(private readonly prisma: PrismaService) {}
+
+  getCountrySelection(filters?: {
+    search?: string;
+    id?: string;
+    countryCode?: string;
+  }): CountrySelectionResponseDto[] {
+    const normalizedSearch = filters?.search?.trim().toLowerCase();
+    const normalizedId = filters?.id?.trim().toLowerCase();
+    const normalizedCode = filters?.countryCode
+      ?.trim()
+      .toLowerCase()
+      .replace(/^\+/, '');
+
+    return COUNTRY_SELECTION_OPTIONS.filter((country) => {
+      if (normalizedId && country.id.toLowerCase() !== normalizedId) {
+        return false;
+      }
+
+      if (normalizedCode) {
+        const iso = country.countryCode.toLowerCase();
+        const dial = country.dialCode.toLowerCase().replace(/^\+/, '');
+        if (iso !== normalizedCode && dial !== normalizedCode) {
+          return false;
+        }
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const haystack = [country.name, country.countryCode, country.dialCode]
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(normalizedSearch);
+    });
+  }
 
   async getCountries(): Promise<CountryResponseDto[]> {
     const countries = await this.prisma.country.findMany({

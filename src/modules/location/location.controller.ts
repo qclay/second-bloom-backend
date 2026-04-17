@@ -5,6 +5,7 @@ import {
   RegionResponseDto,
   CityResponseDto,
   DistrictResponseDto,
+  CountrySelectionResponseDto,
 } from './dto/location-response.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
@@ -13,6 +14,46 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 @Controller('locations')
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
+
+  @Get('country-selection')
+  @Public()
+  @ApiOperation({
+    summary: 'List country selection options',
+    description:
+      'Returns country selection list (Uzbekistan and Kazakhstan) with cities. Supports search and filtering by country id or country code.',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search in country name, ISO code or dial code',
+  })
+  @ApiQuery({
+    name: 'id',
+    required: false,
+    description: 'Filter by country id (e.g. uzbekistan, kazakhstan)',
+  })
+  @ApiQuery({
+    name: 'countryCode',
+    required: false,
+    description: 'Filter by ISO code or dial code (e.g. UZ, KZ, +998, +7)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of country selection options with cities',
+    type: CountrySelectionResponseDto,
+    isArray: true,
+  })
+  getCountrySelection(
+    @Query('search') search?: string,
+    @Query('id') id?: string,
+    @Query('countryCode') countryCode?: string,
+  ): CountrySelectionResponseDto[] {
+    return this.locationService.getCountrySelection({
+      search,
+      id,
+      countryCode,
+    });
+  }
 
   @Get('countries')
   @Public()
