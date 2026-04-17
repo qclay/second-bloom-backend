@@ -30,6 +30,9 @@ describe('ConversationService (Recent Fixes)', () => {
     message: {
       create: jest.Mock;
     };
+    userBlock: {
+      findFirst: jest.Mock;
+    };
     conversationParticipant: {
       updateMany: jest.Mock;
     };
@@ -58,6 +61,9 @@ describe('ConversationService (Recent Fixes)', () => {
       },
       message: {
         create: jest.fn(),
+      },
+      userBlock: {
+        findFirst: jest.fn(),
       },
       conversationParticipant: {
         updateMany: jest.fn(),
@@ -202,6 +208,35 @@ describe('ConversationService (Recent Fixes)', () => {
           MessageType.SYSTEM,
         ),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when the other participant blocked the sender', async () => {
+      mockTx.conversation.findUnique.mockResolvedValue({
+        id: conversationId,
+        deletedAt: null,
+        isActive: true,
+        participants: [
+          {
+            userId: senderId,
+            user: { id: senderId, isAdministrationChat: false },
+          },
+          {
+            userId: buyerId,
+            user: { id: buyerId, isAdministrationChat: false },
+          },
+        ],
+      });
+      mockTx.userBlock.findFirst.mockResolvedValue({ id: 'block-1' });
+
+      await expect(
+        service.sendMessage(
+          {
+            conversationId,
+            content,
+          } as never,
+          senderId,
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

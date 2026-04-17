@@ -512,6 +512,8 @@ model User {
   conditionsCreated        Condition[]               @relation("ConditionCreator")
   sizesCreated             Size[]                    @relation("SizeCreator")
   conversationParticipants ConversationParticipant[]
+  blocksCreated            UserBlock[]               @relation("UserBlocksCreated")
+  blocksReceived           UserBlock[]               @relation("UserBlocksReceived")
   favorites                Favorite[]
   uploadedFiles            File[]                    @relation("FileUploader")
   sentMessages             Message[]                 @relation("MessageSender")
@@ -535,6 +537,23 @@ model User {
   @@index([city])
   @@index([region, city])
   @@map("users")
+}
+
+model UserBlock {
+  id         String   @id @default(uuid())
+  blockerId  String
+  blockedId  String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  blocker    User     @relation("UserBlocksCreated", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked    User     @relation("UserBlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId, isActive])
+  @@index([blockedId, isActive])
+  @@map("user_blocks")
 }
 
 model VerificationCode {

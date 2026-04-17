@@ -230,6 +230,40 @@ export class UserController {
     return this.userService.deleteUser(id);
   }
 
+  @Post(':id/block')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Block user by ID' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: true })
+  @ApiResponse({
+    status: 200,
+    description: 'User blocked',
+    type: MessageResponseDto,
+  })
+  async blockUser(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+  ): Promise<MessageResponseDto> {
+    return this.userService.blockUser(user.id, id);
+  }
+
+  @Delete(':id/block')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unblock user by ID' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: true })
+  @ApiResponse({
+    status: 200,
+    description: 'User unblocked',
+    type: MessageResponseDto,
+  })
+  async unblockUser(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+  ): Promise<MessageResponseDto> {
+    return this.userService.unblockUser(user.id, id);
+  }
+
   @Post('phone/send-otp')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

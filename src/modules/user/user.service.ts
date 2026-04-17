@@ -307,6 +307,73 @@ export class UserService {
     await this.userRepository.softDelete(id);
   }
 
+  async blockUser(
+    userId: string,
+    targetUserId: string,
+  ): Promise<MessageResponseDto> {
+    if (userId === targetUserId) {
+      throw new BadRequestException('You cannot block yourself');
+    }
+
+    const [currentUser, targetUser] = await Promise.all([
+      this.userRepository.findById(userId),
+      this.userRepository.findById(targetUserId),
+    ]);
+
+    if (!currentUser || currentUser.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!targetUser || targetUser.deletedAt) {
+      throw new NotFoundException('Target user not found');
+    }
+
+    await this.prisma.userBlock.upsert({
+      where: {
+        blockerId_blockedId: {
+          blockerId: userId,
+          blockedId: targetUserId,
+        },
+      },
+      create: {
+        blockerId: userId,
+        blockedId: targetUserId,
+        isActive: true,
+      },
+      update: {
+        isActive: true,
+      },
+    });
+
+    return { message: 'User blocked successfully' };
+  }
+
+  async unblockUser(
+    userId: string,
+    targetUserId: string,
+  ): Promise<MessageResponseDto> {
+    if (userId === targetUserId) {
+      throw new BadRequestException('You cannot unblock yourself');
+    }
+
+    const currentUser = await this.userRepository.findById(userId);
+    if (!currentUser || currentUser.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.userBlock.updateMany({
+      where: {
+        blockerId: userId,
+        blockedId: targetUserId,
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
+    return { message: 'User unblocked successfully' };
+  }
+
   async updateAvatar(
     userId: string,
     avatarId: string | null,

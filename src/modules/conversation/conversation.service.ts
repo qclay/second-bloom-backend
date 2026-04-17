@@ -21,7 +21,13 @@ import {
   ConversationSellerBuyerDto,
 } from './dto/conversation-response.dto';
 import { ConversationMessageResponseDto } from './dto/message-response.dto';
-import { Prisma, MessageType, DeliveryStatus, UserRole } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  MessageType,
+  DeliveryStatus,
+  UserRole,
+} from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { ConversationGateway } from './gateways/conversation.gateway';
 import { ResolveConversationDto } from './dto/resolve-conversation.dto';
@@ -152,6 +158,94 @@ export class ConversationService {
     private readonly conversationGateway: ConversationGateway,
   ) {}
 
+  private async hasActiveUserBlock(
+    userId: string,
+    otherUserId: string,
+    client: PrismaClient | Prisma.TransactionClient = this.prisma,
+  ): Promise<boolean> {
+    if (userId === otherUserId) {
+      return false;
+    }
+
+    const blockClient = client as unknown as {
+      userBlock: {
+        findFirst: (args: unknown) => Promise<{ id: string } | null>;
+      };
+    };
+
+    const block = await blockClient.userBlock.findFirst({
+      where: {
+        isActive: true,
+        blockerId: otherUserId,
+        blockedId: userId,
+      },
+      select: { id: true },
+    });
+
+    return block !== null;
+  }
+
+  private buildVisibleConversationWhere(
+    userId: string,
+    archived?: boolean,
+  ): Prisma.ConversationWhereInput {
+    return {
+      participants: {
+        some: {
+          userId,
+          ...(archived !== undefined && { isArchived: archived }),
+        },
+      },
+      deletedAt: null,
+      AND: [
+        {
+          NOT: {
+            participants: {
+              some: {
+                userId: { not: userId },
+                user: {
+                  isAdministrationChat: false,
+                  blocksCreated: {
+                    some: { blockedId: userId, isActive: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    } as Prisma.ConversationWhereInput;
+  }
+
+  private async ensureConversationIsAllowed(
+    conversation: {
+      participants: {
+        userId: string;
+        user?: { isAdministrationChat?: boolean };
+      }[];
+    },
+    userId: string,
+    client: PrismaClient | Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    const otherParticipant = conversation.participants.find(
+      (participant) => participant.userId !== userId,
+    );
+
+    if (!otherParticipant?.user || otherParticipant.user.isAdministrationChat) {
+      return;
+    }
+
+    const blocked = await this.hasActiveUserBlock(
+      userId,
+      otherParticipant.userId,
+      client,
+    );
+
+    if (blocked) {
+      throw new ForbiddenException('You cannot access this conversation');
+    }
+  }
+
   async createConversationForOrder(orderId: string): Promise<void> {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -177,6 +271,7 @@ export class ConversationService {
       );
       return;
     }
+
     const existing = await this.prisma.conversation.findFirst({
       where: { orderId, deletedAt: null, isActive: true },
       select: { id: true },
@@ -244,15 +339,7 @@ export class ConversationService {
     const limit = Math.min(query.limit || 20, 100);
     const skip = (page - 1) * limit;
 
-    const where: Prisma.ConversationWhereInput = {
-      participants: {
-        some: {
-          userId,
-          ...(query.archived !== undefined && { isArchived: query.archived }),
-        },
-      },
-      deletedAt: null,
-    };
+    const where = this.buildVisibleConversationWhere(userId, query.archived);
 
     const [conversations, total] = await Promise.all([
       this.conversationRepository.findMany(
@@ -295,6 +382,8 @@ export class ConversationService {
         'You do not have access to this conversation',
       );
     }
+
+    await this.ensureConversationIsAllowed(conv, userId);
 
     return this.mapConversationToDto(conv, userId);
   }
@@ -349,6 +438,10 @@ export class ConversationService {
 
     if (order.buyerId !== userId && order.product.sellerId !== userId) {
       throw new ForbiddenException('You do not have access to this order');
+    }
+
+    if (await this.hasActiveUserBlock(userId, order.product.sellerId)) {
+      throw new ForbiddenException('You cannot open this conversation');
     }
 
     const existing = await this.prisma.conversation.findFirst({
@@ -420,6 +513,10 @@ export class ConversationService {
       throw new BadRequestException(
         'One of the conversation participants must be the product seller',
       );
+    }
+
+    if (await this.hasActiveUserBlock(userId, otherParticipantId)) {
+      throw new ForbiddenException('You cannot open this conversation');
     }
 
     const existingConversation = await this.prisma.conversation.findFirst({
@@ -521,12 +618,11 @@ export class ConversationService {
       );
     }
 
+    await this.ensureConversationIsAllowed(conversation, userId, tx);
+
     const otherParticipant = conversation.participants.find(
       (p) => p.userId !== userId,
     );
-    if (otherParticipant?.isBlocked) {
-      throw new ForbiddenException('You are blocked in this conversation');
-    }
 
     if (dto.fileId) {
       const file = await tx.file.findUnique({
@@ -686,7 +782,18 @@ export class ConversationService {
   }> {
     const conversation = await this.conversationRepository.findById(
       conversationId,
-      { participants: true },
+      {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                isAdministrationChat: true,
+              },
+            },
+          },
+        },
+      },
     );
 
     if (!conversation) {
@@ -694,13 +801,18 @@ export class ConversationService {
     }
 
     const conv = conversation as unknown as {
-      participants: { userId: string }[];
+      participants: {
+        userId: string;
+        user?: { isAdministrationChat?: boolean };
+      }[];
     };
     if (!conv.participants.some((p) => p.userId === userId)) {
       throw new ForbiddenException(
         'You do not have access to this conversation',
       );
     }
+
+    await this.ensureConversationIsAllowed(conv, userId);
 
     const limit = Math.min(query.limit || 50, 100);
     let cursorCreatedAt: Date | undefined;
@@ -1151,11 +1263,11 @@ export class ConversationService {
   }
 
   async getConversationIds(userId: string): Promise<string[]> {
-    const participants = await this.prisma.conversationParticipant.findMany({
-      where: { userId, conversation: { deletedAt: null } },
-      select: { conversationId: true },
+    const conversations = await this.prisma.conversation.findMany({
+      where: this.buildVisibleConversationWhere(userId),
+      select: { id: true },
     });
-    return participants.map((p) => p.conversationId);
+    return conversations.map((conversation) => conversation.id);
   }
 
   async getOtherParticipantId(
