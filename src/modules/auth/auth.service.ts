@@ -95,6 +95,7 @@ export class AuthService {
         data: {
           phoneCountryCode,
           phoneNumber,
+          birthDate: dto.birthDate ?? null,
           role: UserRole.USER,
           isActive: true,
           isVerified: true,

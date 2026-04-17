@@ -61,7 +61,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Verify OTP and authenticate',
     description:
-      'Verifies the OTP code and authenticates the user. Automatically creates a new account for first-time users or logs in existing users. For existing users, previous sessions are revoked so only the latest login remains active. Returns JWT access and refresh tokens.',
+      'Verifies the OTP code and authenticates the user. Automatically creates a new account for first-time users or logs in existing users. For new users, birthDate can be sent as an optional field in YYYY-MM-DD format. For existing users, previous sessions are revoked so only the latest login remains active. Returns JWT access and refresh tokens.',
   })
   @ApiBody({ type: VerifyOtpDto })
   @ApiPublicErrorResponses()

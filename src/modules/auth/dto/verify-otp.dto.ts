@@ -7,9 +7,11 @@ import {
   Max,
   MinLength,
   MaxLength,
+  IsOptional,
+  IsDateString,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
 
 export class VerifyOtpDto {
   @ApiProperty({
@@ -50,4 +52,14 @@ export class VerifyOtpDto {
   @Max(999999)
   @Type(() => Number)
   code!: number;
+
+  @ApiPropertyOptional({
+    description: 'Birth date in ISO 8601 date format (YYYY-MM-DD)',
+    example: '1990-01-15',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsDateString()
+  @Transform(({ value }) => (value === '' ? null : value))
+  birthDate?: string | null;
 }
