@@ -3,6 +3,7 @@ import { toISOString } from '../../../common/utils/date.util';
 
 type BlockedUserEntity = {
   createdAt: Date;
+  updatedAt: Date;
   blocked: {
     id: string;
     username: string | null;
@@ -48,7 +49,7 @@ export class BlockedUserResponseDto {
       lastName: entity.blocked.lastName,
       phoneNumber,
       avatarUrl: entity.blocked.avatar?.url ?? null,
-      blockedAt: toISOString(entity.createdAt) ?? '',
+      blockedAt: toISOString(entity.updatedAt ?? entity.createdAt) ?? '',
     };
   }
 }

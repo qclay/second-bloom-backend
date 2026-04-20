@@ -358,15 +358,35 @@ export class UserService {
       throw new BadRequestException('You cannot unblock yourself');
     }
 
-    const currentUser = await this.userRepository.findById(userId);
+    const [currentUser, targetUser] = await Promise.all([
+      this.userRepository.findById(userId),
+      this.userRepository.findById(targetUserId),
+    ]);
+
     if (!currentUser || currentUser.deletedAt) {
       throw new NotFoundException('User not found');
     }
 
-    await this.prisma.userBlock.updateMany({
+    if (!targetUser || targetUser.deletedAt) {
+      throw new NotFoundException('Target user not found');
+    }
+
+    const activeBlock = await this.prisma.userBlock.findFirst({
       where: {
         blockerId: userId,
         blockedId: targetUserId,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    if (!activeBlock) {
+      throw new NotFoundException('Active block not found');
+    }
+
+    await this.prisma.userBlock.update({
+      where: {
+        id: activeBlock.id,
       },
       data: {
         isActive: false,
@@ -404,9 +424,10 @@ export class UserService {
         where,
         skip,
         take: maxLimit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { updatedAt: 'desc' },
         select: {
           createdAt: true,
+          updatedAt: true,
           blocked: {
             select: {
               id: true,
