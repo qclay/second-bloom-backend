@@ -17,6 +17,8 @@ import { SendPhoneChangeOtpDto } from './dto/send-phone-change-otp.dto';
 import { VerifyPhoneChangeDto } from './dto/verify-phone-change.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { BlockedUserQueryDto } from './dto/blocked-user-query.dto';
+import { BlockedUserResponseDto } from './dto/blocked-user-response.dto';
 import { Prisma } from '@prisma/client';
 import { UserRole, VerificationPurpose } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -372,6 +374,64 @@ export class UserService {
     });
 
     return { message: 'User unblocked successfully' };
+  }
+
+  async getBlockedUsers(userId: string, query: BlockedUserQueryDto) {
+    const { page = 1, limit = 20, search } = query;
+    const maxLimit = Math.min(limit, 100);
+    const skip = (page - 1) * maxLimit;
+
+    const where: Prisma.UserBlockWhereInput = {
+      blockerId: userId,
+      isActive: true,
+      blocked: { deletedAt: null },
+    };
+
+    if (search) {
+      where.blocked = {
+        deletedAt: null,
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { username: { contains: search, mode: 'insensitive' } },
+          { phoneNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const [rows, total] = await Promise.all([
+      this.prisma.userBlock.findMany({
+        where,
+        skip,
+        take: maxLimit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          createdAt: true,
+          blocked: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              phoneNumber: true,
+              phoneCountryCode: true,
+              avatar: { select: { url: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.userBlock.count({ where }),
+    ]);
+
+    return {
+      data: rows.map((row) => BlockedUserResponseDto.fromEntity(row)),
+      meta: {
+        total,
+        page,
+        limit: maxLimit,
+        totalPages: Math.ceil(total / maxLimit),
+      },
+    };
   }
 
   async updateAvatar(

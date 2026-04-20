@@ -45,71 +45,6 @@ export class ProductService {
     private readonly notificationService: NotificationService,
   ) {}
 
-  private shouldApplyBlockVisibilityFilter(user?: {
-    id: string;
-    role: UserRole;
-  }): boolean {
-    return user?.role === UserRole.USER;
-  }
-
-  private async getBlockedSellerIds(userId: string): Promise<string[]> {
-    const blockedByUsers = await this.prisma.userBlock.findMany({
-      where: {
-        blockedId: userId,
-        isActive: true,
-      },
-      select: { blockerId: true },
-    });
-
-    return blockedByUsers.map((row) => row.blockerId);
-  }
-
-  private async applyBlockedSellerFilter(
-    where: Prisma.ProductWhereInput,
-    user?: { id: string; role: UserRole },
-  ): Promise<void> {
-    if (!this.shouldApplyBlockVisibilityFilter(user)) {
-      return;
-    }
-
-    const viewer = user as { id: string; role: UserRole };
-    const blockedSellerIds = await this.getBlockedSellerIds(viewer.id);
-    if (blockedSellerIds.length === 0) {
-      return;
-    }
-
-    const existingSellerId = where.sellerId;
-    if (!existingSellerId) {
-      where.sellerId = { notIn: blockedSellerIds };
-      return;
-    }
-
-    if (typeof existingSellerId === 'string') {
-      if (blockedSellerIds.includes(existingSellerId)) {
-        where.sellerId = { in: [] };
-      }
-      return;
-    }
-
-    if ('in' in existingSellerId && Array.isArray(existingSellerId.in)) {
-      where.sellerId = {
-        in: existingSellerId.in.filter(
-          (sellerId) => !blockedSellerIds.includes(sellerId),
-        ),
-      };
-      return;
-    }
-
-    if ('notIn' in existingSellerId && Array.isArray(existingSellerId.notIn)) {
-      where.sellerId = {
-        notIn: [...existingSellerId.notIn, ...blockedSellerIds],
-      };
-      return;
-    }
-
-    where.sellerId = { notIn: blockedSellerIds };
-  }
-
   async createProduct(
     dto: CreateProductDto,
     sellerId: string,
@@ -525,8 +460,6 @@ export class ProductService {
       where.sellerId = sellerId;
     }
 
-    await this.applyBlockedSellerFilter(where, user);
-
     if (isFeatured !== undefined) {
       where.isFeatured = isFeatured;
     }
@@ -874,10 +807,7 @@ export class ProductService {
     return { all, inAuction, sold, inDelivery };
   }
 
-  async searchProducts(
-    query: ProductSearchDto,
-    user?: { id: string; role: UserRole },
-  ) {
+  async searchProducts(query: ProductSearchDto) {
     const {
       page = 1,
       limit = 20,
@@ -933,8 +863,6 @@ export class ProductService {
     } else if (sellerIds && sellerIds.length > 0) {
       where.sellerId = { in: sellerIds };
     }
-
-    await this.applyBlockedSellerFilter(where, user);
 
     if (isFeatured !== undefined) {
       where.isFeatured = isFeatured;
@@ -1295,7 +1223,6 @@ export class ProductService {
   async findById(
     id: string,
     incrementViews = false,
-    user?: { id: string; role: UserRole },
   ): Promise<ProductResponseDto> {
     const productWithRelations = await this.prisma.product.findUnique({
       where: { id },
@@ -1352,14 +1279,6 @@ export class ProductService {
 
     if (productWithRelations.deletedAt) {
       throw new NotFoundException(`Product with ID ${id} not found`);
-    }
-
-    if (this.shouldApplyBlockVisibilityFilter(user)) {
-      const viewer = user as { id: string; role: UserRole };
-      const blockedSellerIds = await this.getBlockedSellerIds(viewer.id);
-      if (blockedSellerIds.includes(productWithRelations.sellerId)) {
-        throw new NotFoundException(`Product with ID ${id} not found`);
-      }
     }
 
     const activeAuction = await this.prisma.auction.findFirst({

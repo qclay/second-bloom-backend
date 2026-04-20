@@ -18,6 +18,7 @@ import { CreateBidDto } from './dto/create-bid.dto';
 import { BidQueryDto } from './dto/bid-query.dto';
 import { BidResponseDto } from './dto/bid-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
@@ -145,7 +146,12 @@ export class BidController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Get all bids' })
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get all bids',
+    description:
+      'If called by the auction owner (with Bearer token and auctionId), each bid includes isBidderBlockedByCurrentUser to avoid extra block-status requests from frontend.',
+  })
   @ApiCommonErrorResponses({
     unauthorized: false,
     forbidden: false,
@@ -156,8 +162,11 @@ export class BidController {
     BidResponseDto,
     'Paginated list of bids (data + meta.pagination)',
   )
-  async findAll(@Query() query: BidQueryDto) {
-    return await this.bidService.findAll(query);
+  async findAll(
+    @Query() query: BidQueryDto,
+    @CurrentUser() user?: { id: string; role: UserRole },
+  ) {
+    return await this.bidService.findAll(query, user);
   }
 
   @Get(':id')

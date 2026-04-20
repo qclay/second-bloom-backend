@@ -135,11 +135,8 @@ export class ProductController {
     'Paginated search results (data + meta.pagination)',
     200,
   )
-        async search(
-          @Body() searchDto: ProductSearchDto,
-          @CurrentUser() user?: { id: string; role: UserRole },
-        ) {
-          return this.productService.searchProducts(searchDto, user);
+  async search(@Body() searchDto: ProductSearchDto) {
+    return this.productService.searchProducts(searchDto);
   }
 
   @Patch(':id/moderate')
@@ -192,9 +189,8 @@ export class ProductController {
   async findOne(
     @Param('id') id: string,
     @Query('incrementViews') incrementViews?: string,
-          @CurrentUser() user?: { id: string; role: UserRole },
-        ): Promise<ProductResponseDto> {
-          return this.productService.findById(id, incrementViews === 'true', user);
+  ): Promise<ProductResponseDto> {
+    return this.productService.findById(id, incrementViews === 'true');
   }
 
   @Patch(':id')

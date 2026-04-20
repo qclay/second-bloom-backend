@@ -22,6 +22,8 @@ import { SendPhoneChangeOtpDto } from './dto/send-phone-change-otp.dto';
 import { VerifyPhoneChangeDto } from './dto/verify-phone-change.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { BlockedUserQueryDto } from './dto/blocked-user-query.dto';
+import { BlockedUserResponseDto } from './dto/blocked-user-response.dto';
 import { MessageResponseDto } from '../auth/dto/message-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -133,6 +135,22 @@ export class UserController {
     @Body() dto: AddPublicationCreditsDto,
   ): Promise<UserResponseDto> {
     return this.userService.addPublicationCredits(id, dto);
+  }
+
+  @Get('blocked')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get blocked users list for current user' })
+  @ApiCommonErrorResponses({ conflict: false, notFound: false })
+  @ApiPaginatedResponse(
+    BlockedUserResponseDto,
+    'Paginated list of users blocked by current user (data + meta.pagination)',
+  )
+  async getBlockedUsers(
+    @CurrentUser() user: { id: string },
+    @Query() query: BlockedUserQueryDto,
+  ) {
+    return this.userService.getBlockedUsers(user.id, query);
   }
 
   @Get(':id')

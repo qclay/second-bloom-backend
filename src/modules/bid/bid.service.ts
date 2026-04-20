@@ -71,20 +71,14 @@ export class BidService {
       );
     }
 
-    const bidderBlockedByCreator =
-      await this.prisma.conversationParticipant.findFirst({
-        where: {
-          userId: bidderId,
-          isBlocked: true,
-          conversation: {
-            participants: {
-              some: { userId: auction.creatorId },
-            },
-            deletedAt: null,
-          },
-        },
-        select: { id: true },
-      });
+    const bidderBlockedByCreator = await this.prisma.userBlock.findFirst({
+      where: {
+        blockerId: auction.creatorId,
+        blockedId: bidderId,
+        isActive: true,
+      },
+      select: { id: true },
+    });
     if (bidderBlockedByCreator) {
       throw new ForbiddenException(
         'You cannot participate in this auction. The seller has restricted your access.',
@@ -376,7 +370,7 @@ export class BidService {
     return bidResponse;
   }
 
-  async findAll(query: BidQueryDto) {
+  async findAll(query: BidQueryDto, user?: { id: string; role: UserRole }) {
     const {
       page = 1,
       limit = 20,
@@ -489,8 +483,36 @@ export class BidService {
       auctionId ? this.getAuctionBidCounts(auctionId) : Promise.resolve(null),
     ]);
 
+    let blockedBidderIds = new Set<string>();
+    if (auctionId && user?.id) {
+      const auction = await this.prisma.auction.findUnique({
+        where: { id: auctionId },
+        select: { creatorId: true },
+      });
+      const isAuctionOwner = auction?.creatorId === user.id;
+
+      if (isAuctionOwner) {
+        const bidderIds = Array.from(new Set(bids.map((bid) => bid.bidderId)));
+        if (bidderIds.length > 0) {
+          const blockedRows = await this.prisma.userBlock.findMany({
+            where: {
+              blockerId: user.id,
+              blockedId: { in: bidderIds },
+              isActive: true,
+            },
+            select: { blockedId: true },
+          });
+          blockedBidderIds = new Set(blockedRows.map((row) => row.blockedId));
+        }
+      }
+    }
+
     return {
-      data: bids.map((bid) => BidResponseDto.fromEntity(bid)),
+      data: bids.map((bid) =>
+        BidResponseDto.fromEntity(bid, {
+          isBidderBlockedByCurrentUser: blockedBidderIds.has(bid.bidderId),
+        }),
+      ),
       meta: {
         ...(view ? { view } : {}),
         total,

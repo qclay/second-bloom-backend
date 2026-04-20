@@ -197,27 +197,10 @@ export class ConversationService {
         },
       },
       deletedAt: null,
-      AND: [
-        {
-          NOT: {
-            participants: {
-              some: {
-                userId: { not: userId },
-                user: {
-                  isAdministrationChat: false,
-                  blocksCreated: {
-                    some: { blockedId: userId, isActive: true },
-                  },
-                },
-              },
-            },
-          },
-        },
-      ],
     } as Prisma.ConversationWhereInput;
   }
 
-  private async ensureConversationIsAllowed(
+  private async ensureCanSendMessageToParticipant(
     conversation: {
       participants: {
         userId: string;
@@ -242,7 +225,7 @@ export class ConversationService {
     );
 
     if (blocked) {
-      throw new ForbiddenException('You cannot access this conversation');
+      throw new ForbiddenException('You cannot send messages to this user');
     }
   }
 
@@ -383,8 +366,6 @@ export class ConversationService {
       );
     }
 
-    await this.ensureConversationIsAllowed(conv, userId);
-
     return this.mapConversationToDto(conv, userId);
   }
 
@@ -438,10 +419,6 @@ export class ConversationService {
 
     if (order.buyerId !== userId && order.product.sellerId !== userId) {
       throw new ForbiddenException('You do not have access to this order');
-    }
-
-    if (await this.hasActiveUserBlock(userId, order.product.sellerId)) {
-      throw new ForbiddenException('You cannot open this conversation');
     }
 
     const existing = await this.prisma.conversation.findFirst({
@@ -513,10 +490,6 @@ export class ConversationService {
       throw new BadRequestException(
         'One of the conversation participants must be the product seller',
       );
-    }
-
-    if (await this.hasActiveUserBlock(userId, otherParticipantId)) {
-      throw new ForbiddenException('You cannot open this conversation');
     }
 
     const existingConversation = await this.prisma.conversation.findFirst({
@@ -618,7 +591,7 @@ export class ConversationService {
       );
     }
 
-    await this.ensureConversationIsAllowed(conversation, userId, tx);
+    await this.ensureCanSendMessageToParticipant(conversation, userId, tx);
 
     const otherParticipant = conversation.participants.find(
       (p) => p.userId !== userId,
@@ -811,8 +784,6 @@ export class ConversationService {
         'You do not have access to this conversation',
       );
     }
-
-    await this.ensureConversationIsAllowed(conv, userId);
 
     const limit = Math.min(query.limit || 50, 100);
     let cursorCreatedAt: Date | undefined;

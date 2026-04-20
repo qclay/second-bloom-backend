@@ -8,6 +8,7 @@ export class BidResponseDto {
   amount!: number;
   isWinning!: boolean;
   isRetracted!: boolean;
+  isBidderBlockedByCurrentUser!: boolean;
   readByOwnerAt!: string | null;
   isNew!: boolean;
   rejectedAt!: string | null;
@@ -58,6 +59,9 @@ export class BidResponseDto {
         avatar?: { url: string } | null;
       };
     },
+    options?: {
+      isBidderBlockedByCurrentUser?: boolean;
+    },
   ): BidResponseDto {
     return {
       id: bid.id,
@@ -66,6 +70,8 @@ export class BidResponseDto {
       amount: Number(bid.amount),
       isWinning: bid.isWinning,
       isRetracted: bid.isRetracted,
+      isBidderBlockedByCurrentUser:
+        options?.isBidderBlockedByCurrentUser ?? false,
       readByOwnerAt: toISOString(bid.readByOwnerAt),
       isNew:
         bid.readByOwnerAt == null &&
