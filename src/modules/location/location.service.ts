@@ -4,7 +4,6 @@ import type { TranslationRecord } from '../../common/i18n/translation.util';
 import {
   CountryResponseDto,
   RegionResponseDto,
-  CityResponseDto,
   DistrictResponseDto,
   CountrySelectionResponseDto,
 } from './dto/location-response.dto';
@@ -12,17 +11,51 @@ import {
 const COUNTRY_SELECTION_OPTIONS: CountrySelectionResponseDto[] = [
   {
     id: 'uzbekistan',
-    name: 'Uzbekistan',
+    name: 'Узбекистан',
     countryCode: 'UZ',
     dialCode: '+998',
-    cities: [{ id: 'tashkent', name: 'Tashkent' }],
+    cities: [
+      { id: 'tashkent', name: 'Ташкент' },
+      { id: 'samarkand', name: 'Самарканд' },
+      { id: 'bukhara', name: 'Бухара' },
+      { id: 'khiva', name: 'Хива' },
+      { id: 'namangan', name: 'Наманган' },
+      { id: 'andijan', name: 'Андижан' },
+      { id: 'fergana', name: 'Фергана' },
+      { id: 'karshi', name: 'Карши' },
+      { id: 'nukus', name: 'Нукус' },
+      { id: 'urgench', name: 'Ургенч' },
+      { id: 'jizzakh', name: 'Джизак' },
+      { id: 'navoi', name: 'Навои' },
+      { id: 'termez', name: 'Термез' },
+      { id: 'gulistan', name: 'Гулистан' },
+    ],
   },
   {
     id: 'kazakhstan',
-    name: 'Kazakhstan',
+    name: 'Казахстан',
     countryCode: 'KZ',
     dialCode: '+7',
-    cities: [{ id: 'almaty', name: 'Almaty' }],
+    cities: [
+      { id: 'almaty', name: 'Алматы' },
+      { id: 'astana', name: 'Астана' },
+      { id: 'shymkent', name: 'Шымкент' },
+      { id: 'karaganda', name: 'Караганда' },
+      { id: 'aktobe', name: 'Актобе' },
+      { id: 'taraz', name: 'Тараз' },
+      { id: 'pavlodar', name: 'Павлодар' },
+      { id: 'ust-kamenogorsk', name: 'Усть-Каменогорск' },
+      { id: 'semey', name: 'Семей' },
+      { id: 'kostanay', name: 'Костанай' },
+      { id: 'kyzylorda', name: 'Кызылорда' },
+      { id: 'uralsk', name: 'Уральск' },
+      { id: 'petropavlovsk', name: 'Петропавловск' },
+      { id: 'aktau', name: 'Актау' },
+      { id: 'atyrau', name: 'Атырау' },
+      { id: 'taldykorgan', name: 'Талдыкорган' },
+      { id: 'kokshetau', name: 'Кокшетау' },
+      { id: 'turkestan', name: 'Туркестан' },
+    ],
   },
 ];
 
@@ -89,14 +122,14 @@ function sortByName<T extends { name: unknown }>(items: T[]): T[] {
 export class LocationService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getCountrySelection(filters?: {
-    search?: string;
-    id?: string;
-    countryCode?: string;
-  }): CountrySelectionResponseDto[] {
-    const normalizedSearch = filters?.search?.trim().toLowerCase();
-    const normalizedId = filters?.id?.trim().toLowerCase();
-    const normalizedCode = filters?.countryCode
+  async getCities(
+    search?: string,
+    id?: string,
+    countryCode?: string,
+  ): Promise<CountrySelectionResponseDto[]> {
+    const normalizedSearch = search?.trim().toLowerCase();
+    const normalizedId = id?.trim().toLowerCase();
+    const normalizedCode = countryCode
       ?.trim()
       .toLowerCase()
       .replace(/^\+/, '');
@@ -161,31 +194,6 @@ export class LocationService {
         id: r.id,
         name: r.name as string | TranslationRecord,
         countryId: r.countryId,
-      })),
-    );
-  }
-
-  async getCities(
-    regionId?: string,
-    countryId?: string,
-  ): Promise<CityResponseDto[]> {
-    const cities = await this.prisma.city.findMany({
-      where: {
-        isActive: true,
-        ...(regionId && { regionId }),
-        ...(countryId && { region: { countryId } }),
-      },
-      select: {
-        id: true,
-        name: true,
-        regionId: true,
-      },
-    });
-    return sortByName(
-      cities.map((c) => ({
-        id: c.id,
-        name: c.name as string | TranslationRecord,
-        regionId: c.regionId,
       })),
     );
   }
