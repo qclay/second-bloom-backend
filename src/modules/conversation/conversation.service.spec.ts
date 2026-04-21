@@ -238,6 +238,66 @@ describe('ConversationService (Recent Fixes)', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
     });
+
+    it('should throw ForbiddenException when sender has blocked the conversation', async () => {
+      mockTx.conversation.findUnique.mockResolvedValue({
+        id: conversationId,
+        deletedAt: null,
+        isActive: true,
+        participants: [
+          {
+            userId: senderId,
+            isBlocked: true,
+            user: { id: senderId, isAdministrationChat: false },
+          },
+          {
+            userId: buyerId,
+            isBlocked: false,
+            user: { id: buyerId, isAdministrationChat: false },
+          },
+        ],
+      });
+
+      await expect(
+        service.sendMessage(
+          {
+            conversationId,
+            content,
+          } as never,
+          senderId,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw ForbiddenException when recipient has blocked the conversation', async () => {
+      mockTx.conversation.findUnique.mockResolvedValue({
+        id: conversationId,
+        deletedAt: null,
+        isActive: true,
+        participants: [
+          {
+            userId: senderId,
+            isBlocked: false,
+            user: { id: senderId, isAdministrationChat: false },
+          },
+          {
+            userId: buyerId,
+            isBlocked: true,
+            user: { id: buyerId, isAdministrationChat: false },
+          },
+        ],
+      });
+
+      await expect(
+        service.sendMessage(
+          {
+            conversationId,
+            content,
+          } as never,
+          senderId,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 
   describe('mapConversationToDto integration', () => {

@@ -371,27 +371,20 @@ export class UserService {
       throw new NotFoundException('Target user not found');
     }
 
-    const activeBlock = await this.prisma.userBlock.findFirst({
+    const updateResult = await this.prisma.userBlock.updateMany({
       where: {
         blockerId: userId,
         blockedId: targetUserId,
         isActive: true,
       },
-      select: { id: true },
-    });
-
-    if (!activeBlock) {
-      throw new NotFoundException('Active block not found');
-    }
-
-    await this.prisma.userBlock.update({
-      where: {
-        id: activeBlock.id,
-      },
       data: {
         isActive: false,
       },
     });
+
+    if (updateResult.count === 0) {
+      throw new NotFoundException('Active block not found');
+    }
 
     return { message: 'User unblocked successfully' };
   }

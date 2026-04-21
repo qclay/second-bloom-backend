@@ -585,6 +585,17 @@ export class ConversationService {
       throw new BadRequestException('Conversation has been deleted');
     }
 
+    if (myParticipant.isBlocked) {
+      throw new ForbiddenException('You have blocked this conversation');
+    }
+
+    const otherParticipant = conversation.participants.find(
+      (p) => p.userId !== userId,
+    );
+    if (otherParticipant?.isBlocked) {
+      throw new ForbiddenException('You cannot send messages to this user');
+    }
+
     if (!conversation.isActive) {
       throw new BadRequestException(
         'Conversation is inactive (order in DELIVERY status or closed)',
@@ -592,10 +603,6 @@ export class ConversationService {
     }
 
     await this.ensureCanSendMessageToParticipant(conversation, userId, tx);
-
-    const otherParticipant = conversation.participants.find(
-      (p) => p.userId !== userId,
-    );
 
     if (dto.fileId) {
       const file = await tx.file.findUnique({

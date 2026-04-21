@@ -20,8 +20,7 @@ describe('UserService blocking flow', () => {
   let prisma: {
     userBlock: {
       upsert: jest.Mock;
-      findFirst: jest.Mock;
-      update: jest.Mock;
+      updateMany: jest.Mock;
     };
   };
 
@@ -33,8 +32,7 @@ describe('UserService blocking flow', () => {
     prisma = {
       userBlock: {
         upsert: jest.fn(),
-        findFirst: jest.fn(),
-        update: jest.fn(),
+        updateMany: jest.fn(),
       },
     };
 
@@ -104,22 +102,15 @@ describe('UserService blocking flow', () => {
     userRepository.findById
       .mockResolvedValueOnce({ id: 'user-1', deletedAt: null })
       .mockResolvedValueOnce({ id: 'user-2', deletedAt: null });
-    prisma.userBlock.findFirst.mockResolvedValue({ id: 'block-1' });
+    prisma.userBlock.updateMany.mockResolvedValue({ count: 1 });
 
     const result = await service.unblockUser('user-1', 'user-2');
 
-    expect(prisma.userBlock.findFirst).toHaveBeenCalledWith({
+    expect(prisma.userBlock.updateMany).toHaveBeenCalledWith({
       where: {
         blockerId: 'user-1',
         blockedId: 'user-2',
         isActive: true,
-      },
-      select: { id: true },
-    });
-
-    expect(prisma.userBlock.update).toHaveBeenCalledWith({
-      where: {
-        id: 'block-1',
       },
       data: {
         isActive: false,
@@ -133,7 +124,7 @@ describe('UserService blocking flow', () => {
     userRepository.findById
       .mockResolvedValueOnce({ id: 'user-1', deletedAt: null })
       .mockResolvedValueOnce({ id: 'user-2', deletedAt: null });
-    prisma.userBlock.findFirst.mockResolvedValue(null);
+    prisma.userBlock.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(service.unblockUser('user-1', 'user-2')).rejects.toThrow(
       NotFoundException,
