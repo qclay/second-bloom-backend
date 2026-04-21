@@ -224,13 +224,14 @@ export class UserController {
 
   @Delete('profile')
   @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete current user profile' })
   @ApiCommonErrorResponses({ conflict: false, notFound: false })
-  @ApiResponse({ status: 204, description: 'Profile deleted' })
-  async deleteProfile(@CurrentUser() user: { id: string }): Promise<void> {
-    return this.userService.deleteUser(user.id);
+  @ApiResponse({ status: 200, description: 'Profile deleted' })
+  async deleteProfile(@CurrentUser() user: { id: string }) {
+    await this.userService.deleteUser(user.id);
+    return { success: true, message: 'Account deleted successfully' };
   }
 
   @Delete(':id')
