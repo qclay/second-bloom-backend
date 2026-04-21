@@ -150,7 +150,7 @@ export class BidController {
   @ApiOperation({
     summary: 'Get all bids',
     description:
-      'If called by the auction owner (with Bearer token and auctionId), each bid includes isBidderBlockedByCurrentUser to avoid extra block-status requests from frontend.',
+      'If called with Bearer token, each bid includes isBidderBlockedByCurrentUser to avoid extra block-status requests from frontend.',
   })
   @ApiCommonErrorResponses({
     unauthorized: false,

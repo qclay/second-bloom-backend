@@ -484,26 +484,18 @@ export class BidService {
     ]);
 
     let blockedBidderIds = new Set<string>();
-    if (auctionId && user?.id) {
-      const auction = await this.prisma.auction.findUnique({
-        where: { id: auctionId },
-        select: { creatorId: true },
-      });
-      const isAuctionOwner = auction?.creatorId === user.id;
-
-      if (isAuctionOwner) {
-        const bidderIds = Array.from(new Set(bids.map((bid) => bid.bidderId)));
-        if (bidderIds.length > 0) {
-          const blockedRows = await this.prisma.userBlock.findMany({
-            where: {
-              blockerId: user.id,
-              blockedId: { in: bidderIds },
-              isActive: true,
-            },
-            select: { blockedId: true },
-          });
-          blockedBidderIds = new Set(blockedRows.map((row) => row.blockedId));
-        }
+    if (user?.id) {
+      const bidderIds = Array.from(new Set(bids.map((bid) => bid.bidderId)));
+      if (bidderIds.length > 0) {
+        const blockedRows = await this.prisma.userBlock.findMany({
+          where: {
+            blockerId: user.id,
+            blockedId: { in: bidderIds },
+            isActive: true,
+          },
+          select: { blockedId: true },
+        });
+        blockedBidderIds = new Set(blockedRows.map((row) => row.blockedId));
       }
     }
 

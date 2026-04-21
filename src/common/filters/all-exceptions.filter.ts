@@ -195,6 +195,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return HttpStatus.BAD_REQUEST;
       case 'P2014':
         return HttpStatus.BAD_REQUEST;
+      case 'P2023':
+        return HttpStatus.BAD_REQUEST;
       default:
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
@@ -225,6 +227,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         );
       case 'P2014':
         return t(API_MESSAGES, 'Required relation missing', {}, locale);
+      case 'P2023':
+        return t(API_MESSAGES, 'Database validation error', {}, locale);
       default:
         return t(API_MESSAGES, 'Database operation failed', {}, locale);
     }

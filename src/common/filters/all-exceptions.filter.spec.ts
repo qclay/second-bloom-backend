@@ -148,6 +148,38 @@ describe('AllExceptionsFilter', () => {
         }),
       );
     });
+
+    it('should handle P2023 (Invalid UUID or field format) as bad request', () => {
+      const exception = new Prisma.PrismaClientKnownRequestError(
+        'Inconsistent column data',
+        {
+          code: 'P2023',
+          clientVersion: '1.0',
+        },
+      );
+
+      const requestWithLang = {
+        ...mockRequest,
+        headers: { 'accept-language': 'en' },
+      } as Request;
+      const host = {
+        switchToHttp: () => ({
+          getResponse: () => mockResponse,
+          getRequest: () => requestWithLang,
+        }),
+      } as unknown as ArgumentsHost;
+
+      filter.catch(exception, host);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: 'Database validation error',
+          }),
+        }),
+      );
+    });
   });
 
   describe('General HTTP Exceptions', () => {
