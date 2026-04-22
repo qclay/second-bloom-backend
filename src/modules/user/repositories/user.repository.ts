@@ -68,11 +68,21 @@ export class UserRepository implements IUserRepository {
   }
 
   async softDelete(id: string): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+
+    const timestamp = Date.now();
     return this.prisma.user.update({
       where: { id },
       data: {
         deletedAt: new Date(),
         isActive: false,
+        phoneNumber: `${user.phoneNumber}_del_${timestamp}`,
+        email: user.email ? `${user.email}_del_${timestamp}` : null,
+        username: user.username ? `${user.username}_del_${timestamp}` : null,
+        fcmToken: null,
       },
     });
   }

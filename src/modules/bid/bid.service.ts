@@ -485,8 +485,6 @@ export class BidService {
 
     let blockedBidderIds = new Set<string>();
     
-    console.log('[DEBUG GET /bids] Requested by user:', user?.id || 'ANONYMOUS (no token provided)');
-
     if (user?.id) {
       const bidderIds = Array.from(new Set(bids.map((bid) => bid.bidderId)));
       if (bidderIds.length > 0) {
