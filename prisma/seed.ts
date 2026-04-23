@@ -72,7 +72,15 @@ async function main() {
     },
   });
 
-  const regionsData: { name: ReturnType<typeof tr> }[] = [
+  const kazakhstan = await prisma.country.create({
+    data: {
+      name: tr('Kazakhstan', 'Казахстан', 'Qozogʻiston'),
+      code: 'KZ',
+      isActive: true,
+    },
+  });
+
+  const regionsData: { name: ReturnType<typeof tr>, countryId?: string }[] = [
     { name: tr('Tashkent', 'Ташкент', 'Toshkent') },
     { name: tr('Tashkent City', 'Город Ташкент', 'Toshkent shahri') },
     { name: tr('Andijan', 'Андижан', 'Andijon') },
@@ -93,12 +101,13 @@ async function main() {
         "Qoraqalpog'iston Respublikasi",
       ),
     },
+    { name: tr('Kazakhstan Regions', 'Регионы Казахстана', 'Qozogʻiston hududlari'), countryId: kazakhstan.id },
   ];
   const regions = await Promise.all(
     regionsData.map((r) =>
       prisma.region.create({
         data: {
-          countryId: uzbekistan.id,
+          countryId: r.countryId || uzbekistan.id,
           name: r.name,
           isActive: true,
         },
@@ -122,6 +131,7 @@ async function main() {
   const surxondaryoRegion = byRegionName('Surxondaryo');
   const xorazmRegion = byRegionName('Xorazm');
   const karakalpakstanRegion = byRegionName('Republic of Karakalpakstan');
+  const kzRegion = byRegionName('Kazakhstan Regions');
 
   const citiesData: { name: ReturnType<typeof tr>; regionId: string }[] = [
     {
@@ -152,6 +162,7 @@ async function main() {
     },
     { name: tr('Termiz', 'Термез', 'Termiz'), regionId: surxondaryoRegion.id },
     { name: tr('Urgench', 'Ургенч', 'Urganch'), regionId: xorazmRegion.id },
+    { name: tr('Khiva', 'Хива', 'Xiva'), regionId: xorazmRegion.id },
     { name: tr('Nukus', 'Нукус', 'Nukus'), regionId: karakalpakstanRegion.id },
     {
       name: tr('Nurafshon', 'Нурафшон', 'Nurafshon'),
@@ -173,6 +184,25 @@ async function main() {
     { name: tr('Piskent', 'Пискент', 'Piskent'), regionId: tashkentRegion.id },
     { name: tr('Chinoz', 'Чиназ', 'Chinoz'), regionId: tashkentRegion.id },
     { name: tr('Keles', 'Келес', 'Keles'), regionId: tashkentRegion.id },
+
+    { name: tr('Almaty', 'Алматы', 'Almati'), regionId: kzRegion.id },
+    { name: tr('Astana', 'Астана', 'Ostona'), regionId: kzRegion.id },
+    { name: tr('Shymkent', 'Шымкент', 'Chimkent'), regionId: kzRegion.id },
+    { name: tr('Karaganda', 'Караганда', 'Qaragʻandi'), regionId: kzRegion.id },
+    { name: tr('Aktobe', 'Актобе', 'Oqtepa'), regionId: kzRegion.id },
+    { name: tr('Taraz', 'Тараз', 'Taroz'), regionId: kzRegion.id },
+    { name: tr('Pavlodar', 'Павлодар', 'Pavlodar'), regionId: kzRegion.id },
+    { name: tr('Ust-Kamenogorsk', 'Усть-Каменогорск', 'Oʻskemen'), regionId: kzRegion.id },
+    { name: tr('Semey', 'Семей', 'Semey'), regionId: kzRegion.id },
+    { name: tr('Kostanay', 'Костанай', 'Qoʻstanay'), regionId: kzRegion.id },
+    { name: tr('Kyzylorda', 'Кызылорда', 'Qiziloʻrda'), regionId: kzRegion.id },
+    { name: tr('Uralsk', 'Уральск', 'Oʻrol'), regionId: kzRegion.id },
+    { name: tr('Petropavlovsk', 'Петропавловск', 'Petropavl'), regionId: kzRegion.id },
+    { name: tr('Aktau', 'Актау', 'Oqtov'), regionId: kzRegion.id },
+    { name: tr('Atyrau', 'Атырау', 'Atirau'), regionId: kzRegion.id },
+    { name: tr('Taldykorgan', 'Талдыкорган', 'Taldiqurgʻan'), regionId: kzRegion.id },
+    { name: tr('Kokshetau', 'Кокшетау', 'Koʻkshetau'), regionId: kzRegion.id },
+    { name: tr('Turkestan', 'Туркестан', 'Turkiston'), regionId: kzRegion.id },
     {
       name: tr('Doʻstobod', 'Дўстобод', "Do'stobod"),
       regionId: tashkentRegion.id,
