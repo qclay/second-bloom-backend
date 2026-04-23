@@ -8,7 +8,60 @@ import {
   CountrySelectionResponseDto,
 } from './dto/location-response.dto';
 
-const COUNTRY_SELECTION_OPTIONS: CountrySelectionResponseDto[] = [
+/**
+ * Static template that defines which countries and cities to expose via the
+ * /locations/cities endpoint and in what order.
+ *
+ * The `id` values here are ONLY used as temporary slugs during the template
+ * phase – they are replaced with real database UUIDs before the response is
+ * sent.  City `name` values (Russian display names) are used for UI labels
+ * and for matching against the `en` name in the database.
+ *
+ * English name mapping: slug → English name used in the DB seed.
+ */
+const CITY_SLUG_TO_EN: Record<string, string> = {
+  // Uzbekistan
+  tashkent: 'Tashkent',
+  samarkand: 'Samarqand',
+  bukhara: 'Bukhara',
+  khiva: 'Khiva',
+  namangan: 'Namangan',
+  andijan: 'Andijan',
+  fergana: 'Fergana',
+  karshi: 'Qarshi',
+  nukus: 'Nukus',
+  urgench: 'Urgench',
+  jizzakh: 'Jizzakh',
+  navoi: 'Navoiy',
+  termez: 'Termiz',
+  gulistan: 'Guliston',
+  // Kazakhstan (not seeded in DB yet – will be skipped gracefully)
+  almaty: 'Almaty',
+  astana: 'Astana',
+  shymkent: 'Shymkent',
+  karaganda: 'Karaganda',
+  aktobe: 'Aktobe',
+  taraz: 'Taraz',
+  pavlodar: 'Pavlodar',
+  'ust-kamenogorsk': 'Ust-Kamenogorsk',
+  semey: 'Semey',
+  kostanay: 'Kostanay',
+  kyzylorda: 'Kyzylorda',
+  uralsk: 'Uralsk',
+  petropavlovsk: 'Petropavlovsk',
+  aktau: 'Aktau',
+  atyrau: 'Atyrau',
+  taldykorgan: 'Taldykorgan',
+  kokshetau: 'Kokshetau',
+  turkestan: 'Turkestan',
+};
+
+const COUNTRY_SLUG_TO_ISO: Record<string, string> = {
+  uzbekistan: 'UZ',
+  kazakhstan: 'KZ',
+};
+
+const STATIC_COUNTRIES: CountrySelectionResponseDto[] = [
   {
     id: 'uzbekistan',
     name: 'Узбекистан',
@@ -134,7 +187,38 @@ export class LocationService {
       .toLowerCase()
       .replace(/^\+/, '');
 
-    return COUNTRY_SELECTION_OPTIONS.filter((country) => {
+    // --- Resolve real DB UUIDs for cities ---
+    // Build a map of (EN city name lowercase) → DB UUID so we can replace
+    // the human-readable slug IDs in the static template with real UUIDs.
+    // Cities that are not yet in the DB (e.g. Kazakhstan cities) keep their
+    // original slug as a fallback so they still appear in the list.
+    const dbCities = await this.prisma.city.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+    });
+
+    // name is stored as JSONB { en, ru, uz }
+    const enToUuid = new Map<string, string>();
+    for (const city of dbCities) {
+      const nameObj = city.name as Record<string, string> | null;
+      const en = nameObj?.en?.toLowerCase().trim();
+      if (en) {
+        enToUuid.set(en, city.id);
+      }
+    }
+
+    const resolvedCountries: CountrySelectionResponseDto[] = STATIC_COUNTRIES.map(
+      (country) => ({
+        ...country,
+        cities: country.cities.map((c) => {
+          const enName = CITY_SLUG_TO_EN[c.id]?.toLowerCase().trim();
+          const uuid = enName ? enToUuid.get(enName) : undefined;
+          return { id: uuid ?? c.id, name: c.name };
+        }),
+      }),
+    );
+
+    return resolvedCountries.filter((country) => {
       if (normalizedId && country.id.toLowerCase() !== normalizedId) {
         return false;
       }
