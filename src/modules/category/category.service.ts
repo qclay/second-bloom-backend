@@ -121,7 +121,7 @@ export class CategoryService {
       where.parentId = parentId;
     }
 
-    const [categories, total] = await Promise.all([
+    const [categories, total, totalActiveProductCount, uncategorizedActiveProductCount] = await Promise.all([
       this.categoryRepository.findMany({
         where,
         skip,
@@ -141,6 +141,21 @@ export class CategoryService {
         },
       }),
       this.categoryRepository.count({ where }),
+      this.prisma.product.count({
+        where: {
+          deletedAt: null,
+          isActive: true,
+          status: ProductStatus.PUBLISHED,
+        },
+      }),
+      this.prisma.product.count({
+        where: {
+          deletedAt: null,
+          isActive: true,
+          status: ProductStatus.PUBLISHED,
+          categoryId: null,
+        },
+      }),
     ]);
 
     const categoryIds = categories.map((c) => c.id);
@@ -177,6 +192,8 @@ export class CategoryService {
         page,
         limit: maxLimit,
         totalPages: Math.ceil(total / maxLimit),
+        totalActiveProductCount,
+        uncategorizedActiveProductCount,
       },
     };
 
