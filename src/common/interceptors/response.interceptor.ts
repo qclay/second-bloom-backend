@@ -17,7 +17,7 @@ import {
 
 function hasPaginationMeta(data: unknown): data is {
   data: unknown[];
-  meta: {
+  meta: Record<string, unknown> & {
     total: number;
     page: number;
     limit: number;
@@ -84,6 +84,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<
 
         let responseData: T | null = data;
         let paginationMeta: PaginationMetaDto | undefined;
+        let extraMeta: Record<string, unknown> | undefined;
 
         if (hasPaginationMeta(data)) {
           responseData = data.data as T;
@@ -96,6 +97,11 @@ export class ResponseInterceptor<T> implements NestInterceptor<
             hasNextPage: serviceMeta.page < serviceMeta.totalPages,
             hasPreviousPage: serviceMeta.page > 1,
           };
+
+          const { total, page, limit, totalPages, ...restMeta } = serviceMeta;
+          if (Object.keys(restMeta).length > 0) {
+            extraMeta = restMeta;
+          }
         }
 
         const locale = parseAcceptLanguage(request.headers['accept-language']);
@@ -115,6 +121,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<
           ...(paginationMeta && {
             meta: {
               pagination: paginationMeta,
+              ...(extraMeta || {}),
             },
           }),
         };
