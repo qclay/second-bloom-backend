@@ -80,10 +80,19 @@ export class LoggingInterceptor implements NestInterceptor {
             responseTime,
             stack: error.stack,
           };
+          
+          let validationErrors;
+          if (error && typeof (error as any).getResponse === 'function') {
+            const response = (error as any).getResponse();
+            if (response && typeof response === 'object' && response.message) {
+              validationErrors = response.message;
+            }
+          }
 
           (this.logger as LoggerWithMeta).error('Request failed', {
             ...meta,
             errorMessage: error.message,
+            validationErrors,
           });
         },
       }),
