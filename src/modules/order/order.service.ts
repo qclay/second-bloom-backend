@@ -26,7 +26,11 @@ import { NotificationService } from '../notification/notification.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { API_MESSAGES } from '../../common/i18n/api-messages.i18n';
-import { t, type Locale } from '../../common/i18n/translation.util';
+import {
+  resolveTranslation,
+  t,
+  type Locale,
+} from '../../common/i18n/translation.util';
 
 @Injectable()
 export class OrderService {
