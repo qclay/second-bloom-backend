@@ -99,7 +99,7 @@ export class AuctionService {
         const existingActiveAuction = await tx.auction.findFirst({
           where: {
             productId: dto.productId,
-            status: 'ACTIVE',
+            status: { in: ['ACTIVE', 'PENDING'] },
             deletedAt: null,
           },
         });
@@ -126,7 +126,7 @@ export class AuctionService {
             startTime: now,
             endTime,
             durationHours: dto.durationHours ?? 2,
-            status: AuctionStatus.ACTIVE,
+            status: AuctionStatus.PENDING,
             autoExtend: dto.autoExtend ?? true,
             extendMinutes: dto.extendMinutes ?? 5,
           },
@@ -134,10 +134,8 @@ export class AuctionService {
       },
     );
 
-    await this.safeScheduleAuctionJob(auction.id, new Date(auction.endTime));
-
     this.logger.log(
-      `Auction created: ${auction.id} for product ${dto.productId}`,
+      `Auction created: ${auction.id} for product ${dto.productId} (Status: PENDING)`,
     );
     return this.findById(auction.id);
   }
@@ -171,11 +169,11 @@ export class AuctionService {
     }
 
     if (active === true) {
-      where.status = 'ACTIVE';
+      where.status = { in: ['ACTIVE', 'PENDING'] };
       where.endTime = { gte: new Date() };
     } else if (active === false) {
       where.OR = [
-        { status: { not: 'ACTIVE' } },
+        { status: { notIn: ['ACTIVE', 'PENDING'] } },
         { endTime: { lt: new Date() } },
       ];
     } else if (status) {
@@ -339,9 +337,12 @@ export class AuctionService {
       throw new ForbiddenException('You can only update your own auctions');
     }
 
-    if (auction.status !== 'ACTIVE' && dto.status !== 'CANCELLED') {
+    if (
+      !['ACTIVE', 'PENDING'].includes(auction.status) &&
+      dto.status !== 'CANCELLED'
+    ) {
       throw new BadRequestException(
-        'Can only update active auctions or cancel them',
+        'Can only update active/pending auctions or cancel them',
       );
     }
 
@@ -739,9 +740,9 @@ export class AuctionService {
       throw new NotFoundException(`Auction with ID ${auctionId} not found`);
     }
 
-    if (auction.status !== 'ACTIVE') {
+    if (!['ACTIVE', 'PENDING'].includes(auction.status)) {
       throw new BadRequestException(
-        'Only active auctions can be closed early. Auction status: ' +
+        'Only active or pending auctions can be closed early. Auction status: ' +
           auction.status,
       );
     }

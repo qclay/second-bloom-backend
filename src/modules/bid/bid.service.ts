@@ -156,7 +156,9 @@ export class BidService {
           select: {
             status: true,
             endTime: true,
+            startTime: true,
             startPrice: true,
+            durationHours: true,
             autoExtend: true,
             extendMinutes: true,
             version: true,
@@ -167,12 +169,33 @@ export class BidService {
           throw new NotFoundException('Auction not found');
         }
 
-        if (auctionInTx.status !== AuctionStatus.ACTIVE) {
-          throw new BadRequestException('Auction is not active');
+        if (
+          auctionInTx.status !== AuctionStatus.ACTIVE &&
+          auctionInTx.status !== AuctionStatus.PENDING
+        ) {
+          throw new BadRequestException('Auction is not active or pending');
         }
 
         const nowInTx = new Date();
-        if (auctionInTx.endTime <= nowInTx) {
+        const isFirstBid = auctionInTx.status === AuctionStatus.PENDING;
+        let auctionEndTime = new Date(auctionInTx.endTime);
+
+        if (isFirstBid) {
+          auctionEndTime = new Date(
+            nowInTx.getTime() + auctionInTx.durationHours * 60 * 60 * 1000,
+          );
+          await tx.auction.update({
+            where: { id: dto.auctionId },
+            data: {
+              status: AuctionStatus.ACTIVE,
+              startTime: nowInTx,
+              endTime: auctionEndTime,
+            },
+          });
+          this.logger.log(
+            `First bid on auction ${dto.auctionId}. Status set to ACTIVE, endTime set to ${auctionEndTime.toISOString()}`,
+          );
+        } else if (auctionInTx.endTime <= nowInTx) {
           throw new BadRequestException(
             'Auction has ended. Bids are not accepted after the end time.',
           );
@@ -271,9 +294,9 @@ export class BidService {
           },
         });
 
-        if (auctionInTx.autoExtend) {
+        if (auctionInTx.autoExtend && !isFirstBid) {
           const timeUntilEnd =
-            auctionInTx.endTime.getTime() - nowInTx.getTime();
+            auctionEndTime.getTime() - nowInTx.getTime();
           const extendThreshold = auctionInTx.extendMinutes * 60 * 1000;
 
           if (timeUntilEnd > 0 && timeUntilEnd <= extendThreshold) {
@@ -298,11 +321,15 @@ export class BidService {
           }
         }
 
-        return { createdBid, deletedBidIds };
+        return { createdBid, deletedBidIds, isFirstBid, auctionEndTime };
       },
     );
 
-    const { createdBid: bid, deletedBidIds } = result;
+    const { createdBid: bid, deletedBidIds, isFirstBid, auctionEndTime } = result;
+
+    if (isFirstBid) {
+      await this.safeScheduleAuctionJob(dto.auctionId, auctionEndTime);
+    }
 
     this.logger.log(
       `Bid created: ${bid.id} for auction ${dto.auctionId} by user ${bidderId}. Amount: ${bidAmount}` +
@@ -955,6 +982,23 @@ export class BidService {
         totalPages: Math.ceil(total / maxLimit),
       },
     };
+  }
+
+  private async safeScheduleAuctionJob(
+    auctionId: string,
+    endTime: Date,
+  ): Promise<void> {
+    try {
+      await this.auctionSchedulingService.scheduleAuctionEnd(
+        auctionId,
+        endTime,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to schedule auction job after first bid for ${auctionId}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
   }
 
   private async safeRescheduleAuctionJob(

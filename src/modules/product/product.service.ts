@@ -476,7 +476,7 @@ export class ProductService {
       if (salePhase === 'in_auction') {
         where.auctions = {
           some: {
-            status: 'ACTIVE',
+            status: { in: ['ACTIVE', 'PENDING'] },
             endTime: { gte: new Date() },
             deletedAt: null,
           },
@@ -687,7 +687,7 @@ export class ProductService {
         const activeAuction = p.auctions?.[0];
         const isAuctionActive =
           activeAuction &&
-          activeAuction.status === 'ACTIVE' &&
+          ['ACTIVE', 'PENDING'].includes(activeAuction.status) &&
           activeAuction.endTime >= now;
         let saleStatus:
           | 'available'
@@ -747,7 +747,7 @@ export class ProductService {
     if (salePhase === 'in_auction') {
       where.auctions = {
         some: {
-          status: 'ACTIVE',
+          status: { in: ['ACTIVE', 'PENDING'] },
           endTime: { gte: new Date() },
           deletedAt: null,
         },
@@ -1067,7 +1067,7 @@ export class ProductService {
         const activeAuction = p.auctions?.[0];
         const isAuctionActive =
           activeAuction &&
-          activeAuction.status === 'ACTIVE' &&
+          ['ACTIVE', 'PENDING'].includes(activeAuction.status) &&
           activeAuction.endTime >= now;
         let saleStatus:
           | 'available'
@@ -1545,7 +1545,7 @@ export class ProductService {
 
     if (dto.createAuction === true) {
       const activeAuction = await this.prisma.auction.findFirst({
-        where: { productId: id, status: 'ACTIVE' },
+        where: { productId: id, status: { in: ['ACTIVE', 'PENDING'] } },
         select: { id: true },
       });
       if (activeAuction) {
@@ -1595,7 +1595,7 @@ export class ProductService {
     const activeAuctions = await this.prisma.auction.count({
       where: {
         productId: id,
-        status: 'ACTIVE',
+        status: { in: ['ACTIVE', 'PENDING'] },
       },
     });
 
