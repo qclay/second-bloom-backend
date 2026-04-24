@@ -1360,6 +1360,7 @@ export class ProductService {
         id: string;
         endTime: Date;
         status: string;
+        durationHours: number;
         currentPrice: unknown;
         totalBids: number;
         winner: {
