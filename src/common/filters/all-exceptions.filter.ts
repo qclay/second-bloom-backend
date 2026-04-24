@@ -42,7 +42,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       parseAcceptLanguage(request.headers['accept-language']) || 'uz';
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
+    let message: string | string[] = 'Internal server error';
+    let translationParams: Record<
+      string,
+      string | number | undefined | null
+    > = {};
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -54,7 +58,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
         exceptionResponse !== null
       ) {
         const responseObj = exceptionResponse as Record<string, unknown>;
-        message = (responseObj.message as string) || exception.message;
+        message =
+          (responseObj.message as string | string[] | undefined) ||
+          exception.message;
+        if (
+          typeof responseObj.params === 'object' &&
+          responseObj.params !== null &&
+          !Array.isArray(responseObj.params)
+        ) {
+          translationParams = responseObj.params as Record<
+            string,
+            string | number | undefined | null
+          >;
+        }
       } else {
         message = exception.message;
       }
@@ -107,7 +123,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let errorMessage = Array.isArray(message)
       ? t(API_MESSAGES, 'Validation failed', {}, locale)
-      : t(API_MESSAGES, message, {}, locale);
+      : t(API_MESSAGES, message, translationParams, locale);
     let finalErrorCode = errorCode;
 
     if (

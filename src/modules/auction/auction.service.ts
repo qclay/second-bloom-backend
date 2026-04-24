@@ -828,7 +828,7 @@ export class AuctionService {
           endTime: { lte: now },
           deletedAt: null,
         },
-        select: { id: true, productId: true },
+        select: { id: true, productId: true, creatorId: true, totalBids: true },
         take: batchSize,
       });
 
@@ -880,6 +880,16 @@ export class AuctionService {
               winnerId: null,
             },
           });
+
+          if (auction.totalBids === 0) {
+            await this.prisma.user.update({
+              where: { id: auction.creatorId },
+              data: { publicationCredits: { increment: 1 } },
+            });
+            this.logger.log(
+              `Refunded 1 publication credit to user ${auction.creatorId} for ended auction ${auction.id} with no bids`,
+            );
+          }
 
           endedCount++;
           this.logger.log(
@@ -985,14 +995,11 @@ export class AuctionService {
     auctionId: string,
     productId?: string | null,
   ): Promise<AuctionResponseDto> {
-    let resolvedProductId = productId ?? null;
-    if (!resolvedProductId) {
-      const auctionRecord = await this.prisma.auction.findUnique({
-        where: { id: auctionId },
-        select: { productId: true },
-      });
-      resolvedProductId = auctionRecord?.productId ?? null;
-    }
+    const auctionRecord = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+      select: { productId: true, creatorId: true, totalBids: true },
+    });
+    const resolvedProductId = productId ?? auctionRecord?.productId ?? null;
 
     await this.prisma.auction.update({
       where: { id: auctionId },
@@ -1001,6 +1008,16 @@ export class AuctionService {
         winnerId: null,
       },
     });
+
+    if (auctionRecord && auctionRecord.totalBids === 0) {
+      await this.prisma.user.update({
+        where: { id: auctionRecord.creatorId },
+        data: { publicationCredits: { increment: 1 } },
+      });
+      this.logger.log(
+        `Refunded 1 publication credit to user ${auctionRecord.creatorId} for finalized auction ${auctionId} with no bids`,
+      );
+    }
 
     const participants = await this.prisma.bid.findMany({
       where: { auctionId, isRetracted: false },

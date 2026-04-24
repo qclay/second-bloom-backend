@@ -63,7 +63,8 @@ export class ThrottlerPerUserGuard extends ThrottlerGuard {
     throw new HttpException(
       {
         success: false,
-        message: `Too many requests. Limit: ${limit} requests per ${throttlerLimitDetail.ttl}ms. Please try again in ${retryAfter}s.`,
+        message: 'Too many requests. Try again in {{retryAfter}}s.',
+        params: { retryAfter },
         statusCode: HttpStatus.TOO_MANY_REQUESTS,
         limit,
         remaining,

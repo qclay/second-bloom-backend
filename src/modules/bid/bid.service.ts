@@ -54,7 +54,13 @@ export class BidService {
       bidder.auctionBannedUntil.getTime() > now.getTime()
     ) {
       throw new ForbiddenException(
-        `You are temporarily banned from participating in auctions until ${bidder.auctionBannedUntil.toISOString()}. Contact support for more information.`,
+        {
+          message:
+            'You are temporarily banned from participating in auctions until {{bannedUntil}}. Contact support for more information.',
+          params: {
+            bannedUntil: bidder.auctionBannedUntil.toISOString(),
+          },
+        },
       );
     }
 
@@ -100,9 +106,11 @@ export class BidService {
       const elapsed = now.getTime() - lastValidBidByUser.createdAt.getTime();
       if (elapsed < BID_RATE_LIMIT_MS) {
         const secondsLeft = Math.ceil((BID_RATE_LIMIT_MS - elapsed) / 1000);
-        throw new BadRequestException(
-          `You can place or update your bid once per minute. Try again in ${secondsLeft} second(s).`,
-        );
+        throw new BadRequestException({
+          message:
+            'You can place or update your bid once per minute. Try again in {{secondsLeft}} second(s).',
+          params: { secondsLeft },
+        });
       }
     }
 
@@ -112,16 +120,19 @@ export class BidService {
     const bidIncrement = Number(auction.bidIncrement);
 
     if (bidAmount < minBidAmount) {
-      throw new BadRequestException(
-        `Bid amount must be at least ${minBidAmount}`,
-      );
+      throw new BadRequestException({
+        message: 'Bid amount must be at least {{minBidAmount}}',
+        params: { minBidAmount },
+      });
     }
 
     const minimumRequiredBid = currentPrice + bidIncrement;
     if (bidAmount < minimumRequiredBid) {
-      throw new BadRequestException(
-        `Bid amount must be at least ${minimumRequiredBid} (current price + increment)`,
-      );
+      throw new BadRequestException({
+        message:
+          'Bid amount must be at least {{minimumRequiredBid}} (current price + increment)',
+        params: { minimumRequiredBid },
+      });
     }
 
     const previousWinningBid = await this.bidRepository.findWinningBid(

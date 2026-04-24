@@ -24,6 +24,64 @@ export const API_MESSAGES: Record<string, TranslationRecord> = {
       ru: 'Вы не можете участвовать в этом аукционе. Продавец ограничил ваш доступ.',
       uz: 'Siz bu auksionda qatnasha olmaysiz. Sotuvchi sizning kirishingizni chekladi.',
     },
+  'You are temporarily banned from participating in auctions until {{bannedUntil}}. Contact support for more information.':
+    {
+      en: 'You are temporarily banned from auctions until {{bannedUntil}}.',
+      ru: 'Доступ к аукционам временно ограничен до {{bannedUntil}}.',
+      uz: 'Auksionlarga kirish {{bannedUntil}} gacha vaqtincha cheklangan.',
+    },
+  'You can place or update your bid once per minute. Try again in {{secondsLeft}} second(s).':
+    {
+      en: 'You can update your bid once per minute. Try again in {{secondsLeft}}s.',
+      ru: 'Ставку можно обновлять раз в минуту. Повторите через {{secondsLeft}} с.',
+      uz: 'Stavkani daqiqasiga bir marta yangilash mumkin. {{secondsLeft}} s dan keyin urinib ko‘ring.',
+    },
+  'Bid amount must be at least {{minBidAmount}}': {
+    en: 'Minimum bid: {{minBidAmount}}.',
+    ru: 'Минимальная ставка: {{minBidAmount}}.',
+    uz: 'Minimal stavka: {{minBidAmount}}.',
+  },
+  'Bid amount must be at least {{minimumRequiredBid}} (current price + increment)':
+    {
+      en: 'Minimum allowed bid: {{minimumRequiredBid}}.',
+      ru: 'Минимально допустимая ставка: {{minimumRequiredBid}}.',
+      uz: 'Ruxsat etilgan minimal stavka: {{minimumRequiredBid}}.',
+    },
+  'Auction is not active': {
+    en: 'Auction is not active',
+    ru: 'Аукцион не активен',
+    uz: 'Auksion faol emas',
+  },
+  'Auction has ended. Bids are not accepted after the end time.': {
+    en: 'Auction has ended. Bids are closed.',
+    ru: 'Аукцион завершён. Ставки закрыты.',
+    uz: 'Auksion yakunlangan. Stavkalar yopilgan.',
+  },
+  'Bid is already retracted': {
+    en: 'Bid already removed',
+    ru: 'Ставка уже отозвана',
+    uz: 'Stavka allaqachon qaytarilgan',
+  },
+  'Cannot retract bid on inactive auction': {
+    en: 'Cannot remove bid in inactive auction',
+    ru: 'Нельзя отозвать ставку в неактивном аукционе',
+    uz: 'Faol bo‘lmagan auksionda stavkani qaytarib bo‘lmaydi',
+  },
+  'Only the bidder, auction owner, or admin can retract/remove this bid': {
+    en: 'Only bidder, owner, or admin can remove this bid',
+    ru: 'Удалить ставку может только автор, владелец аукциона или админ',
+    uz: 'Stavkani faqat muallif, auksion egasi yoki admin olib tashlay oladi',
+  },
+  'Cannot restore bid on inactive auction': {
+    en: 'Cannot restore bid in inactive auction',
+    ru: 'Нельзя восстановить ставку в неактивном аукционе',
+    uz: 'Faol bo‘lmagan auksionda stavkani tiklab bo‘lmaydi',
+  },
+  'Too many requests. Try again in {{retryAfter}}s.': {
+    en: 'Too many requests. Try again in {{retryAfter}}s.',
+    ru: 'Слишком много запросов. Повторите через {{retryAfter}} с.',
+    uz: 'So‘rovlar juda ko‘p. {{retryAfter}} s dan keyin urinib ko‘ring.',
+  },
   'Only the auction owner can mark bids as read': {
     en: 'Only the auction owner can mark bids as read',
     ru: 'Только владелец аукциона может отмечать ставки как прочитанные',
