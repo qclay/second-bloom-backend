@@ -177,4 +177,24 @@ export const API_MESSAGES: Record<string, TranslationRecord> = {
     ru: 'Поздравляем! Вы выиграли аукцион.',
     uz: `Tabriklaymiz! Siz auksionda g'olib bo'ldingiz.`,
   },
+  'New order #{{orderNumber}}': {
+    en: 'New order #{{orderNumber}}',
+    ru: 'Новый заказ #{{orderNumber}}',
+    uz: 'Yangi buyurtma #{{orderNumber}}',
+  },
+  'Order #{{orderNumber}} accepted': {
+    en: 'Order #{{orderNumber}} accepted',
+    ru: 'Заказ #{{orderNumber}} принят',
+    uz: 'Buyurtma #{{orderNumber}} qabul qilindi',
+  },
+  'Your product did not pass moderation. Reason: {{reason}}': {
+    en: 'Your product did not pass moderation. Reason: {{reason}}',
+    ru: 'Ваш товар не прошел модерацию. Причина: {{reason}}',
+    uz: "Sizning mahsulotingiz moderatsiyadan o'tmadi. Sabab: {{reason}}",
+  },
+  'Not specified': {
+    en: 'Not specified',
+    ru: 'Не указана',
+    uz: 'Koʻrsatilmagan',
+  },
 };

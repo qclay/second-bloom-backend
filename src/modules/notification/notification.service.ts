@@ -26,6 +26,7 @@ import { PresenceService } from '../../redis/presence.service';
 import { DeviceTokensService } from '../../redis/device-tokens.service';
 import { NOTIFICATION_MESSAGES } from '../../common/i18n/notifications.i18n';
 import { t, type Locale } from '../../common/i18n/translation.util';
+import { API_MESSAGES } from '../../common/i18n/api-messages.i18n';
 
 @Injectable()
 export class NotificationService {
@@ -176,7 +177,11 @@ export class NotificationService {
       };
       params.name = context.bidderName || defaultNames[lang] || 'User';
     } else if (key === 'PRODUCT_REJECTED') {
-      params.reason = context.reason || '';
+      const reason = context.reason || 'Not specified';
+      params.reason =
+        reason === 'Not specified'
+          ? t(API_MESSAGES, 'Not specified', {}, lang)
+          : reason;
     }
 
     const config = NOTIFICATION_MESSAGES[key] || NOTIFICATION_MESSAGES.DEFAULT;

@@ -25,6 +25,8 @@ import { ConversationService } from '../conversation/conversation.service';
 import { NotificationService } from '../notification/notification.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { API_MESSAGES } from '../../common/i18n/api-messages.i18n';
+import { t, type Locale } from '../../common/i18n/translation.util';
 
 @Injectable()
 export class OrderService {
@@ -821,9 +823,15 @@ export class OrderService {
             phoneCountryCode: true,
             firstName: true,
             lastName: true,
+            language: true,
           },
         },
       },
+    });
+
+    const seller = await this.prisma.user.findUnique({
+      where: { id: sellerId },
+      select: { language: true },
     });
 
     if (!order) {
@@ -887,10 +895,13 @@ export class OrderService {
       },
     };
 
+    const buyerLang = (order.buyer.language as Locale) || 'uz';
+    const sellerLang = (seller?.language as Locale) || 'uz';
+
     await this.conversationService.sendMessageAsSender(
       conversation.id,
       buyerId,
-      `Новый заказ #${order.orderNumber}`,
+      t(API_MESSAGES, 'New order #{{orderNumber}}', { orderNumber: order.orderNumber }, buyerLang),
       bannerMetadata,
       MessageType.SYSTEM,
     );
@@ -898,7 +909,7 @@ export class OrderService {
     await this.conversationService.sendMessageAsSender(
       conversation.id,
       sellerId,
-      `Заказ #${order.orderNumber} принят`,
+      t(API_MESSAGES, 'Order #{{orderNumber}} accepted', { orderNumber: order.orderNumber }, sellerLang),
       bannerMetadata,
       MessageType.SYSTEM,
     );

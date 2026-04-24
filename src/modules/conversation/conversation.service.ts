@@ -33,9 +33,12 @@ import { ConversationGateway } from './gateways/conversation.gateway';
 import { ResolveConversationDto } from './dto/resolve-conversation.dto';
 import { ConversationContextType } from './constants/conversation-context.enum';
 import {
+  t,
+  Locale,
   resolveTranslation,
   type TranslationRecord,
 } from '../../common/i18n/translation.util';
+import { API_MESSAGES } from '../../common/i18n/api-messages.i18n';
 import { toISOString } from '../../common/utils/date.util';
 
 const CONVERSATION_INCLUDE = {
@@ -1661,10 +1664,27 @@ export class ConversationService {
     const adminUserId = await this.getAdministrationUserId();
     if (!adminUserId || adminUserId === sellerId) return;
     try {
+      const seller = await this.prisma.user.findUnique({
+        where: { id: sellerId },
+        select: { language: true },
+      });
+      const lang = (seller?.language as Locale) || 'uz';
+
       const { conversationId } =
         await this.getOrCreateAdministrationConversation(sellerId);
       if (!conversationId) return;
-      const content = `Your product did not pass moderation. Reason: ${reason}`;
+
+      const resolvedReason =
+        reason === 'Not specified'
+          ? t(API_MESSAGES, 'Not specified', {}, lang)
+          : reason;
+
+      const content = t(
+        API_MESSAGES,
+        'Your product did not pass moderation. Reason: {{reason}}',
+        { reason: resolvedReason },
+        lang,
+      );
       const metadata = {
         type: 'MODERATION_REJECT',
         productId: product.id,
