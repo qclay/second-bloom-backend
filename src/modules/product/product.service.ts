@@ -13,7 +13,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
-import { Prisma, ProductStatus, UserRole, OrderStatus } from '@prisma/client';
+import { Prisma, ProductStatus, UserRole, OrderStatus, AuctionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRepository } from '../category/repositories/category.repository';
 import { AuctionService } from '../auction/auction.service';
@@ -476,8 +476,10 @@ export class ProductService {
       if (salePhase === 'in_auction') {
         where.auctions = {
           some: {
-            status: { in: ['ACTIVE', 'PENDING'] },
-            endTime: { gte: new Date() },
+            OR: [
+              { status: AuctionStatus.PENDING },
+              { status: AuctionStatus.ACTIVE, endTime: { gte: new Date() } },
+            ],
             deletedAt: null,
           },
         };
@@ -687,8 +689,9 @@ export class ProductService {
         const activeAuction = p.auctions?.[0];
         const isAuctionActive =
           activeAuction &&
-          ['ACTIVE', 'PENDING'].includes(activeAuction.status) &&
-          activeAuction.endTime >= now;
+          ((activeAuction.status === AuctionStatus.ACTIVE &&
+            activeAuction.endTime >= now) ||
+            activeAuction.status === AuctionStatus.PENDING);
         let saleStatus:
           | 'available'
           | 'onAuction'
@@ -747,8 +750,10 @@ export class ProductService {
     if (salePhase === 'in_auction') {
       where.auctions = {
         some: {
-          status: { in: ['ACTIVE', 'PENDING'] },
-          endTime: { gte: new Date() },
+          OR: [
+            { status: AuctionStatus.PENDING },
+            { status: AuctionStatus.ACTIVE, endTime: { gte: new Date() } },
+          ],
           deletedAt: null,
         },
       };
@@ -1067,8 +1072,9 @@ export class ProductService {
         const activeAuction = p.auctions?.[0];
         const isAuctionActive =
           activeAuction &&
-          ['ACTIVE', 'PENDING'].includes(activeAuction.status) &&
-          activeAuction.endTime >= now;
+          ((activeAuction.status === AuctionStatus.ACTIVE &&
+            activeAuction.endTime >= now) ||
+            activeAuction.status === AuctionStatus.PENDING);
         let saleStatus:
           | 'available'
           | 'onAuction'
@@ -1318,8 +1324,9 @@ export class ProductService {
     const now = new Date();
     const isAuctionActive =
       activeAuction &&
-      activeAuction.status === 'ACTIVE' &&
-      activeAuction.endTime >= now;
+      ((activeAuction.status === AuctionStatus.ACTIVE &&
+        activeAuction.endTime >= now) ||
+        activeAuction.status === AuctionStatus.PENDING);
     let saleStatus: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold' =
       'available';
     if (isAuctionActive) {

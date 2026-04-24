@@ -38,7 +38,7 @@ export class AuctionService {
     private readonly auctionSchedulingService: AuctionSchedulingService,
     private readonly conversationService: ConversationService,
     private readonly moduleRef: ModuleRef,
-  ) {}
+  ) { }
 
   async createAuction(
     dto: CreateAuctionDto,
@@ -76,12 +76,14 @@ export class AuctionService {
     }
 
     const now = new Date();
-    const endTime = dto.endTime
-      ? new Date(dto.endTime)
-      : new Date(now.getTime() + (dto.durationHours ?? 2) * 60 * 60 * 1000);
-
-    if (endTime <= now) {
-      throw new BadRequestException('End time must be in the future');
+    let endTime: Date;
+    if (dto.endTime) {
+      endTime = new Date(dto.endTime);
+      if (endTime <= now) {
+        throw new BadRequestException('End time must be in the future');
+      }
+    } else {
+      endTime = now;
     }
 
     if (dto.minBidAmount === undefined) {
@@ -169,8 +171,10 @@ export class AuctionService {
     }
 
     if (active === true) {
-      where.status = { in: ['ACTIVE', 'PENDING'] };
-      where.endTime = { gte: new Date() };
+      where.OR = [
+        { status: AuctionStatus.PENDING },
+        { status: AuctionStatus.ACTIVE, endTime: { gte: new Date() } },
+      ];
     } else if (active === false) {
       where.OR = [
         { status: { notIn: ['ACTIVE', 'PENDING'] } },
@@ -743,7 +747,7 @@ export class AuctionService {
     if (!['ACTIVE', 'PENDING'].includes(auction.status)) {
       throw new BadRequestException(
         'Only active or pending auctions can be closed early. Auction status: ' +
-          auction.status,
+        auction.status,
       );
     }
 
@@ -843,19 +847,19 @@ export class AuctionService {
       const [products, allParticipants] = await Promise.all([
         productIds.length > 0
           ? this.prisma.product.findMany({
-              where: { id: { in: productIds } },
-              select: { id: true, title: true },
-            })
+            where: { id: { in: productIds } },
+            select: { id: true, title: true },
+          })
           : [],
         auctionIds.length > 0
           ? this.prisma.bid.findMany({
-              where: {
-                auctionId: { in: auctionIds },
-                isRetracted: false,
-              },
-              select: { auctionId: true, bidderId: true },
-              distinct: ['auctionId', 'bidderId'],
-            })
+            where: {
+              auctionId: { in: auctionIds },
+              isRetracted: false,
+            },
+            select: { auctionId: true, bidderId: true },
+            distinct: ['auctionId', 'bidderId'],
+          })
           : [],
       ]);
 
