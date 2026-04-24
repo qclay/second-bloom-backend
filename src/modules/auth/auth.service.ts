@@ -99,6 +99,7 @@ export class AuthService {
           role: UserRole.USER,
           isActive: true,
           isVerified: true,
+          publicationCredits: 1,
         },
       });
     } else if (!user.isActive || user.deletedAt) {

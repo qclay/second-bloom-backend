@@ -88,6 +88,7 @@ export class UserService {
       gender: dto.gender,
       language: dto.language,
       country: dto.country,
+      publicationCredits: 1,
     });
     return UserResponseDto.fromEntity(user);
   }
