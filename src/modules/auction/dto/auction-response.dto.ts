@@ -128,7 +128,7 @@ export class AuctionResponseDto {
       endTime:
         auction.status === AuctionStatus.PENDING
           ? new Date(
-            Date.now() + auction.durationHours * 60 * 60 * 1000,
+            Date.now() + (auction.durationHours || 2) * 60 * 60 * 1000,
           ).toISOString()
           : toISOString(auction.endTime),
       durationHours: auction.durationHours,

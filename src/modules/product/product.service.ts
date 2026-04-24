@@ -625,6 +625,7 @@ export class ProductService {
           id: true,
           endTime: true,
           status: true,
+          durationHours: true,
           currentPrice: true,
           totalBids: true,
           winner: {

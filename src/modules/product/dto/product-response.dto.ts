@@ -313,7 +313,7 @@ export class ProductResponseDto {
             endTime:
               product.activeAuction.status === 'PENDING'
                 ? new Date(
-                  Date.now() + product.activeAuction.durationHours * 60 * 60 * 1000,
+                  Date.now() + (product.activeAuction.durationHours || 2) * 60 * 60 * 1000,
                 ).toISOString()
                 : product.activeAuction.endTime instanceof Date
                   ? product.activeAuction.endTime.toISOString()
