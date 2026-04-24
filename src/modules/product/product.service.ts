@@ -666,6 +666,7 @@ export class ProductService {
         id: string;
         endTime: Date;
         status: string;
+        durationHours: number;
         currentPrice: unknown;
         totalBids: number;
         winner: {
@@ -1015,6 +1016,7 @@ export class ProductService {
               id: true,
               endTime: true,
               status: true,
+              durationHours: true,
               currentPrice: true,
               totalBids: true,
               winner: {
@@ -1048,6 +1050,7 @@ export class ProductService {
         id: string;
         endTime: Date;
         status: string;
+        durationHours: number;
         currentPrice: unknown;
         totalBids: number;
         winner: {

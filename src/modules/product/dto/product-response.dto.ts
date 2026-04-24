@@ -185,7 +185,7 @@ export class ProductResponseDto {
   })
   activeAuction?: {
     id: string;
-    endTime: string;
+    endTime: string | null;
     status: string;
     currentPrice: number;
     totalBids: number;
@@ -234,6 +234,7 @@ export class ProductResponseDto {
         id: string;
         endTime: Date;
         status: string;
+        durationHours: number;
         currentPrice: unknown;
         totalBids: number;
         winner?: {
@@ -310,9 +311,13 @@ export class ProductResponseDto {
         ? {
             id: product.activeAuction.id,
             endTime:
-              product.activeAuction.endTime instanceof Date
-                ? product.activeAuction.endTime.toISOString()
-                : new Date(
+              product.activeAuction.status === 'PENDING'
+                ? new Date(
+                  Date.now() + product.activeAuction.durationHours * 60 * 60 * 1000,
+                ).toISOString()
+                : product.activeAuction.endTime instanceof Date
+                  ? product.activeAuction.endTime.toISOString()
+                  : new Date(
                     product.activeAuction.endTime as unknown as string | number,
                   ).toISOString(),
             status: product.activeAuction.status,

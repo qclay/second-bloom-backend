@@ -28,8 +28,8 @@ export class AuctionResponseDto {
   @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
   startTime!: string;
 
-  @ApiProperty({ example: '2026-03-01T18:00:00.000Z' })
-  endTime!: string;
+  @ApiProperty({ nullable: true, example: '2026-03-01T18:00:00.000Z' })
+  endTime!: string | null;
 
   @ApiProperty()
   durationHours!: number;
@@ -125,7 +125,12 @@ export class AuctionResponseDto {
       bidIncrement: Number(auction.bidIncrement),
       minBidAmount: Number(auction.minBidAmount),
       startTime: toISOString(auction.startTime) ?? '',
-      endTime: toISOString(auction.endTime) ?? '',
+      endTime:
+        auction.status === AuctionStatus.PENDING
+          ? new Date(
+            Date.now() + auction.durationHours * 60 * 60 * 1000,
+          ).toISOString()
+          : toISOString(auction.endTime),
       durationHours: auction.durationHours,
       status: auction.status,
       winnerId: auction.winnerId,
