@@ -624,7 +624,7 @@ export class AuctionService {
 
           await this.conversationService.sendMessageAsSender(
             conversation.id,
-            winnerId,
+            product.sellerId,
             winnerMessage,
             undefined,
             MessageType.SYSTEM,

@@ -1029,13 +1029,19 @@ export class ConversationService {
       throw new BadRequestException('Message is already deleted');
     }
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { language: true },
+    });
+    const lang = (user?.language as Locale) || 'uz';
+
     await this.messageRepository.update(
       { id: messageId },
       {
         isDeleted: true,
         deletedAt: new Date(),
         deletedBy: userId,
-        content: 'This message was deleted',
+        content: t(API_MESSAGES, 'This message was deleted', {}, lang),
       },
     );
 

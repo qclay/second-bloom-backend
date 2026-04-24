@@ -57,7 +57,7 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-      disableErrorMessages: process.env.NODE_ENV === 'production',
+      disableErrorMessages: false, // temporarily enabled for debugging
       validationError: {
         target: false,
         value: false,

@@ -170,7 +170,7 @@ export const API_MESSAGES: Record<string, TranslationRecord> = {
   AUCTION_WINNER_CHAT: {
     en: 'You won the auction. Please coordinate the next steps with the seller.',
     ru: 'Вы выиграли аукцион. Пожалуйста, согласуйте дальнейшие шаги с продавцом.',
-    uz: 'Siz auksionda g‘olib bo‘ldingiz. Keyingi qadamlarni sotuvchiga yozib kelishing.',
+    uz: 'Siz auksionda g‘olib bo‘ldingiz. Keyingi qadamlarni sotuvchi bilan kelishib oling.',
   },
   AUCTION_WINNER_NOTIFICATION: {
     en: 'Congratulations! You won the auction.',
@@ -196,5 +196,10 @@ export const API_MESSAGES: Record<string, TranslationRecord> = {
     en: 'Not specified',
     ru: 'Не указана',
     uz: 'Koʻrsatilmagan',
+  },
+  'This message was deleted': {
+    en: 'This message was deleted',
+    ru: 'Это сообщение было удалено',
+    uz: 'Bu xabar o‘chirib tashlandi',
   },
 };

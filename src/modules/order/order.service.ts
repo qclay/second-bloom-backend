@@ -849,18 +849,8 @@ export class OrderService {
       return;
     }
 
-    const productTitle =
-      typeof product.title === 'object' && product.title
-        ? ((product.title as Record<string, string>).ru ??
-          (product.title as Record<string, string>).en ??
-          (product.title as Record<string, string>).uz ??
-          (Object.values(
-            product.title as Record<string, unknown>,
-          )[0] as string) ??
-          '')
-        : typeof product.title === 'string'
-          ? product.title
-          : '';
+    const buyerLang = (order.buyer.language as Locale) || 'uz';
+    const sellerLang = (seller?.language as Locale) || 'uz';
 
     const productPrice =
       typeof product.price === 'object' &&
@@ -875,42 +865,58 @@ export class OrderService {
       ? `${order.buyer.phoneCountryCode}${order.buyer.phoneNumber}`
       : order.buyer.phoneNumber;
 
-    const bannerMetadata = {
-      type: 'ORDER_CREATED',
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      productId: order.productId,
-      status: order.status,
-      sellerId,
-      product: {
-        title: productTitle,
-        price: productPrice,
-        image: productImage,
-      },
-      buyer: {
-        username: order.buyer.username ?? null,
-        firstName: order.buyer.firstName,
-        lastName: order.buyer.lastName,
-        phone: buyerPhone,
-      },
-    };
+    const createBannerMetadata = (lang: Locale) => {
+      const title =
+        typeof product.title === 'object' && product.title
+          ? resolveTranslation(product.title as any, lang) ?? ''
+          : typeof product.title === 'string'
+            ? product.title
+            : '';
 
-    const buyerLang = (order.buyer.language as Locale) || 'uz';
-    const sellerLang = (seller?.language as Locale) || 'uz';
+      return {
+        type: 'ORDER_CREATED',
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        productId: order.productId,
+        status: order.status,
+        sellerId,
+        product: {
+          title,
+          price: productPrice,
+          image: productImage,
+        },
+        buyer: {
+          username: order.buyer.username ?? null,
+          firstName: order.buyer.firstName,
+          lastName: order.buyer.lastName,
+          phone: buyerPhone,
+        },
+      };
+    };
 
     await this.conversationService.sendMessageAsSender(
       conversation.id,
       buyerId,
-      t(API_MESSAGES, 'New order #{{orderNumber}}', { orderNumber: order.orderNumber }, buyerLang),
-      bannerMetadata,
+      t(
+        API_MESSAGES,
+        'New order #{{orderNumber}}',
+        { orderNumber: order.orderNumber },
+        buyerLang,
+      ),
+      createBannerMetadata(buyerLang),
       MessageType.SYSTEM,
     );
 
     await this.conversationService.sendMessageAsSender(
       conversation.id,
       sellerId,
-      t(API_MESSAGES, 'Order #{{orderNumber}} accepted', { orderNumber: order.orderNumber }, sellerLang),
-      bannerMetadata,
+      t(
+        API_MESSAGES,
+        'Order #{{orderNumber}} accepted',
+        { orderNumber: order.orderNumber },
+        sellerLang,
+      ),
+      createBannerMetadata(sellerLang),
       MessageType.SYSTEM,
     );
 
@@ -920,9 +926,7 @@ export class OrderService {
   }
 
   private getProductTitleForNotify(product: { title?: unknown }): string {
-    const t = product.title as Record<string, string> | null | undefined;
-    if (!t || typeof t !== 'object') return '';
-    return t.ru ?? t.en ?? t.uz ?? Object.values(t)[0] ?? '';
+    return resolveTranslation(product.title as any, 'ru') ?? '';
   }
 
   private validateStatusTransition(
