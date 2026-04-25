@@ -750,6 +750,7 @@ export class ProductService {
       sellerId,
     };
     if (salePhase === 'in_auction') {
+      where.status = { not: ProductStatus.REJECTED };
       where.auctions = {
         some: {
           OR: [
