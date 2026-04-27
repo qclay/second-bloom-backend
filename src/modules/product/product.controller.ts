@@ -40,6 +40,8 @@ import {
 } from '../../common/decorators/api-success-responses.decorator';
 import { ApiErrorResponseDto } from '../../common/dto/api-error-response.dto';
 import { ProductCountsResponseDto } from './dto/product-counts-response.dto';
+import { InterestedBuyersResponseDto } from './dto/interested-buyers-response.dto';
+import { ConversationResponseDto } from '../conversation/dto/conversation-response.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -191,6 +193,51 @@ export class ProductController {
     @Query('incrementViews') incrementViews?: string,
   ): Promise<ProductResponseDto> {
     return this.productService.findById(id, incrementViews === 'true');
+  }
+
+  @Post(':id/chat')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Open or create product chat with seller',
+    description:
+      'Owner/admin/moderator excluded. Resolves the conversation for this product and returns the chat thread.',
+  })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversation resolved successfully',
+    type: ConversationResponseDto,
+  })
+  @ApiCommonErrorResponses({ conflict: false })
+  async openChatForProduct(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<ConversationResponseDto> {
+    return this.productService.openChatForProduct(id, userId);
+  }
+
+  @Get(':id/interested-buyers')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Get interested buyers for seller product (users who sent at least one message)',
+    description:
+      'Owner/admin/moderator only. Returns distinct users who wrote at least one message in product-related chat.',
+  })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
+  @ApiCommonErrorResponses({ conflict: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Interested buyers list',
+    type: InterestedBuyersResponseDto,
+  })
+  async getInterestedBuyers(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; role: UserRole },
+  ): Promise<InterestedBuyersResponseDto> {
+    return this.productService.getInterestedBuyers(id, user.id, user.role);
   }
 
   @Patch(':id')

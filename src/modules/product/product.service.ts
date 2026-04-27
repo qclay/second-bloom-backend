@@ -25,8 +25,15 @@ import {
 } from '../../common/i18n/translation.util';
 import { TranslationService } from '../translation/translation.service';
 import { ConversationService } from '../conversation/conversation.service';
+import { ConversationContextType } from '../conversation/constants/conversation-context.enum';
+import { ConversationResponseDto } from '../conversation/dto/conversation-response.dto';
 import { TelegramService } from '../../infrastructure/telegram/telegram.service';
 import { NotificationService } from '../notification/notification.service';
+import { PresenceService } from '../../redis/presence.service';
+import {
+  InterestedBuyerDto,
+  InterestedBuyersResponseDto,
+} from './dto/interested-buyers-response.dto';
 
 @Injectable()
 export class ProductService {
@@ -43,6 +50,7 @@ export class ProductService {
     private readonly telegramService: TelegramService,
     @Inject(forwardRef(() => NotificationService))
     private readonly notificationService: NotificationService,
+    private readonly presenceService: PresenceService,
   ) {}
 
   async createProduct(
@@ -1376,6 +1384,138 @@ export class ProductService {
     });
 
     return result;
+  }
+
+  async getInterestedBuyers(
+    productId: string,
+    requesterId: string,
+    requesterRole: UserRole,
+  ): Promise<InterestedBuyersResponseDto> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        sellerId: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!product || product.deletedAt) {
+      throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    const canView =
+      requesterId === product.sellerId ||
+      requesterRole === UserRole.ADMIN ||
+      requesterRole === UserRole.MODERATOR;
+
+    if (!canView) {
+      throw new ForbiddenException(
+        'Only the product owner, admin, or moderator can view interested buyers',
+      );
+    }
+
+    const messages = await this.prisma.message.findMany({
+      where: {
+        senderId: { not: product.sellerId },
+        isDeleted: false,
+        deletedAt: null,
+        conversation: {
+          productId,
+          deletedAt: null,
+          isActive: true,
+          participants: {
+            some: {
+              userId: product.sellerId,
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        senderId: true,
+        createdAt: true,
+        conversationId: true,
+        sender: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phoneCountryCode: true,
+            phoneNumber: true,
+            avatar: {
+              select: {
+                url: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const latestByBuyer = new Map<string, (typeof messages)[number]>();
+    for (const message of messages) {
+      if (!latestByBuyer.has(message.senderId)) {
+        latestByBuyer.set(message.senderId, message);
+      }
+    }
+
+    const buyers = Array.from(latestByBuyer.values());
+
+    const data: InterestedBuyerDto[] = await Promise.all(
+      buyers.map(async (item) => {
+        const isOnline = await this.presenceService.isOnline(item.sender.id);
+        const phoneNumber = item.sender.phoneCountryCode
+          ? `${item.sender.phoneCountryCode}${item.sender.phoneNumber}`
+          : item.sender.phoneNumber;
+
+        return {
+          userId: item.sender.id,
+          firstName: item.sender.firstName,
+          lastName: item.sender.lastName,
+          phoneNumber,
+          avatarUrl: item.sender.avatar?.url ?? null,
+          conversationId: item.conversationId,
+          lastMessageAt: item.createdAt.toISOString(),
+          isOnline,
+        };
+      }),
+    );
+
+    return {
+      data,
+      total: data.length,
+    };
+  }
+
+  async openChatForProduct(
+    productId: string,
+    userId: string,
+  ): Promise<ConversationResponseDto> {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id: productId,
+        deletedAt: null,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return this.conversationService.resolveConversation(
+      {
+        context: ConversationContextType.PRODUCT,
+        productId,
+      },
+      userId,
+    );
   }
 
   async updateProduct(

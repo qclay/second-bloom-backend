@@ -91,7 +91,6 @@ describe('LocationService static cities API', () => {
     const result = await service.getCities(undefined, 'kazakhstan');
     const kz = result[0];
 
-    // Kazakhstan cities are not in the mock DB, so they keep their slug IDs
     const almaty = kz.cities.find((c) => c.name === 'Алматы');
     expect(almaty?.id).toBe('almaty');
   });

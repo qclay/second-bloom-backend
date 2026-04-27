@@ -709,11 +709,53 @@
 
   function productStatusLabel(status) {
     const key = {
-      ACTIVE: 'product_status_active',
-      INACTIVE: 'product_status_inactive',
-      PENDING_MODERATION: 'product_status_pending_moderation',
+      PUBLISHED: 'product_status_active',
+      DRAFT: 'product_status_inactive',
+      REJECTED: 'product_status_inactive',
+      PENDING: 'product_status_pending_moderation',
     }[status || ''];
     return key ? t(key) : (status || '');
+  }
+
+  function updateAuthStateBadge(kind, text) {
+    const el = $('auth-state');
+    if (!el) return;
+    el.classList.remove('ok', 'fail');
+    if (kind === 'ok') el.classList.add('ok');
+    if (kind === 'fail') el.classList.add('fail');
+    el.textContent = text;
+  }
+
+  function refreshAuthStateBadge() {
+    if (!accessToken) {
+      updateAuthStateBadge('fail', 'No auth');
+      return;
+    }
+    const role = currentUser?.role || 'unknown';
+    const tail = accessToken.slice(-6);
+    updateAuthStateBadge('ok', `Auth ${role} ..${tail}`);
+  }
+
+  function runAuthCheck() {
+    if (!accessToken) {
+      updateAuthStateBadge('fail', 'No auth');
+      showToast('No access token', 'error');
+      return;
+    }
+    api('/users/profile')
+      .then((user) => {
+        if (user?.id) {
+          currentUser = user;
+          localStorage.setItem('sb_user', JSON.stringify(user));
+          updateModerationTabVisibility();
+        }
+        refreshAuthStateBadge();
+        showToast('Authorization OK', 'success');
+      })
+      .catch((err) => {
+        updateAuthStateBadge('fail', 'Auth failed');
+        showToast(err.message || 'Authorization failed', 'error');
+      });
   }
 
   function orderStatusLabel(status) {
@@ -901,6 +943,7 @@
       : '';
     $('user-display-name').textContent = name;
     updateModerationTabVisibility();
+    refreshAuthStateBadge();
     switchTab('products');
     connectConversationSocket();
     loadNotificationCount();
@@ -958,6 +1001,7 @@
     if (auctionSocket) { auctionSocket.disconnect(); auctionSocket = null; }
     currentConversationId = null;
     currentAuctionId = null;
+    updateAuthStateBadge('fail', 'No auth');
     showLogin();
     hide($('login-step-verify'));
     show($('login-step-send'));
@@ -1140,11 +1184,11 @@
     products.forEach((p) => {
       const card = document.createElement('div');
       card.className = 'card';
-      const statusClass = p.status === 'ACTIVE' ? 'status-active' : p.status === 'INACTIVE' ? 'status-inactive' : p.status === 'PENDING_MODERATION' ? 'status-pending' : 'status-ended';
+      const statusClass = p.status === 'PUBLISHED' ? 'status-active' : p.status === 'PENDING' ? 'status-pending' : 'status-ended';
       const hasAuction = p.activeAuction;
       const saleStatus = p.saleStatus || 'available';
       const saleStatusClass = { available: 'status-active', onAuction: 'status-pending', awaitingDelivery: 'status-pending', sold: 'status-ended' }[saleStatus] || '';
-      const showProductStatusBadge = p.status === 'PENDING_MODERATION';
+      const showProductStatusBadge = p.status === 'PENDING' || p.status === 'REJECTED' || p.status === 'DRAFT';
       const tags = (p.tags || []).map((tg) => `<span class="tag">${escapeHtml(tg)}</span>`).join('');
       const isAuctionActive = hasAuction && hasAuction.status === 'ACTIVE' && new Date(hasAuction.endTime) > new Date();
       const imgUrl = (p.images && p.images[0]) ? p.images[0].url : '';
@@ -1161,7 +1205,7 @@
           ${imgUrl ? `<img class="card-image" src="${escapeHtml(imgUrl)}" alt="" />` : '<div class="card-image" style="display:flex;align-items:center;justify-content:center;color:#5c6470;font-size:.75rem">—</div>'}
           <div class="card-body">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.35rem;flex-wrap:wrap;gap:.35rem">
-              ${showProductStatusBadge ? `<span class="card-status status-pending">${escapeHtml(productStatusLabel(p.status))}</span>` : `<span class="card-status ${saleStatusClass}">${escapeHtml(saleStatusLabel(saleStatus))}</span>`}
+              ${showProductStatusBadge ? `<span class="card-status ${statusClass}">${escapeHtml(productStatusLabel(p.status))}</span>` : `<span class="card-status ${saleStatusClass}">${escapeHtml(saleStatusLabel(saleStatus))}</span>`}
               ${hasAuction && !showProductStatusBadge ? '<span class="card-status status-pending">Auction</span>' : ''}
             </div>
             <h3 class="card-title">${escapeHtml(p.title)}</h3>
@@ -1336,7 +1380,9 @@
         currentProductDetail = p;
         window._currentProductDetail = p;
         const hasAuction = p.activeAuction;
-        const statusClass = p.status === 'ACTIVE' ? 'status-active' : p.status === 'PENDING_MODERATION' ? 'status-pending' : 'status-inactive';
+        const statusClass = p.status === 'PUBLISHED' ? 'status-active' : p.status === 'PENDING' ? 'status-pending' : 'status-inactive';
+        const canManage = !!currentUser && (p.sellerId === currentUser.id || currentUser.role === 'ADMIN' || currentUser.role === 'MODERATOR');
+        const isOwner = !!currentUser && p.sellerId === currentUser.id;
         const tags = (p.tags || []).map((tg) => `<span class="tag">${escapeHtml(tg)}</span>`).join('');
 
         let auctionHtml = '';
@@ -1369,13 +1415,13 @@
               <div>
                 <h2 class="detail-title">${escapeHtml(p.title)}</h2>
                 <span class="card-status ${statusClass}">${escapeHtml(productStatusLabel(p.status))}</span>
-                ${p.status !== 'PENDING_MODERATION' ? `<span class="card-status ${saleStatusClass}" style="margin-left:.35rem">${saleStatusLabel(saleStatus)}</span>` : ''}
+                ${p.status !== 'PENDING' ? `<span class="card-status ${saleStatusClass}" style="margin-left:.35rem">${saleStatusLabel(saleStatus)}</span>` : ''}
               </div>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap">
                 ${p.sellerId && p.sellerId !== currentUser?.id ? `<button class="btn primary small" onclick="window._startChatWithProduct(window._currentProductDetail)">Contact seller</button>` : ''}
                 ${p.sellerId && p.sellerId !== currentUser?.id && !hasAuction ? `<button class="btn success small" id="btn-buy-product">${t('buy_product')}</button>` : ''}
-                <button class="btn primary small" onclick="window._editProduct()">${t('edit')}</button>
-                <button class="btn danger small" onclick="window._deleteProduct('${p.id}')">${t('delete')}</button>
+                ${canManage ? `<button class="btn primary small" onclick="window._editProduct()">${t('edit')}</button>` : ''}
+                ${canManage ? `<button class="btn danger small" onclick="window._deleteProduct('${p.id}')">${t('delete')}</button>` : ''}
               </div>
             </div>
             <div class="detail-section">
@@ -1390,9 +1436,22 @@
               ${p.description ? `<div style="margin-top:.75rem;color:#8b98a5;font-size:.9rem">${escapeHtml(p.description)}</div>` : ''}
               <div class="card-tags" style="margin-top:.75rem">${tags}</div>
             </div>
+            ${isOwner ? `
+              <div class="interested-buyers-wrap">
+                <h4 class="interested-buyers-title">Interested buyers</h4>
+                <div id="interested-buyers-list" class="interested-buyers-list">
+                  <div class="interested-buyers-empty">${t('loading')}</div>
+                </div>
+              </div>
+            ` : ''}
             ${auctionHtml}
           </div>
         `;
+
+        if (isOwner) {
+          loadInterestedBuyers(p.id);
+        }
+
         const buyBtn = $('btn-buy-product');
         if (buyBtn) {
           buyBtn.addEventListener('click', () => {
@@ -1440,6 +1499,51 @@
       })
       .catch((err) => {
         $('product-detail-content').innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      });
+  }
+
+  function loadInterestedBuyers(productId) {
+    const listEl = $('interested-buyers-list');
+    if (!listEl || !productId) return;
+    listEl.innerHTML = '<div class="interested-buyers-empty">' + t('loading') + '</div>';
+    api(`/products/${productId}/interested-buyers`)
+      .then((res) => {
+        const rows = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        if (!rows.length) {
+          listEl.innerHTML = '<div class="interested-buyers-empty">No interested buyers yet</div>';
+          return;
+        }
+        listEl.innerHTML = rows.map((buyer) => {
+          const name = [buyer.firstName, buyer.lastName].filter(Boolean).join(' ') || buyer.phoneNumber || buyer.userId;
+          const onlineClass = buyer.isOnline ? 'interested-buyer-online' : '';
+          const onlineText = buyer.isOnline ? t('online') : t('offline');
+          const when = buyer.lastMessageAt ? formatDate(buyer.lastMessageAt) : '--';
+          return `<div class="interested-buyer-item">
+            <div class="interested-buyer-main">
+              <div class="interested-buyer-name">${escapeHtml(name)}</div>
+              <div class="interested-buyer-meta">
+                <span>${escapeHtml(buyer.phoneNumber || '--')}</span>
+                <span class="${onlineClass}">${escapeHtml(onlineText)}</span>
+                <span>Last message: ${escapeHtml(when)}</span>
+              </div>
+            </div>
+            <button type="button" class="btn secondary small interested-open-chat" data-conversation-id="${escapeHtml(buyer.conversationId)}">${escapeHtml(t('open_chat'))}</button>
+          </div>`;
+        }).join('');
+
+        listEl.querySelectorAll('.interested-open-chat').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const conversationId = btn.getAttribute('data-conversation-id');
+            if (!conversationId) return;
+            openConversationById(conversationId)
+              .catch((err) => {
+                showToast(err.message || 'Failed to open chat', 'error');
+              });
+          });
+        });
+      })
+      .catch((err) => {
+        listEl.innerHTML = '<div class="interested-buyers-empty">' + escapeHtml(err.message || 'Failed to load buyers') + '</div>';
       });
   }
 
@@ -2379,9 +2483,22 @@
 
   function loadConversations() {
     if (!accessToken) return;
-    api('/conversations?page=1&limit=50')
-      .then((res) => { const list = res.data || res || []; conversationsCache = Array.isArray(list) ? list : []; renderConversationList(conversationsCache); requestOnlineStatuses(); })
+    return api('/conversations?page=1&limit=50')
+      .then((res) => { const list = res.data || res || []; conversationsCache = Array.isArray(list) ? list : []; renderConversationList(conversationsCache); requestOnlineStatuses(); return conversationsCache; })
       .catch((err) => { console.error('Load conversations:', err); conversationsCache = []; renderConversationList([]); });
+  }
+
+  async function openConversationById(conversationId) {
+    if (!conversationId) return;
+    const existing = conversationsCache.find((c) => c.id === conversationId);
+    if (!existing) {
+      const conversation = await api(`/conversations/${conversationId}`);
+      if (conversation?.id) {
+        conversationsCache = [conversation, ...conversationsCache.filter((c) => c.id !== conversation.id)];
+      }
+    }
+    switchTab('chat');
+    selectConversation(conversationId);
   }
 
   function getConversationDisplayName(c) {
@@ -2414,12 +2531,54 @@
       const other = c.participants?.find((p) => p.userId !== currentUser?.id);
       const isOnline = other && onlineUsers.has(other.userId);
       const orderLabel = c.pinnedOrder ? ` · ${t('order_chat_label')} #${escapeHtml(c.pinnedOrder.orderNumber || c.pinnedOrder.id?.slice(0, 8) || '')}` : '';
+      const flags = [
+        c.blocked ? '<span class="conv-flag blocked">Blocked by you</span>' : '',
+        c.isBlocked ? '<span class="conv-flag send-locked">Send locked</span>' : '',
+      ].filter(Boolean).join('');
       const li = document.createElement('li'); li.dataset.conversationId = c.id;
-      li.innerHTML = `<div class="conv-row"><div class="conv-avatar-wrap">${avatarHtml}</div>${isOnline ? '<span class="online-dot"></span>' : ''}<div class="conv-row-main"><strong>${escapeHtml(name)}</strong>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div></div><div class="conv-preview">${escapeHtml(preview)}</div>${orderLabel ? `<div class="conv-order-label">${orderLabel}</div>` : ''}`;
+      li.innerHTML = `<div class="conv-row"><div class="conv-avatar-wrap">${avatarHtml}</div>${isOnline ? '<span class="online-dot"></span>' : ''}<div class="conv-row-main"><strong>${escapeHtml(name)}</strong>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div></div><div class="conv-preview">${escapeHtml(preview)}</div>${orderLabel ? `<div class="conv-order-label">${orderLabel}</div>` : ''}${flags ? `<div class="conv-flags">${flags}</div>` : ''}`;
       li.addEventListener('click', () => selectConversation(c.id));
       if (c.id === currentConversationId) li.classList.add('active');
       listEl.appendChild(li);
     });
+  }
+
+  function applyConversationSendLock(conv) {
+    const input = $('message-input');
+    const sendBtn = $('btn-send-message');
+    if (!input || !sendBtn) return;
+
+    let noteEl = $('chat-block-note');
+    if (!noteEl) {
+      noteEl = document.createElement('div');
+      noteEl.id = 'chat-block-note';
+      noteEl.className = 'chat-block-note hidden';
+      const form = $('message-form');
+      form?.parentNode?.insertBefore(noteEl, form);
+    }
+
+    if (!conv) {
+      input.disabled = false;
+      sendBtn.disabled = false;
+      noteEl.textContent = '';
+      noteEl.classList.add('hidden');
+      return;
+    }
+
+    const isLocked = !!conv.isBlocked || !!conv.blocked;
+    input.disabled = isLocked;
+    sendBtn.disabled = isLocked;
+    if (!isLocked) {
+      noteEl.textContent = '';
+      noteEl.classList.add('hidden');
+      return;
+    }
+
+    const text = conv.isBlocked
+      ? 'Messaging is locked for this conversation (conversation-level block).'
+      : 'You blocked this user. Unblock to send messages.';
+    noteEl.textContent = text;
+    noteEl.classList.remove('hidden');
   }
 
   function selectConversation(conversationId) {
@@ -2446,8 +2605,21 @@
       flowerEl.style.display = sub ? 'block' : 'none';
     }
     const statusEl = $('conversation-status');
-    if (statusEl && other) { const isOnline = onlineUsers.has(other.userId); statusEl.textContent = isOnline ? t('online') : t('offline'); statusEl.className = 'conversation-status ' + (isOnline ? 'online' : 'offline'); }
+    if (statusEl && other) {
+      const isOnline = onlineUsers.has(other.userId);
+      statusEl.textContent = isOnline ? t('online') : t('offline');
+      statusEl.className = 'conversation-status ' + (isOnline ? 'online' : 'offline');
+      if (conv?.isBlocked) {
+        statusEl.textContent = 'Send locked';
+        statusEl.className = 'conversation-status locked';
+      } else if (conv?.blocked) {
+        statusEl.textContent = 'Blocked by you';
+        statusEl.className = 'conversation-status warning';
+      }
+    }
+    applyConversationSendLock(conv);
     renderChatOrderCard(conv);
+    $('message-input')?.focus();
     $('messages-list').innerHTML = '';
     api(`/conversations/${conversationId}/messages?limit=50`)
       .then((res) => {
@@ -2582,12 +2754,17 @@
   window._startChatWithProduct = function (product) {
     if (!product || !product.sellerId) return;
     if (product.sellerId === currentUser?.id) { showToast('You cannot chat with yourself', 'error'); return; }
-    switchTab('chat');
-    pendingChatProductId = product.id;
-    pendingChatOtherUserId = product.sellerId;
-    onNewChat();
-    $('new-chat-search').value = [product.seller?.firstName, product.seller?.lastName].filter(Boolean).join(' ') || product.seller?.phoneNumber || '';
-    loadUserList($('new-chat-search').value.trim());
+    api(`/products/${product.id}/chat`, {
+      method: 'POST',
+    })
+      .then((conversation) => {
+        if (!conversation?.id) throw new Error('No conversation returned');
+        conversationsCache = [conversation, ...conversationsCache.filter((c) => c.id !== conversation.id)];
+        return openConversationById(conversation.id);
+      })
+      .catch((err) => {
+        showToast(err.message || 'Failed to open chat', 'error');
+      });
   };
 
   window._openChatForOrder = function (orderId) {
@@ -2730,6 +2907,7 @@
     $('btn-verify').addEventListener('click', onVerify);
     $('btn-back-otp').addEventListener('click', () => { show($('login-step-send')); hide($('login-step-verify')); setLoginError(''); });
     $('btn-logout').addEventListener('click', onLogout);
+    $('btn-auth-check')?.addEventListener('click', runAuthCheck);
 
     $('lang-switcher').addEventListener('change', (e) => { currentLang = e.target.value; localStorage.setItem('sb_lang', currentLang); applyTranslations(); });
 
@@ -2922,8 +3100,12 @@
     const ordersFilter = $('orders-status-filter');
     if (ordersFilter) ordersFilter.addEventListener('change', () => loadOrders());
 
-    if (accessToken && currentUser) showApp();
-    else showLogin();
+    if (accessToken && currentUser) {
+      showApp();
+    } else {
+      showLogin();
+      refreshAuthStateBadge();
+    }
   }
 
   init();

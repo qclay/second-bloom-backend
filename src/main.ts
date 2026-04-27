@@ -57,7 +57,7 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-      disableErrorMessages: false, // temporarily enabled for debugging
+      disableErrorMessages: false,
       validationError: {
         target: false,
         value: false,

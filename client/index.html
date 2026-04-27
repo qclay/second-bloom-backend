@@ -44,6 +44,8 @@
             <option value="uz">O'zbekcha</option>
             <option value="ru">Русский</option>
           </select>
+          <span id="auth-state" class="auth-state" title="Authorization state">No auth</span>
+          <button type="button" id="btn-auth-check" class="btn secondary small">Auth check</button>
           <button type="button" id="btn-notifications-bell" class="icon-btn" title="Notifications">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="notif-badge" class="badge hidden">0</span>
@@ -75,9 +77,10 @@
                 </label>
                 <select id="products-status-filter" class="filter-select" style="margin-right:.75rem">
                   <option value="" data-i18n="filter_status_all">All</option>
-                  <option value="ACTIVE" data-i18n="filter_status_posted">Posted</option>
-                  <option value="PENDING_MODERATION" data-i18n="filter_status_pending">Pending</option>
-                  <option value="INACTIVE" data-i18n="filter_status_rejected">Rejected</option>
+                  <option value="PUBLISHED" data-i18n="filter_status_posted">Posted</option>
+                  <option value="PENDING" data-i18n="filter_status_pending">Pending</option>
+                  <option value="REJECTED" data-i18n="filter_status_rejected">Rejected</option>
+                  <option value="DRAFT">Draft</option>
                 </select>
                 <input type="text" id="product-search-input" data-i18n-placeholder="search_products" placeholder="Search products..." />
                 <button type="button" id="btn-create-product" class="btn primary small" data-i18n="create_product">+ Create Product</button>

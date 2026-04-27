@@ -8,19 +8,7 @@ import {
   CountrySelectionResponseDto,
 } from './dto/location-response.dto';
 
-/**
- * Static template that defines which countries and cities to expose via the
- * /locations/cities endpoint and in what order.
- *
- * The `id` values here are ONLY used as temporary slugs during the template
- * phase – they are replaced with real database UUIDs before the response is
- * sent.  City `name` values (Russian display names) are used for UI labels
- * and for matching against the `en` name in the database.
- *
- * English name mapping: slug → English name used in the DB seed.
- */
 const CITY_SLUG_TO_EN: Record<string, string> = {
-  // Uzbekistan
   tashkent: 'Tashkent',
   samarkand: 'Samarqand',
   bukhara: 'Bukhara',
@@ -35,7 +23,8 @@ const CITY_SLUG_TO_EN: Record<string, string> = {
   navoi: 'Navoiy',
   termez: 'Termiz',
   gulistan: 'Guliston',
-  // Kazakhstan (not seeded in DB yet – will be skipped gracefully)
+
+  //kz
   almaty: 'Almaty',
   astana: 'Astana',
   shymkent: 'Shymkent',
@@ -187,17 +176,11 @@ export class LocationService {
       .toLowerCase()
       .replace(/^\+/, '');
 
-    // --- Resolve real DB UUIDs for cities ---
-    // Build a map of (EN city name lowercase) → DB UUID so we can replace
-    // the human-readable slug IDs in the static template with real UUIDs.
-    // Cities that are not yet in the DB (e.g. Kazakhstan cities) keep their
-    // original slug as a fallback so they still appear in the list.
     const dbCities = await this.prisma.city.findMany({
       where: { isActive: true },
       select: { id: true, name: true },
     });
 
-    // name is stored as JSONB { en, ru, uz }
     const enToUuid = new Map<string, string>();
     for (const city of dbCities) {
       const nameObj = city.name as Record<string, string> | null;

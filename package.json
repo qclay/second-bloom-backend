@@ -26,6 +26,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "verify": "npm run lint && npm run check:arch && npm test && npm run test:e2e",
     "client": "npx serve client -l 4000",
+    "frontend": "npm run frontend:start",
+    "frontend:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-frontend.ps1",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",

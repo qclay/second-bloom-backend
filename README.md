@@ -78,6 +78,17 @@ By default the API is at `http://localhost:3000`. Root and health are at `/` and
 | `npm run prisma:studio` | Open Prisma Studio |
 | `npm run prisma:seed` | Seed database |
 
+### Frontend Test Client
+
+Run the HTML test client (used for quick manual API/chat checks):
+
+```bash
+npm run frontend
+```
+
+It serves the `client/` folder at `http://localhost:4000`.
+The client sends API requests to `http://localhost:3000/api/v1`.
+
 ---
 
 ## API documentation
