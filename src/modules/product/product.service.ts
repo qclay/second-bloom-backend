@@ -1242,6 +1242,7 @@ export class ProductService {
   async findById(
     id: string,
     incrementViews = false,
+    requester?: { id: string; role: UserRole },
   ): Promise<ProductResponseDto> {
     const productWithRelations = await this.prisma.product.findUnique({
       where: { id },
@@ -1361,10 +1362,30 @@ export class ProductService {
       await this.productRepository.incrementViews(id);
     }
 
+    let interestedBuyers: InterestedBuyerDto[] | undefined = undefined;
+    const isOwner = requester?.id === productWithRelations.sellerId;
+    const isDirectSale = !isAuctionActive;
+
+    if (isOwner && isDirectSale) {
+      try {
+        const buyersData = await this.getInterestedBuyers(
+          id,
+          requester.id,
+          requester.role,
+        );
+        interestedBuyers = buyersData.data;
+      } catch (err) {
+        this.logger.warn(
+          `Failed to fetch interested buyers for product ${id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
     const result = ProductResponseDto.fromEntity({
       ...productWithRelations,
       activeAuction: activeAuction ?? undefined,
       saleStatus,
+      interestedBuyers,
     } as typeof productWithRelations & {
       activeAuction?: {
         id: string;
@@ -1381,6 +1402,7 @@ export class ProductService {
         } | null;
       };
       saleStatus: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold';
+      interestedBuyers?: InterestedBuyerDto[];
     });
 
     return result;

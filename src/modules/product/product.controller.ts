@@ -166,10 +166,11 @@ export class ProductController {
 
   @Get(':id')
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({
     summary: 'Get product by ID',
     description:
-      'Product detail. Includes category, condition, size, seller, images; activeAuction when product has an active auction. Use activeAuction.id for GET /bids?auctionId=:auctionId.',
+      'Product detail. Includes category, condition, size, seller, images; activeAuction when product has an active auction. Use activeAuction.id for GET /bids?auctionId=:auctionId. interestedBuyers are included for the owner of direct-sale products.',
   })
   @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiQuery({
@@ -191,8 +192,9 @@ export class ProductController {
   async findOne(
     @Param('id') id: string,
     @Query('incrementViews') incrementViews?: string,
+    @CurrentUser() user?: { id: string; role: UserRole },
   ): Promise<ProductResponseDto> {
-    return this.productService.findById(id, incrementViews === 'true');
+    return this.productService.findById(id, incrementViews === 'true', user);
   }
 
   @Post(':id/chat')
@@ -217,28 +219,6 @@ export class ProductController {
     return this.productService.openChatForProduct(id, userId);
   }
 
-  @Get(':id/interested-buyers')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary:
-      'Get interested buyers for seller product (users who sent at least one message)',
-    description:
-      'Owner/admin/moderator only. Returns distinct users who wrote at least one message in product-related chat.',
-  })
-  @ApiParam({ name: 'id', description: 'Product UUID' })
-  @ApiCommonErrorResponses({ conflict: false })
-  @ApiResponse({
-    status: 200,
-    description: 'Interested buyers list',
-    type: InterestedBuyersResponseDto,
-  })
-  async getInterestedBuyers(
-    @Param('id') id: string,
-    @CurrentUser() user: { id: string; role: UserRole },
-  ): Promise<InterestedBuyersResponseDto> {
-    return this.productService.getInterestedBuyers(id, user.id, user.role);
-  }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)

@@ -1,6 +1,7 @@
 import { Product, ProductImage, ProductStatus } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { toISOString } from '../../../common/utils/date.util';
+import { InterestedBuyerDto } from './interested-buyers-response.dto';
 
 export class ProductImageResponseDto {
   @ApiProperty({
@@ -215,6 +216,13 @@ export class ProductResponseDto {
   })
   saleStatus?: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold';
 
+  @ApiPropertyOptional({
+    type: [InterestedBuyerDto],
+    description:
+      'List of users who started a chat about this product (only for product owner and direct sales).',
+  })
+  interestedBuyers?: InterestedBuyerDto[];
+
   static fromEntity(
     product: Product & {
       category?: { id: string; name: unknown; slug: string } | null;
@@ -251,6 +259,7 @@ export class ProductResponseDto {
         shippedAt: Date | null;
       };
       saleStatus?: 'available' | 'onAuction' | 'awaitingDelivery' | 'sold';
+      interestedBuyers?: InterestedBuyerDto[];
     },
   ): ProductResponseDto {
     return {
@@ -347,6 +356,7 @@ export class ProductResponseDto {
           }
         : undefined,
       saleStatus: product.saleStatus,
+      interestedBuyers: product.interestedBuyers,
     };
   }
 }
