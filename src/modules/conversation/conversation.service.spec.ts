@@ -340,6 +340,8 @@ describe('ConversationService (Recent Fixes)', () => {
         orderId: 'ord-xyz',
       });
       expect(result.lastMessage?.messageType).toBe('SYSTEM');
+      expect(result.blocked).toBe(false);
+      expect(result.isBlocked).toBe(false);
     });
   });
 });

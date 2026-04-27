@@ -167,6 +167,13 @@ export class ConversationResponseDto {
   isArchived!: boolean;
 
   @ApiProperty({ example: false })
+  blocked!: boolean;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'Conversation-level block flag for the current participant. Prevents sending messages in this chat.',
+  })
   isBlocked!: boolean;
 
   @ApiProperty({

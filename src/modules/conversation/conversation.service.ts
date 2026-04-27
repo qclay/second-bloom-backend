@@ -188,6 +188,64 @@ export class ConversationService {
     return block !== null;
   }
 
+  private async isUserBlockingOtherUser(
+    userId: string,
+    otherUserId: string,
+    client: PrismaClient | Prisma.TransactionClient = this.prisma,
+  ): Promise<boolean> {
+    if (userId === otherUserId) {
+      return false;
+    }
+
+    const blockClient = client as unknown as {
+      userBlock: {
+        findFirst: (args: unknown) => Promise<{ id: string } | null>;
+      };
+    };
+
+    const block = await blockClient.userBlock.findFirst({
+      where: {
+        isActive: true,
+        blockerId: userId,
+        blockedId: otherUserId,
+      },
+      select: { id: true },
+    });
+
+    return block !== null;
+  }
+
+  private async getBlockedUserIds(
+    userId: string,
+    otherUserIds: string[],
+    client: PrismaClient | Prisma.TransactionClient = this.prisma,
+  ): Promise<Set<string>> {
+    const uniqueOtherUserIds = Array.from(new Set(otherUserIds)).filter(
+      (otherUserId) => otherUserId !== userId,
+    );
+
+    if (uniqueOtherUserIds.length === 0) {
+      return new Set<string>();
+    }
+
+    const blockClient = client as unknown as {
+      userBlock: {
+        findMany: (args: unknown) => Promise<Array<{ blockedId: string }>>;
+      };
+    };
+
+    const blockedRows = await blockClient.userBlock.findMany({
+      where: {
+        isActive: true,
+        blockerId: userId,
+        blockedId: { in: uniqueOtherUserIds },
+      },
+      select: { blockedId: true },
+    });
+
+    return new Set(blockedRows.map((row) => row.blockedId));
+  }
+
   private buildVisibleConversationWhere(
     userId: string,
     archived?: boolean,
@@ -338,9 +396,26 @@ export class ConversationService {
       this.conversationRepository.count(where),
     ]);
 
+    const conversationList = conversations as ConversationWithRelations[];
+    const otherUserIds = conversationList
+      .map((conversation) =>
+        conversation.participants.find((participant) => participant.userId !== userId)
+          ?.userId,
+      )
+      .filter((otherUserId): otherUserId is string => Boolean(otherUserId));
+    const blockedUserIds = await this.getBlockedUserIds(userId, otherUserIds);
+
     return {
-      data: conversations.map((conv) =>
-        this.mapConversationToDto(conv as ConversationWithRelations, userId),
+      data: await Promise.all(
+        conversationList.map((conv) =>
+          this.mapConversationToDto(conv, userId, {
+            blocked: blockedUserIds.has(
+              conv.participants.find(
+                (participant) => participant.userId !== userId,
+              )?.userId ?? '',
+            ),
+          }),
+        ),
       ),
       total,
       page,
@@ -1306,13 +1381,21 @@ export class ConversationService {
     };
   }
 
-  private mapConversationToDto(
+  private async mapConversationToDto(
     conversation: ConversationWithRelations,
     userId: string,
-  ): ConversationResponseDto {
+    options?: { blocked?: boolean },
+  ): Promise<ConversationResponseDto> {
     const myParticipant = conversation.participants.find(
       (p) => p.userId === userId,
     );
+    const otherParticipantId =
+      conversation.participants.find((p) => p.userId !== userId)?.userId ?? null;
+    const blocked =
+      options?.blocked ??
+      (otherParticipantId
+        ? await this.isUserBlockingOtherUser(userId, otherParticipantId)
+        : false);
 
     const convForRole = conversation as ConversationWithRelations & {
       product?: { seller?: { id: string } };
@@ -1467,6 +1550,7 @@ export class ConversationService {
       participants,
       unreadCount: myParticipant?.unreadCount ?? 0,
       isArchived: myParticipant?.isArchived ?? false,
+      blocked,
       isBlocked: myParticipant?.isBlocked ?? false,
       isActive: conversation.isActive,
       lastMessageAt: toISOString(conversation.lastMessageAt),
