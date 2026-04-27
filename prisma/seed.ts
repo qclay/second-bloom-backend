@@ -1063,6 +1063,70 @@ async function main() {
   ]);
 
   console.log(`✅ Created ${notifications.length} notifications`);
+  console.log('💬 Seeding conversations and messages for interested buyers...');
+  const conversations = await Promise.all([
+    prisma.conversation.create({
+      data: {
+        productId: products[0].id,
+        isActive: true,
+        participants: {
+          create: [{ userId: sellers[0].id }, { userId: buyers[0].id }],
+        },
+      },
+    }),
+    prisma.conversation.create({
+      data: {
+        productId: products[0].id,
+        isActive: true,
+        participants: {
+          create: [{ userId: sellers[0].id }, { userId: buyers[1].id }],
+        },
+      },
+    }),
+    prisma.conversation.create({
+      data: {
+        productId: products[3].id,
+        isActive: true,
+        participants: {
+          create: [{ userId: sellers[1].id }, { userId: buyers[0].id }],
+        },
+      },
+    }),
+  ]);
+
+  const messagesSeeded = await Promise.all([
+    prisma.message.create({
+      data: {
+        conversationId: conversations[0].id,
+        senderId: buyers[0].id,
+        content: 'Is this Red Roses Bouquet still available?',
+        messageType: 'TEXT',
+        deliveryStatus: 'READ',
+      },
+    }),
+    prisma.message.create({
+      data: {
+        conversationId: conversations[1].id,
+        senderId: buyers[1].id,
+        content: 'I want to buy the Roses! Can you deliver today?',
+        messageType: 'TEXT',
+        deliveryStatus: 'SENT',
+      },
+    }),
+    prisma.message.create({
+      data: {
+        conversationId: conversations[2].id,
+        senderId: buyers[0].id,
+        content: 'Are these Pink Orchids real or artificial?',
+        messageType: 'TEXT',
+        deliveryStatus: 'DELIVERED',
+      },
+    }),
+  ]);
+
+  console.log(
+    `✅ Created ${conversations.length} conversations and ${messagesSeeded.length} messages`,
+  );
 
   console.log('\n✨ Seed completed successfully!');
   console.log('\n📊 Summary:');
@@ -1076,6 +1140,8 @@ async function main() {
   console.log(`   - Bids: ${bids.length}`);
   console.log(`   - Favorites: ${favorites.length}`);
   console.log(`   - Notifications: ${notifications.length}`);
+  console.log(`   - Conversations: ${conversations.length}`);
+  console.log(`   - Messages: ${messagesSeeded.length}`);
 }
 
 main()

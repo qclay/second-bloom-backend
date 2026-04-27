@@ -61,9 +61,6 @@ model Bid {
   amount        Decimal   @db.Decimal(10, 2)
   isWinning     Boolean   @default(false)
   isRetracted   Boolean   @default(false)
-  readByOwnerAt DateTime?
-  rejectedAt    DateTime?
-  rejectedBy    String?
   ipAddress     String?
   userAgent     String?
   createdAt     DateTime  @default(now())
@@ -71,6 +68,9 @@ model Bid {
   deletedAt     DateTime?
   deletedBy     String?
   isActive      Boolean   @default(true)
+  readByOwnerAt DateTime?
+  rejectedAt    DateTime?
+  rejectedBy    String?
   auction       Auction   @relation(fields: [auctionId], references: [id])
   bidder        User      @relation(fields: [bidderId], references: [id])
 
@@ -107,9 +107,7 @@ model Favorite {
 
 model Category {
   id          String     @id @default(uuid())
-  name        Json       @db.JsonB
   slug        String     @unique
-  description Json?      @db.JsonB
   imageId     String?
   parentId    String?
   order       Int        @default(0)
@@ -118,6 +116,8 @@ model Category {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   deletedBy   String?
+  name        Json
+  description Json?
   image       File?      @relation(fields: [imageId], references: [id])
   parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryTree")
@@ -132,13 +132,13 @@ model Category {
 
 model Condition {
   id          String    @id @default(uuid())
-  name        Json      @db.JsonB
   slug        String    @unique
   createdById String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   isActive    Boolean   @default(true)
+  name        Json
   createdBy   User?     @relation("ConditionCreator", fields: [createdById], references: [id])
   products    Product[]
 
@@ -150,15 +150,15 @@ model Condition {
 
 model Size {
   id          String    @id @default(uuid())
-  name        Json      @db.JsonB
   slug        String    @unique
   createdById String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   isActive    Boolean   @default(true)
-  createdBy   User?     @relation("SizeCreator", fields: [createdById], references: [id])
+  name        Json
   products    Product[]
+  createdBy   User?     @relation("SizeCreator", fields: [createdById], references: [id])
 
   @@index([slug])
   @@index([createdById])
@@ -276,10 +276,10 @@ model Order {
   updatedAt          DateTime       @updatedAt
   completedAt        DateTime?
   isActive           Boolean        @default(true)
+  conversations      Conversation[]
   auction            Auction?       @relation(fields: [auctionId], references: [id])
   buyer              User           @relation(fields: [buyerId], references: [id])
   product            Product        @relation(fields: [productId], references: [id])
-  conversations      Conversation[]
 
   @@index([buyerId])
   @@index([buyerId, status, createdAt])
@@ -331,13 +331,13 @@ model Payment {
 
 model Country {
   id        String    @id @default(uuid())
-  name      Json      @db.JsonB
   code      String?   @unique
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  regions   Region[]
+  name      Json
   products  Product[]
+  regions   Region[]
 
   @@index([isActive])
   @@map("countries")
@@ -346,13 +346,13 @@ model Country {
 model Region {
   id        String    @id @default(uuid())
   countryId String
-  name      Json      @db.JsonB
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  country   Country   @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  name      Json
   cities    City[]
   products  Product[]
+  country   Country   @relation(fields: [countryId], references: [id], onDelete: Cascade)
 
   @@index([countryId])
   @@index([isActive])
@@ -362,10 +362,10 @@ model Region {
 model City {
   id        String     @id @default(uuid())
   regionId  String
-  name      Json       @db.JsonB
   isActive  Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  name      Json
   region    Region     @relation(fields: [regionId], references: [id], onDelete: Cascade)
   districts District[]
   products  Product[]
@@ -378,10 +378,10 @@ model City {
 model District {
   id        String    @id @default(uuid())
   cityId    String
-  name      Json      @db.JsonB
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  name      Json
   city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
   products  Product[]
 
@@ -392,27 +392,17 @@ model District {
 
 model Product {
   id                        String         @id @default(uuid())
-  title                     Json?          @db.JsonB
   slug                      String         @unique
-  description               Json?          @db.JsonB
   price                     Decimal        @db.Decimal(10, 2)
   currency                  String         @default("UZS")
   categoryId                String?
   tags                      String[]
   type                      ProductType    @default(FRESH)
-  conditionId               String?
-  sizeId                    String?
   quantity                  Int            @default(1)
   status                    ProductStatus  @default(PENDING)
   isFeatured                Boolean        @default(false)
-  moderationRejectionReason String?
-  moderationRejectedAt      DateTime?
-  moderationRejectedById    String?
+  isCharity                 Boolean        @default(false)
   views                     Int            @default(0)
-  countryId                 String?
-  regionId                  String?
-  cityId                    String?
-  districtId                String?
   sellerId                  String
   deletedAt                 DateTime?
   deletedBy                 String?
@@ -420,20 +410,31 @@ model Product {
   updatedAt                 DateTime       @updatedAt
   publicationPaymentId      String?
   isActive                  Boolean        @default(true)
+  conditionId               String?
+  sizeId                    String?
+  title                     Json?
+  description               Json?
+  cityId                    String?
+  countryId                 String?
+  districtId                String?
+  regionId                  String?
+  moderationRejectedAt      DateTime?
+  moderationRejectedById    String?
+  moderationRejectionReason String?
   auctions                  Auction[]
+  conversations             Conversation[]
   favorites                 Favorite[]
   orders                    Order[]
   images                    ProductImage[]
   category                  Category?      @relation(fields: [categoryId], references: [id])
+  cityRelation              City?          @relation(fields: [cityId], references: [id])
   condition                 Condition?     @relation(fields: [conditionId], references: [id])
-  size                      Size?          @relation(fields: [sizeId], references: [id])
-  country                   Country?       @relation(fields: [countryId], references: [id], onDelete: SetNull)
-  regionRelation            Region?        @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  cityRelation              City?          @relation(fields: [cityId], references: [id], onDelete: SetNull)
-  districtRelation          District?      @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  country                   Country?       @relation(fields: [countryId], references: [id])
+  districtRelation          District?      @relation(fields: [districtId], references: [id])
   publicationPayment        Payment?       @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id])
+  regionRelation            Region?        @relation(fields: [regionId], references: [id])
   seller                    User           @relation(fields: [sellerId], references: [id])
-  conversations             Conversation[]
+  size                      Size?          @relation(fields: [sizeId], references: [id])
 
   @@index([publicationPaymentId])
   @@index([sellerId])
@@ -477,7 +478,6 @@ model ProductImage {
 
 model User {
   id                       String                    @id @default(uuid())
-  phoneCountryCode         String?
   phoneNumber              String
   firstName                String?
   lastName                 String?
@@ -504,16 +504,14 @@ model User {
   gender                   String?
   language                 String?                   @default("ru")
   username                 String?                   @unique
+  phoneCountryCode         String?
   auctionBannedUntil       DateTime?
   isAdministrationChat     Boolean                   @default(false)
   createdAuctions          Auction[]                 @relation("AuctionCreator")
   wonAuctions              Auction[]                 @relation("AuctionWinner")
   bids                     Bid[]
   conditionsCreated        Condition[]               @relation("ConditionCreator")
-  sizesCreated             Size[]                    @relation("SizeCreator")
   conversationParticipants ConversationParticipant[]
-  blocksCreated            UserBlock[]               @relation("UserBlocksCreated")
-  blocksReceived           UserBlock[]               @relation("UserBlocksReceived")
   favorites                Favorite[]
   uploadedFiles            File[]                    @relation("FileUploader")
   sentMessages             Message[]                 @relation("MessageSender")
@@ -522,6 +520,9 @@ model User {
   orders                   Order[]
   payments                 Payment[]                 @relation("PaymentUser")
   products                 Product[]
+  sizesCreated             Size[]                    @relation("SizeCreator")
+  blocksReceived           UserBlock[]               @relation("UserBlocksReceived")
+  blocksCreated            UserBlock[]               @relation("UserBlocksCreated")
   avatar                   File?                     @relation("UserAvatar", fields: [avatarId], references: [id])
   verificationCodes        VerificationCode[]
 
@@ -540,15 +541,14 @@ model User {
 }
 
 model UserBlock {
-  id         String   @id @default(uuid())
-  blockerId  String
-  blockedId  String
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  blocker    User     @relation("UserBlocksCreated", fields: [blockerId], references: [id], onDelete: Cascade)
-  blocked    User     @relation("UserBlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  blocked   User     @relation("UserBlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker   User     @relation("UserBlocksCreated", fields: [blockerId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
   @@index([blockerId, isActive])
@@ -558,7 +558,6 @@ model UserBlock {
 
 model VerificationCode {
   id               String              @id @default(uuid())
-  phoneCountryCode String
   phoneNumber      String
   code             String              @db.VarChar(6)
   purpose          VerificationPurpose @default(SIGNUP)
@@ -572,6 +571,7 @@ model VerificationCode {
   deletedAt        DateTime?
   deletedBy        String?
   isActive         Boolean             @default(true)
+  phoneCountryCode String
   user             User?               @relation(fields: [userId], references: [id])
 
   @@index([phoneCountryCode, phoneNumber, code, isUsed])
@@ -586,19 +586,19 @@ model Conversation {
   id            String                    @id @default(uuid())
   lastMessageAt DateTime?
   lastMessageId String?
-  productId     String?
-  orderId       String?
   metadata      Json?
   deletedAt     DateTime?
   deletedBy     String?
   createdAt     DateTime                  @default(now())
   updatedAt     DateTime                  @updatedAt
   isActive      Boolean                   @default(true)
+  productId     String?
+  orderId       String?
   participants  ConversationParticipant[]
   lastMessage   Message?                  @relation("ConversationLastMessage", fields: [lastMessageId], references: [id])
+  order         Order?                    @relation(fields: [orderId], references: [id])
+  product       Product?                  @relation(fields: [productId], references: [id])
   messages      Message[]
-  product       Product?                  @relation(fields: [productId], references: [id], onDelete: SetNull)
-  order         Order?                    @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@index([lastMessageAt])
   @@index([isActive, deletedAt])
@@ -610,17 +610,16 @@ model Conversation {
 }
 
 model ConversationParticipant {
-  id             String    @id @default(uuid())
+  id             String       @id @default(uuid())
   conversationId String
   userId         String
-  unreadCount    Int       @default(0)
-  isArchived     Boolean   @default(false)
-  isBlocked      Boolean   @default(false)
+  unreadCount    Int          @default(0)
+  isArchived     Boolean      @default(false)
+  isBlocked      Boolean      @default(false)
   lastSeenAt     DateTime?
-  createdAt      DateTime  @default(now())
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
   @@index([userId, isArchived])
@@ -708,7 +707,6 @@ enum NotificationType {
   AUCTION_ENDING_SOON
   AUCTION_ENDED
   AUCTION_STARTED
-  BID_REJECTED
   NEW_BID
   ORDER_CONFIRMED
   ORDER_DELIVERED
@@ -716,6 +714,7 @@ enum NotificationType {
   OUTBID
   REVIEW_RECEIVED
   SYSTEM
+  BID_REJECTED
 }
 
 enum OrderStatus {
@@ -744,10 +743,10 @@ enum PaymentGateway {
 
 enum PaymentStatus {
   COMPLETED
-  EXPIRED
   FAILED
   PENDING
   PROCESSING
+  EXPIRED
 }
 
 enum ProductStatus {
@@ -778,9 +777,9 @@ enum MessageType {
   TEXT
   IMAGE
   FILE
+  SYSTEM
   VIDEO_NOTE
   VOICE
-  SYSTEM
 }
 
 enum DeliveryStatus {

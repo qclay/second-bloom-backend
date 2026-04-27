@@ -190,6 +190,7 @@ export class ProductService {
                 ? (dto.status ?? ProductStatus.PUBLISHED)
                 : ProductStatus.PENDING,
             isFeatured: dto.isFeatured ?? false,
+            isCharity: dto.isCharity ?? false,
             ...(dto.regionId && {
               regionRelation: { connect: { id: dto.regionId } },
             }),
@@ -693,48 +694,72 @@ export class ProductService {
       }>;
     };
     const result = {
-      data: products.map((product) => {
-        const p = product as ProductWithActiveAuction;
-        const lastOrder = p.orders?.[0];
-        const activeAuction = p.auctions?.[0];
-        const isAuctionActive =
-          activeAuction &&
-          ((activeAuction.status === AuctionStatus.ACTIVE &&
-            activeAuction.endTime >= now) ||
-            activeAuction.status === AuctionStatus.PENDING);
-        let saleStatus:
-          | 'available'
-          | 'onAuction'
-          | 'awaitingDelivery'
-          | 'sold' = 'available';
-        if (isAuctionActive) {
-          saleStatus = 'onAuction';
-        } else if (activeAuction?.status === 'ENDED') {
-          saleStatus = 'sold';
-        } else if (lastOrder) {
-          if (lastOrder.status === OrderStatus.DELIVERED) {
+      data: await Promise.all(
+        products.map(async (product) => {
+          const p = product as ProductWithActiveAuction;
+          const lastOrder = p.orders?.[0];
+          const activeAuction = p.auctions?.[0];
+          const isAuctionActive =
+            activeAuction &&
+            ((activeAuction.status === AuctionStatus.ACTIVE &&
+              activeAuction.endTime >= now) ||
+              activeAuction.status === AuctionStatus.PENDING);
+          let saleStatus:
+            | 'available'
+            | 'onAuction'
+            | 'awaitingDelivery'
+            | 'sold' = 'available';
+          if (isAuctionActive) {
+            saleStatus = 'onAuction';
+          } else if (activeAuction?.status === 'ENDED') {
             saleStatus = 'sold';
-          } else if (
-            lastOrder.status === OrderStatus.PROCESSING ||
-            lastOrder.status === OrderStatus.SHIPPED
-          ) {
-            saleStatus = 'awaitingDelivery';
+          } else if (lastOrder) {
+            if (lastOrder.status === OrderStatus.DELIVERED) {
+              saleStatus = 'sold';
+            } else if (
+              lastOrder.status === OrderStatus.PROCESSING ||
+              lastOrder.status === OrderStatus.SHIPPED
+            ) {
+              saleStatus = 'awaitingDelivery';
+            }
           }
-        }
-        return ProductResponseDto.fromEntity({
-          ...p,
-          activeAuction,
-          saleOrderSummary: lastOrder
-            ? {
-                id: lastOrder.id,
-                status: lastOrder.status,
-                deliveredAt: lastOrder.deliveredAt,
-                shippedAt: lastOrder.shippedAt,
-              }
-            : undefined,
-          saleStatus,
-        } as Parameters<typeof ProductResponseDto.fromEntity>[0]);
-      }),
+
+          let interestedBuyers: InterestedBuyerDto[] | undefined = undefined;
+          const isOwner = user?.id === p.sellerId;
+          const isAdmin =
+            user?.role === UserRole.ADMIN || user?.role === UserRole.MODERATOR;
+
+          if (isOwner || isAdmin) {
+            try {
+              const buyersData = await this.getInterestedBuyers(
+                p.id,
+                user?.id ?? '',
+                user?.role ?? UserRole.USER,
+              );
+              interestedBuyers = buyersData.data;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to fetch interested buyers for product ${p.id} in findAll: ${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
+          }
+
+          return ProductResponseDto.fromEntity({
+            ...p,
+            activeAuction,
+            saleOrderSummary: lastOrder
+              ? {
+                  id: lastOrder.id,
+                  status: lastOrder.status,
+                  deliveredAt: lastOrder.deliveredAt,
+                  shippedAt: lastOrder.shippedAt,
+                }
+              : undefined,
+            saleStatus,
+            interestedBuyers,
+          } as Parameters<typeof ProductResponseDto.fromEntity>[0]);
+        }),
+      ),
       meta: {
         total,
         page,
@@ -1364,14 +1389,16 @@ export class ProductService {
 
     let interestedBuyers: InterestedBuyerDto[] | undefined = undefined;
     const isOwner = requester?.id === productWithRelations.sellerId;
-    const isDirectSale = !isAuctionActive;
+    const isAdmin =
+      requester?.role === UserRole.ADMIN ||
+      requester?.role === UserRole.MODERATOR;
 
-    if (isOwner && isDirectSale) {
+    if (isOwner || isAdmin) {
       try {
         const buyersData = await this.getInterestedBuyers(
           id,
-          requester.id,
-          requester.role,
+          requester?.id ?? '',
+          requester?.role ?? UserRole.USER,
         );
         interestedBuyers = buyersData.data;
       } catch (err) {
@@ -1674,6 +1701,9 @@ export class ProductService {
     }
     if (dto.isFeatured !== undefined) {
       updateData.isFeatured = dto.isFeatured;
+    }
+    if (dto.isCharity !== undefined) {
+      updateData.isCharity = dto.isCharity;
     }
     if (dto.regionId !== undefined) {
       updateData.regionRelation = dto.regionId

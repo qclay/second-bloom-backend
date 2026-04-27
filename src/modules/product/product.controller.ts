@@ -219,7 +219,6 @@ export class ProductController {
     return this.productService.openChatForProduct(id, userId);
   }
 
-
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @UsePipes(new SanitizePipe())

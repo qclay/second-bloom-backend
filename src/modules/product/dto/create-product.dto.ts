@@ -151,6 +151,15 @@ export class CreateProductDto {
   isFeatured?: boolean = false;
 
   @ApiPropertyOptional({
+    description: 'Whether this product is for charity',
+    example: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isCharity?: boolean = false;
+
+  @ApiPropertyOptional({
     description: 'Region ID (from GET /locations/regions).',
     example: '550e8400-e29b-41d4-a716-446655440001',
   })

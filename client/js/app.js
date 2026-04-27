@@ -1213,6 +1213,7 @@
             <div class="card-price">${formatPrice(hasAuction ? p.activeAuction.currentPrice : p.price, p.currency)}</div>
             ${hasAuction ? `<div style="font-size:.8rem;color:#eab308;margin-top:.25rem">${isAuctionActive ? timeLeft(p.activeAuction.endTime) : t('ended')}${bidCount > 0 ? ' · ' + bidCount + ' ' + t('bids') : ''}</div>` : ''}
             <div class="card-tags">${tags}</div>
+            ${p.interestedBuyers && p.interestedBuyers.length > 0 ? `<div style="font-size:.7rem;color:#22c55e;margin-top:.4rem;font-weight:600"><span style="display:inline-block;width:6px;height:6px;background:#22c55e;border-radius:50%;margin-right:4px;vertical-align:middle"></span>${p.interestedBuyers.length} interested</div>` : ''}
           </div>
         </div>
       `;
@@ -1449,7 +1450,7 @@
         `;
 
         if (isOwner) {
-          loadInterestedBuyers(p.id);
+          renderInterestedBuyers(p.interestedBuyers || []);
         }
 
         const buyBtn = $('btn-buy-product');
@@ -1502,17 +1503,13 @@
       });
   }
 
-  function loadInterestedBuyers(productId) {
+  function renderInterestedBuyers(rows) {
     const listEl = $('interested-buyers-list');
-    if (!listEl || !productId) return;
-    listEl.innerHTML = '<div class="interested-buyers-empty">' + t('loading') + '</div>';
-    api(`/products/${productId}/interested-buyers`)
-      .then((res) => {
-        const rows = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-        if (!rows.length) {
-          listEl.innerHTML = '<div class="interested-buyers-empty">No interested buyers yet</div>';
-          return;
-        }
+    if (!listEl) return;
+    if (!rows || !rows.length) {
+      listEl.innerHTML = '<div class="interested-buyers-empty">No interested buyers yet</div>';
+      return;
+    }
         listEl.innerHTML = rows.map((buyer) => {
           const name = [buyer.firstName, buyer.lastName].filter(Boolean).join(' ') || buyer.phoneNumber || buyer.userId;
           const onlineClass = buyer.isOnline ? 'interested-buyer-online' : '';
@@ -1541,10 +1538,6 @@
               });
           });
         });
-      })
-      .catch((err) => {
-        listEl.innerHTML = '<div class="interested-buyers-empty">' + escapeHtml(err.message || 'Failed to load buyers') + '</div>';
-      });
   }
 
   window._refreshProductDetailAuctionBids = function (auctionId) {

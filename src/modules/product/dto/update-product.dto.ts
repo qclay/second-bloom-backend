@@ -64,6 +64,10 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @IsOptional()
   isFeatured?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  isCharity?: boolean;
+
   @IsUUID()
   @IsOptional()
   regionId?: string;

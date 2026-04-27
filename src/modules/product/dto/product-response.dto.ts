@@ -103,6 +103,12 @@ export class ProductResponseDto {
   })
   isFeatured!: boolean;
 
+  @ApiProperty({
+    description: 'Whether the product is for charity.',
+    example: false,
+  })
+  isCharity!: boolean;
+
   @ApiProperty({ description: 'View count.', example: 45 })
   views!: number;
 
@@ -290,6 +296,7 @@ export class ProductResponseDto {
       quantity: product.quantity,
       status: product.status,
       isFeatured: product.isFeatured,
+      isCharity: product.isCharity,
       views: product.views,
       region: (product.regionRelation?.name ?? null) as string | null,
       city: (product.cityRelation?.name ?? null) as string | null,
