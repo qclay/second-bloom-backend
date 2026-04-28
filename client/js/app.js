@@ -2477,7 +2477,9 @@
   function loadConversations() {
     if (!accessToken) return;
     return api('/conversations?page=1&limit=50')
-      .then((res) => { const list = res.data || res || []; conversationsCache = Array.isArray(list) ? list : []; renderConversationList(conversationsCache); requestOnlineStatuses(); return conversationsCache; })
+      .then((res) => { 
+        console.log('--- FETCHED CONVERSATIONS ---', JSON.stringify(res, null, 2));
+        const list = res.data || res || []; conversationsCache = Array.isArray(list) ? list : []; renderConversationList(conversationsCache); requestOnlineStatuses(); return conversationsCache; })
       .catch((err) => { console.error('Load conversations:', err); conversationsCache = []; renderConversationList([]); });
   }
 
@@ -2608,6 +2610,15 @@
       } else if (conv?.blocked) {
         statusEl.textContent = 'Blocked by you';
         statusEl.className = 'conversation-status warning';
+      }
+    }
+    const blockBtn = $('btn-block-user');
+    if (blockBtn) {
+      if (other && !other.isAdministrationChat) {
+        blockBtn.classList.remove('hidden');
+        blockBtn.textContent = conv?.blocked ? 'Unblock user' : 'Block user';
+      } else {
+        blockBtn.classList.add('hidden');
       }
     }
     applyConversationSendLock(conv);
@@ -3040,7 +3051,26 @@
     }
     document.addEventListener('click', (e) => { if ($('chat-search-results') && !$('chat-search-results').classList.contains('hidden') && !e.target.closest('.chat-search-wrap')) hideMessageSearchResults(); });
     $('message-form').addEventListener('submit', onSendMessage);
-    $('message-input').addEventListener('input', onMessageInput)
+    $('message-input').addEventListener('input', onMessageInput);
+
+    const blockBtn = $('btn-block-user');
+    if (blockBtn) {
+      blockBtn.addEventListener('click', () => {
+        const conv = conversationsCache.find((c) => c.id === currentConversationId);
+        const other = conv?.participants?.find((p) => p.userId !== currentUser?.id);
+        if (!other) return;
+        const isBlocked = conv.blocked;
+        const endpoint = `/users/${other.userId}/block`;
+        api(endpoint, { method: isBlocked ? 'DELETE' : 'POST' })
+          .then((res) => {
+            showToast(res.message || (isBlocked ? 'Unblocked' : 'Blocked'), 'success');
+            loadConversations().then(() => {
+              if (currentConversationId) selectConversation(currentConversationId);
+            });
+          })
+          .catch(err => showToast(err.message || 'Error', 'error'));
+      });
+    }
 
     $('btn-mark-all-read').addEventListener('click', markAllNotificationsRead);
     $('btn-refresh-notifications').addEventListener('click', loadNotifications);

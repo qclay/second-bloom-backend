@@ -1553,9 +1553,7 @@ export class ConversationService {
       participants,
       unreadCount: myParticipant?.unreadCount ?? 0,
       isArchived: myParticipant?.isArchived ?? false,
-      blocked: !!conversation.participants.find(
-        (p) => p.userId !== userId && p.isBlocked
-      ),
+      blocked: blocked,
       isBlocked: myParticipant?.isBlocked ?? false,
       isActive: conversation.isActive,
       lastMessageAt: toISOString(conversation.lastMessageAt),
