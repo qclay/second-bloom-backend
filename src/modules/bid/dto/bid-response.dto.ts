@@ -54,7 +54,7 @@ export class BidResponseDto {
           slug: string;
           price: unknown;
           isCharity: boolean;
-          images?: { id: string; url: string; displayOrder: number }[];
+          images?: { id: string; displayOrder: number; file?: { url: string } | null }[];
         };
       };
       bidder?: {
@@ -111,7 +111,7 @@ export class BidResponseDto {
                   isCharity: bid.auction.product.isCharity,
                   images: bid.auction.product.images?.map((img) => ({
                     id: img.id,
-                    url: img.url,
+                    url: img.file?.url ?? '',
                     displayOrder: img.displayOrder,
                   })),
                 }

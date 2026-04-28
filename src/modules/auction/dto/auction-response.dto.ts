@@ -100,6 +100,7 @@ export class AuctionResponseDto {
         title: unknown;
         slug: string;
         price: unknown;
+        isCharity: boolean;
         images?: Array<{ fileId: string; file?: { url: string } }>;
       };
       creator?: {

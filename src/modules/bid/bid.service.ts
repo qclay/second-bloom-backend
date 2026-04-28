@@ -497,13 +497,24 @@ export class BidService {
               currentPrice: true,
               status: true,
               endTime: true,
-              product: {
-                select: {
-                  id: true,
-                  title: true,
-                  slug: true,
-                },
-              },
+                  product: {
+                    select: {
+                      id: true,
+                      title: true,
+                      slug: true,
+                      price: true,
+                      isCharity: true,
+                      images: {
+                        select: {
+                          id: true,
+                          displayOrder: true,
+                          file: { select: { url: true } },
+                        },
+                        orderBy: { displayOrder: 'asc' },
+                        take: 1,
+                      },
+                    },
+                  },
             },
           },
           bidder: {
@@ -574,7 +585,11 @@ export class BidService {
                 price: true,
                 isCharity: true,
                 images: {
-                  select: { id: true, url: true, displayOrder: true },
+                  select: {
+                    id: true,
+                    displayOrder: true,
+                    file: { select: { url: true } },
+                  },
                   orderBy: { displayOrder: 'asc' },
                 },
               },
