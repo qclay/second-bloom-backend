@@ -220,6 +220,7 @@ export class AuctionService {
               title: true,
               slug: true,
               price: true,
+              isCharity: true,
               images: {
                 include: {
                   file: {
@@ -278,6 +279,7 @@ export class AuctionService {
             title: true,
             slug: true,
             price: true,
+            isCharity: true,
             images: {
               include: {
                 file: {

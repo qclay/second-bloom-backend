@@ -14,6 +14,9 @@ export class ProductNestedDto {
   @ApiProperty()
   price!: number;
 
+  @ApiProperty()
+  isCharity!: boolean;
+
   @ApiProperty({ type: [ProductImageDto], required: false })
   images?: ProductImageDto[];
 }

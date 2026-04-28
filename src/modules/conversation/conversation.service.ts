@@ -73,6 +73,7 @@ const CONVERSATION_INCLUDE = {
       slug: true,
       title: true,
       price: true,
+      isCharity: true,
       currency: true,
       auctions: {
         take: 1,
@@ -1440,6 +1441,7 @@ export class ConversationService {
         slug: string;
         title: unknown;
         price: { toNumber?: () => number };
+        isCharity: boolean;
         currency: string;
         auctions?: { id: string }[];
         seller?: {
@@ -1491,6 +1493,7 @@ export class ConversationService {
         title:
           resolveTranslation(p.title as Record<string, string>, null) ?? '',
         price,
+        isCharity: p.isCharity,
         currency: p.currency,
         imageUrl: p.images?.[0]?.file?.url ?? null,
         auctionId: productAuctionId,
@@ -1550,7 +1553,9 @@ export class ConversationService {
       participants,
       unreadCount: myParticipant?.unreadCount ?? 0,
       isArchived: myParticipant?.isArchived ?? false,
-      blocked,
+      blocked: !!conversation.participants.find(
+        (p) => p.userId !== userId && p.isBlocked
+      ),
       isBlocked: myParticipant?.isBlocked ?? false,
       isActive: conversation.isActive,
       lastMessageAt: toISOString(conversation.lastMessageAt),

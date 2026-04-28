@@ -60,6 +60,9 @@ export class PinnedProductDto {
   @ApiProperty({ example: 150000 })
   price!: number;
 
+  @ApiProperty({ example: true })
+  isCharity!: boolean;
+
   @ApiPropertyOptional({ example: 'UZS' })
   currency?: string;
 

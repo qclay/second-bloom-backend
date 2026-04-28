@@ -43,6 +43,15 @@ export class ProductQueryDto {
   isFeatured?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Filter charity products only.',
+    example: true,
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isCharity?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Filter by product type.',
     enum: ProductType,
   })

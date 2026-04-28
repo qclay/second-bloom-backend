@@ -118,6 +118,7 @@ export class OrderResponseDto {
         title: unknown;
         slug: string;
         price: unknown;
+        isCharity: boolean;
         sellerId: string;
         images?: Array<{ fileId: string; file?: { url: string } }>;
       };
@@ -173,6 +174,7 @@ export class OrderResponseDto {
               typeof order.product.price === 'number'
                 ? order.product.price
                 : Number(order.product.price) || 0,
+            isCharity: order.product.isCharity,
             sellerId: order.product.sellerId,
             images: order.product.images?.map((img) => ({
               id: img.fileId,

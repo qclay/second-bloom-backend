@@ -152,6 +152,7 @@ export class AuctionResponseDto {
               typeof auction.product.price === 'number'
                 ? auction.product.price
                 : Number(auction.product.price) || 0,
+            isCharity: auction.product.isCharity,
             images: auction.product.images?.map((img) => ({
               id: img.fileId,
               url: img.file?.url ?? '',

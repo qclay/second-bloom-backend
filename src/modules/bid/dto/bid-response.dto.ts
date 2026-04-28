@@ -27,6 +27,9 @@ export class BidResponseDto {
       id: string;
       title: string;
       slug: string;
+      price: number;
+      isCharity: boolean;
+      images?: { id: string; url: string; displayOrder: number }[];
     };
   };
   bidder?: {
@@ -49,6 +52,9 @@ export class BidResponseDto {
           id: string;
           title: unknown;
           slug: string;
+          price: unknown;
+          isCharity: boolean;
+          images?: { id: string; url: string; displayOrder: number }[];
         };
       };
       bidder?: {
@@ -98,6 +104,16 @@ export class BidResponseDto {
                   id: bid.auction.product.id,
                   title: (bid.auction.product.title as string) ?? '',
                   slug: bid.auction.product.slug,
+                  price:
+                    typeof bid.auction.product.price === 'number'
+                      ? bid.auction.product.price
+                      : Number(bid.auction.product.price) || 0,
+                  isCharity: bid.auction.product.isCharity,
+                  images: bid.auction.product.images?.map((img) => ({
+                    id: img.id,
+                    url: img.url,
+                    displayOrder: img.displayOrder,
+                  })),
                 }
               : undefined,
           }

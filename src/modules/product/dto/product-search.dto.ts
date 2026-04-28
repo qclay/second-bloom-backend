@@ -70,8 +70,16 @@ export class ProductSearchDto {
   @IsBoolean()
   isFeatured?: boolean;
 
-  @ApiProperty({
-    description: 'Filter by product type',
+  @ApiProperty({    description: 'Filter charity products',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isCharity?: boolean;
+
+  @ApiProperty({    description: 'Filter by product type',
     enum: ProductType,
     example: 'FRESH',
     required: false,

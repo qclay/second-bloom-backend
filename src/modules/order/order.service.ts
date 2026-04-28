@@ -436,6 +436,7 @@ export class OrderService {
               title: true,
               slug: true,
               price: true,
+              isCharity: true,
               sellerId: true,
               images: {
                 include: {
@@ -528,6 +529,7 @@ export class OrderService {
             title: true,
             slug: true,
             price: true,
+            isCharity: true,
             sellerId: true,
             images: {
               include: {

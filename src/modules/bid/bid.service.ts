@@ -571,6 +571,12 @@ export class BidService {
                 id: true,
                 title: true,
                 slug: true,
+                price: true,
+                isCharity: true,
+                images: {
+                  select: { id: true, url: true, displayOrder: true },
+                  orderBy: { displayOrder: 'asc' },
+                },
               },
             },
           },
@@ -944,6 +950,8 @@ export class BidService {
                   id: true,
                   title: true,
                   slug: true,
+                  price: true,
+                  isCharity: true,
                   images: {
                     include: {
                       file: {

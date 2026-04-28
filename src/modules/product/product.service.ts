@@ -473,6 +473,10 @@ export class ProductService {
       where.isFeatured = isFeatured;
     }
 
+    if (dto.isCharity !== undefined) {
+      where.isCharity = dto.isCharity;
+    }
+
     if (type) {
       where.type = type;
     }
@@ -875,6 +879,8 @@ export class ProductService {
       minPrice,
       maxPrice,
       tags,
+      isFeatured,
+      isCharity,
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = query;
@@ -919,6 +925,14 @@ export class ProductService {
       where.status = status;
     } else if (statuses && statuses.length > 0) {
       where.status = { in: statuses };
+    }
+
+    if (isFeatured !== undefined) {
+      where.isFeatured = isFeatured;
+    }
+
+    if (isCharity !== undefined) {
+      where.isCharity = isCharity;
     }
 
     if (regionId) {
