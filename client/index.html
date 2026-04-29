@@ -61,6 +61,7 @@
         <button class="tab-btn" data-tab="orders" data-i18n="tab_orders">Orders</button>
         <button class="tab-btn" data-tab="chat" data-i18n="tab_chat">Chat</button>
         <button class="tab-btn" data-tab="notifications" data-i18n="tab_notifications">Notifications</button>
+        <button class="tab-btn" data-tab="profile" data-i18n="tab_profile">Profile</button>
         <button class="tab-btn hidden" id="tab-moderation" data-tab="moderation" data-i18n="tab_moderation">Moderation</button>
       </nav>
 
@@ -482,6 +483,34 @@
             <p data-i18n="no_notifications">No notifications yet</p>
           </div>
           <div id="notifications-loading" class="loading-state hidden" data-i18n="loading">Loading...</div>
+        </div>
+
+        <div id="panel-profile" class="tab-panel">
+          <div class="panel-header">
+            <h2 data-i18n="tab_profile">Profile</h2>
+          </div>
+          <div class="card profile-card">
+            <form id="profile-form" class="form">
+              <div class="form-group">
+                <label data-i18n="first_name">First Name</label>
+                <input type="text" id="profile-firstname" />
+              </div>
+              <div class="form-group">
+                <label data-i18n="last_name">Last Name</label>
+                <input type="text" id="profile-lastname" />
+              </div>
+              <div class="form-group">
+                <label data-i18n="product_city">City</label>
+                <select id="profile-city">
+                  <option value="" data-i18n="select_city">-- Select City --</option>
+                </select>
+                <p class="form-hint">Selected city will filter products you see</p>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn primary" data-i18n="save">Save Profile</button>
+              </div>
+            </form>
+          </div>
         </div>
 
       </div>

@@ -147,7 +147,7 @@ export class NotificationService {
 
     let key = type as string;
     const params: Record<string, string | number | undefined> = {
-      product,
+      product: product || (lang === 'ru' ? 'Товар' : lang === 'uz' ? 'Mahsulot' : 'Product'),
       amountText,
       orderNumber: context.orderNumber || '',
     };

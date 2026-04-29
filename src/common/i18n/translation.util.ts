@@ -6,9 +6,10 @@ export type TranslationRecord = Partial<Record<Locale, string>>;
 const FALLBACK_ORDER: Locale[] = ['en', 'ru', 'uz'];
 
 export function resolveTranslation(
-  record: TranslationRecord | null | undefined,
+  record: TranslationRecord | string | null | undefined,
   preferredLocale?: Locale | string | null,
 ): string | null {
+  if (typeof record === 'string') return record;
   if (!record || typeof record !== 'object') return null;
   const lang =
     preferredLocale && SUPPORTED_LOCALES.includes(preferredLocale as Locale)
@@ -18,13 +19,13 @@ export function resolveTranslation(
     ? [lang, ...FALLBACK_ORDER.filter((l) => l !== lang)]
     : FALLBACK_ORDER;
   for (const loc of order) {
-    const value = record[loc];
+    const value = (record as TranslationRecord)[loc];
     if (typeof value === 'string' && value.trim()) return value;
   }
   const first = Object.values(record).find(
     (v) => typeof v === 'string' && v.trim(),
   );
-  return first != null ? first : null;
+  return typeof first === 'string' ? first : null;
 }
 
 export function getTranslationForSlug(

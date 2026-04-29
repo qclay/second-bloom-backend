@@ -200,6 +200,10 @@
       transaction_top_up: 'Balance top-up',
       transaction_publication: '{n} publication(s)',
       payment_success: 'Payment completed successfully',
+      tab_profile: 'Profile',
+      first_name: 'First Name',
+      last_name: 'Last Name',
+      select_city: '-- Select City --',
     },
     uz: {
       login_title: 'Second Bloom',
@@ -394,6 +398,10 @@
       transaction_top_up: 'Balans to\'ldirish',
       transaction_publication: '{n} publikatsiya',
       payment_success: 'To\'lov muvaffaqiyatli yakunlandi',
+      tab_profile: 'Profil',
+      first_name: 'Ism',
+      last_name: 'Familiya',
+      select_city: '-- Shaharni tanlang --',
     },
     ru: {
       login_title: 'Second Bloom',
@@ -588,6 +596,10 @@
       transaction_top_up: 'Пополнение баланса',
       transaction_publication: '{n} публикация(ий)',
       payment_success: 'Оплата прошла успешно',
+      tab_profile: 'Профиль',
+      first_name: 'Имя',
+      last_name: 'Фамилия',
+      select_city: '-- Выберите город --',
     },
   };
 
@@ -1027,6 +1039,69 @@
     else if (tab === 'chat') { loadConversations(); connectConversationSocket(); }
     else if (tab === 'moderation') loadModeration();
     else if (tab === 'notifications') loadNotifications();
+    else if (tab === 'profile') loadProfile();
+  }
+
+  function loadProfile() {
+    const citySelect = $('profile-city');
+    if (!citySelect) return;
+
+    // Refresh user data from server to be sure
+    api('/users/profile')
+      .then((user) => {
+        currentUser = user;
+        localStorage.setItem('sb_user', JSON.stringify(user));
+        
+        // Fill existing data
+        if ($('profile-firstname')) $('profile-firstname').value = user.firstName || '';
+        if ($('profile-lastname')) $('profile-lastname').value = user.lastName || '';
+        
+        // Load cities
+        return api('/locations/cities');
+      })
+      .then((countries) => {
+        citySelect.innerHTML = `<option value="">${t('select_city')}</option>`;
+        countries.forEach((country) => {
+          const group = document.createElement('optgroup');
+          group.label = country.name;
+          country.cities.forEach((city) => {
+            const opt = document.createElement('option');
+            opt.value = city.id;
+            opt.textContent = city.name;
+            if (currentUser && currentUser.city === city.id) {
+              opt.selected = true;
+            }
+            group.appendChild(opt);
+          });
+          citySelect.appendChild(group);
+        });
+      })
+      .catch((err) => showToast('Failed to load profile: ' + err.message, 'error'));
+  }
+
+  function onProfileSubmit(e) {
+    if (e) e.preventDefault();
+    const firstName = $('profile-firstname').value.trim();
+    const lastName = $('profile-lastname').value.trim();
+    const city = $('profile-city').value;
+
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+
+    api('/users/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ firstName, lastName, city }),
+    })
+      .then((updatedUser) => {
+        currentUser = updatedUser;
+        localStorage.setItem('sb_user', JSON.stringify(updatedUser));
+        showToast(t('product_updated') || 'Profile updated', 'success');
+        showApp(); // Refresh display name and reload products if needed
+      })
+      .catch((err) => showToast(err.message, 'error'))
+      .finally(() => {
+        if (btn) btn.disabled = false;
+      });
   }
 
   function updateModerationTabVisibility() {
@@ -3075,6 +3150,9 @@
     $('btn-mark-all-read').addEventListener('click', markAllNotificationsRead);
     $('btn-refresh-notifications').addEventListener('click', loadNotifications);
     document.querySelectorAll('.filter-btn').forEach((btn) => { btn.addEventListener('click', () => { document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active')); btn.classList.add('active'); notifFilter = btn.dataset.filter; loadNotifications(); }); });
+
+    const profileForm = $('profile-form');
+    if (profileForm) profileForm.addEventListener('submit', onProfileSubmit);
 
     const topUpBtn = $('btn-top-up');
     if (topUpBtn) {

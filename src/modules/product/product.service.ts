@@ -51,7 +51,7 @@ export class ProductService {
     @Inject(forwardRef(() => NotificationService))
     private readonly notificationService: NotificationService,
     private readonly presenceService: PresenceService,
-  ) {}
+  ) { }
 
   async createProduct(
     dto: CreateProductDto,
@@ -245,8 +245,7 @@ export class ProductService {
       void this.notifyTelegramProductPendingModeration(product.id).catch(
         (err) => {
           this.logger.error(
-            `Failed to send Telegram moderation message for product ${product.id}: ${
-              (err as Error).message
+            `Failed to send Telegram moderation message for product ${product.id}: ${(err as Error).message
             }`,
           );
         },
@@ -314,23 +313,23 @@ export class ProductService {
     const size =
       product.size?.name && typeof product.size.name === 'object'
         ? resolveTranslation(
-            product.size.name as unknown as Record<string, string>,
-            ru,
-          )
+          product.size.name as unknown as Record<string, string>,
+          ru,
+        )
         : (product.size?.name as unknown as string | undefined);
     const condition =
       product.condition?.name && typeof product.condition.name === 'object'
         ? resolveTranslation(
-            product.condition.name as unknown as Record<string, string>,
-            ru,
-          )
+          product.condition.name as unknown as Record<string, string>,
+          ru,
+        )
         : (product.condition?.name as unknown as string | undefined);
 
     const rawPrice = product.price;
     const price =
       typeof rawPrice === 'object' &&
-      rawPrice &&
-      'toNumber' in (rawPrice as unknown as { toNumber?: () => number })
+        rawPrice &&
+        'toNumber' in (rawPrice as unknown as { toNumber?: () => number })
         ? (rawPrice as unknown as { toNumber: () => number }).toNumber()
         : Number(rawPrice ?? 0);
 
@@ -453,6 +452,16 @@ export class ProductService {
             ? {}
             : { status: ProductStatus.PUBLISHED }),
     };
+
+    if (user && !cityId && !regionId && !districtId) {
+      const fullUser = await this.prisma.user.findUnique({
+        where: { id: user.id },
+        select: { city: true },
+      });
+      if (fullUser?.city) {
+        where.cityId = fullUser.city;
+      }
+    }
 
     if (search) {
       where.OR = [
@@ -753,11 +762,11 @@ export class ProductService {
             activeAuction,
             saleOrderSummary: lastOrder
               ? {
-                  id: lastOrder.id,
-                  status: lastOrder.status,
-                  deliveredAt: lastOrder.deliveredAt,
-                  shippedAt: lastOrder.shippedAt,
-                }
+                id: lastOrder.id,
+                status: lastOrder.status,
+                deliveredAt: lastOrder.deliveredAt,
+                shippedAt: lastOrder.shippedAt,
+              }
               : undefined,
             saleStatus,
             interestedBuyers,
@@ -1148,11 +1157,11 @@ export class ProductService {
           activeAuction,
           saleOrderSummary: lastOrder
             ? {
-                id: lastOrder.id,
-                status: lastOrder.status,
-                deliveredAt: lastOrder.deliveredAt,
-                shippedAt: lastOrder.shippedAt,
-              }
+              id: lastOrder.id,
+              status: lastOrder.status,
+              deliveredAt: lastOrder.deliveredAt,
+              shippedAt: lastOrder.shippedAt,
+            }
             : undefined,
           saleStatus,
         } as Parameters<typeof ProductResponseDto.fromEntity>[0]);
@@ -1212,7 +1221,7 @@ export class ProductService {
       });
 
       const title =
-        resolveTranslation(product.title as Record<string, string>, null) ?? '';
+        resolveTranslation(product.title as Record<string, string>) ?? '';
 
       try {
         await this.notificationService.notifyProductApproved({
@@ -1240,12 +1249,12 @@ export class ProductService {
     });
 
     const title =
-      resolveTranslation(product.title as Record<string, string>, null) ?? '';
+      resolveTranslation(product.title as Record<string, string>) ?? '';
     const imageUrl = product.images?.[0]?.file?.url ?? null;
     const price =
       typeof product.price === 'object' &&
-      product.price &&
-      'toNumber' in product.price
+        product.price &&
+        'toNumber' in product.price
         ? (product.price as { toNumber: () => number }).toNumber()
         : Number(product.price);
     try {

@@ -900,30 +900,8 @@ export class OrderService {
       };
     };
 
-    await this.conversationService.sendMessageAsSender(
-      conversation.id,
-      buyerId,
-      t(
-        API_MESSAGES,
-        'New order #{{orderNumber}}',
-        { orderNumber: order.orderNumber },
-        buyerLang,
-      ),
-      createBannerMetadata(buyerLang),
-      MessageType.SYSTEM,
-    );
-
-    await this.conversationService.sendMessageAsSender(
-      conversation.id,
-      sellerId,
-      t(
-        API_MESSAGES,
-        'Order #{{orderNumber}} accepted',
-        { orderNumber: order.orderNumber },
-        sellerLang,
-      ),
-      createBannerMetadata(sellerLang),
-      MessageType.SYSTEM,
+    this.logger.log(
+      `Order banner notification for order ${orderId} in conversation ${conversation.id} available via pinned order metadata`,
     );
 
     this.logger.log(

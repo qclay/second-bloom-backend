@@ -240,6 +240,18 @@ async function main() {
       c.regionId === tashkentCityRegion.id,
   )!;
 
+  const bukharaCity = cities.find(
+    (c) =>
+      (c.name as { en: string }).en === 'Bukhara' &&
+      c.regionId === bukharaRegion.id,
+  )!;
+
+  const andijanCity = cities.find(
+    (c) =>
+      (c.name as { en: string }).en === 'Andijan' &&
+      c.regionId === andijanRegion.id,
+  )!;
+
   const tashkentCityDistricts: ReturnType<typeof tr>[] = [
     tr('Bektemir', 'Бектемир', 'Bektemir'),
     tr('Chilanzar', 'Чиланзар', 'Chilanzar'),
@@ -740,9 +752,8 @@ async function main() {
         isFeatured: false,
         views: 28,
         countryId: uzbekistan.id,
-        regionId: tashkentCityRegion.id,
-        cityId: tashkentCity.id,
-        districtId: byDistrictName('Uchtepa').id,
+        regionId: bukharaRegion.id,
+        cityId: bukharaCity.id,
         sellerId: sellers[1].id,
       },
     }),
@@ -767,9 +778,8 @@ async function main() {
         isFeatured: false,
         views: 19,
         countryId: uzbekistan.id,
-        regionId: tashkentCityRegion.id,
-        cityId: tashkentCity.id,
-        districtId: byDistrictName('Uchtepa').id,
+        regionId: bukharaRegion.id,
+        cityId: bukharaCity.id,
         sellerId: sellers[1].id,
       },
     }),
@@ -859,6 +869,47 @@ async function main() {
         regionId: tashkentCityRegion.id,
         cityId: tashkentCity.id,
         districtId: byDistrictName('Sergeli').id,
+        sellerId: sellers[2].id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        title: tr('Bukhara Night Flower', 'Ночной цветок Бухары', 'Buxoro tun guli'),
+        slug: 'bukhara-night-flower',
+        description: tr('Exquisite night-blooming flower from the heart of Bukhara.', 'Изысканный ночной цветок из самого сердца Бухары.', 'Buxoro markazidan ajoyib tun guli.'),
+        price: 220000,
+        currency: 'UZS',
+        categoryId: flowersCategory.id,
+        tags: ['bukhara', 'night', 'exotic'],
+        type: 'FRESH',
+        conditionId: conditions[0].id,
+        sizeId: sizes[2].id,
+        quantity: 5,
+        status: 'PUBLISHED',
+        isFeatured: true,
+        countryId: uzbekistan.id,
+        regionId: bukharaRegion.id,
+        cityId: bukharaCity.id,
+        sellerId: sellers[1].id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        title: tr('Andijan Sunflowers', 'Андижанские подсолнухи', 'Andijon kungaboqarlari'),
+        slug: 'andijan-sunflowers',
+        description: tr('Bright and sunny sunflowers from Andijan fields.', 'Яркие и солнечные подсолнухи с полей Андижана.', 'Andijon dalalaridan yorqin kungaboqarlar.'),
+        price: 95000,
+        currency: 'UZS',
+        categoryId: flowersCategory.id,
+        tags: ['andijan', 'sunflowers', 'bright'],
+        type: 'FRESH',
+        conditionId: conditions[0].id,
+        sizeId: sizes[4].id,
+        quantity: 20,
+        status: 'PUBLISHED',
+        countryId: uzbekistan.id,
+        regionId: andijanRegion.id,
+        cityId: andijanCity.id,
         sellerId: sellers[2].id,
       },
     }),
