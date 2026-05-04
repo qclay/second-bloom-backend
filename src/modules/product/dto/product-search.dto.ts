@@ -122,22 +122,6 @@ export class ProductSearchDto {
   @IsEnum(ProductStatus, { each: true })
   statuses?: ProductStatus[];
 
-  @ApiProperty({
-    description: 'Filter by region ID (from GET /locations/regions)',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  regionId?: string;
-
-  @ApiProperty({
-    description: 'Filter by multiple region IDs',
-    required: false,
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  regionIds?: string[];
 
   @ApiProperty({
     description: 'Filter by city ID (from GET /locations/cities)',
@@ -156,22 +140,6 @@ export class ProductSearchDto {
   @IsString({ each: true })
   cityIds?: string[];
 
-  @ApiProperty({
-    description: 'Filter by district ID (from GET /locations/districts)',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  districtId?: string;
-
-  @ApiProperty({
-    description: 'Filter by multiple district IDs',
-    required: false,
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  districtIds?: string[];
 
   @ApiProperty({
     description: 'Filter by condition ID (from GET /conditions)',

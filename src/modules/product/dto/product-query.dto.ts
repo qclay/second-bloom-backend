@@ -77,12 +77,6 @@ export class ProductQueryDto {
   @IsEnum(ProductStatus)
   status?: ProductStatus;
 
-  @ApiPropertyOptional({
-    description: 'Filter by region ID (from GET /locations/regions).',
-  })
-  @IsOptional()
-  @IsString()
-  regionId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by city ID (from GET /locations/cities).',
@@ -91,12 +85,6 @@ export class ProductQueryDto {
   @IsString()
   cityId?: string;
 
-  @ApiPropertyOptional({
-    description: 'Filter by district ID (from GET /locations/districts).',
-  })
-  @IsOptional()
-  @IsString()
-  districtId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by condition ID (from GET /conditions).',

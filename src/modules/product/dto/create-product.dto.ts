@@ -159,13 +159,6 @@ export class CreateProductDto {
   @IsOptional()
   isCharity?: boolean = false;
 
-  @ApiPropertyOptional({
-    description: 'Region ID (from GET /locations/regions).',
-    example: '550e8400-e29b-41d4-a716-446655440001',
-  })
-  @IsUUID()
-  @IsOptional()
-  regionId?: string;
 
   @ApiPropertyOptional({
     description: 'City ID (from GET /locations/cities).',
@@ -175,13 +168,6 @@ export class CreateProductDto {
   @IsOptional()
   cityId?: string;
 
-  @ApiPropertyOptional({
-    description: 'District ID (from GET /locations/districts).',
-    example: '550e8400-e29b-41d4-a716-446655440003',
-  })
-  @IsUUID()
-  @IsOptional()
-  districtId?: string;
 
   @ApiPropertyOptional({
     description: 'Uploaded file IDs for product images (order preserved)',

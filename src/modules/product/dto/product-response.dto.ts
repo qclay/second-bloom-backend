@@ -112,18 +112,8 @@ export class ProductResponseDto {
   @ApiProperty({ description: 'View count.', example: 45 })
   views!: number;
 
-  @ApiProperty({
-    nullable: true,
-    description: 'Region (e.g. Tashkent).',
-    example: 'Tashkent',
-  })
-  region!: string | null;
-
   @ApiProperty({ nullable: true, example: 'Tashkent' })
   city!: string | null;
-
-  @ApiProperty({ nullable: true, example: 'Mirobod' })
-  district!: string | null;
 
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440030' })
   sellerId!: string;
@@ -240,9 +230,9 @@ export class ProductResponseDto {
         lastName: string | null;
         phoneNumber: string;
       };
-      regionRelation?: { name: unknown } | null;
+
       cityRelation?: { name: unknown } | null;
-      districtRelation?: { name: unknown } | null;
+
       images?: (ProductImage & { file?: { url: string } })[];
       activeAuction?: {
         id: string;
@@ -298,9 +288,9 @@ export class ProductResponseDto {
       isFeatured: product.isFeatured,
       isCharity: product.isCharity,
       views: product.views,
-      region: (product.regionRelation?.name ?? null) as string | null,
+
       city: (product.cityRelation?.name ?? null) as string | null,
-      district: (product.districtRelation?.name ?? null) as string | null,
+
       sellerId: product.sellerId,
       createdAt: toISOString(product.createdAt) ?? '',
       updatedAt: toISOString(product.updatedAt) ?? '',

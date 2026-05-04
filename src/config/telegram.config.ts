@@ -19,6 +19,7 @@ export default registerAs('telegram', () => {
     chatId: process.env.TELEGRAM_CHAT_ID || '',
     topicIdOtp: topicOtp,
     topicIdModeration: topicModeration,
+    botAuthSecret: process.env.TELEGRAM_BOT_AUTH_SECRET || '',
     enabled: Boolean(
       process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID,
     ),

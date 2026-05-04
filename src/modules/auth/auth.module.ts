@@ -14,6 +14,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { InfrastructureModule } from '../../infrastructure/infrastructure.module';
 import { ConversationModule } from '../conversation/conversation.module';
+import { AuthTelegramController } from './auth-telegram.controller';
+import { TelegramBotGuard } from './guards/telegram-bot.guard';
 
 @Module({
   imports: [
@@ -39,8 +41,14 @@ import { ConversationModule } from '../conversation/conversation.module';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, VerificationCodeRepository, OtpService, JwtStrategy],
+  controllers: [AuthController, AuthTelegramController],
+  providers: [
+    AuthService,
+    VerificationCodeRepository,
+    OtpService,
+    JwtStrategy,
+    TelegramBotGuard,
+  ],
   exports: [AuthService, JwtStrategy, OtpService],
 })
 export class AuthModule {}

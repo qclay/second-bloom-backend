@@ -20,6 +20,7 @@ import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ErrorCode } from '../../common/constants/error-codes.constant';
 import type { JwtSignOptions } from '@nestjs/jwt';
 import { DeviceTokensService } from '../../redis/device-tokens.service';
+import { TelegramLinkContactDto } from './dto/telegram-link-contact.dto';
 
 @Injectable()
 export class AuthService {
@@ -217,6 +218,54 @@ export class AuthService {
     await this.deviceTokensService.clearAllTokens(userId);
 
     return { message: 'Logged out successfully' };
+  }
+
+  async linkTelegramContact(dto: TelegramLinkContactDto): Promise<AuthResponseDto> {
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { telegramId: dto.telegramId },
+          { phoneNumber: dto.phoneNumber.replace('+', '') },
+          { phoneNumber: dto.phoneNumber },
+        ],
+      },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          phoneNumber: dto.phoneNumber.replace('+', ''),
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          telegramId: dto.telegramId,
+          telegramUsername: dto.telegramUsername,
+          telegramLinkedAt: new Date(),
+          role: UserRole.USER,
+          isActive: true,
+          isVerified: true,
+          publicationCredits: 1,
+        },
+      });
+    } else {
+      if (user.telegramId !== dto.telegramId) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            telegramId: dto.telegramId,
+            telegramUsername: dto.telegramUsername,
+            telegramLinkedAt: new Date(),
+          },
+        });
+      }
+    }
+
+    const tokens = await this.generateTokens(user);
+
+    return AuthResponseDto.fromUser(
+      user,
+      tokens.accessToken,
+      tokens.refreshToken,
+    );
   }
 
   private async generateTokens(user: {

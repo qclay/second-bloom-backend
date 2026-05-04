@@ -191,14 +191,8 @@ export class ProductService {
                 : ProductStatus.PENDING,
             isFeatured: dto.isFeatured ?? false,
             isCharity: dto.isCharity ?? false,
-            ...(dto.regionId && {
-              regionRelation: { connect: { id: dto.regionId } },
-            }),
             ...(dto.cityId && {
               cityRelation: { connect: { id: dto.cityId } },
-            }),
-            ...(dto.districtId && {
-              districtRelation: { connect: { id: dto.districtId } },
             }),
             seller: {
               connect: { id: sellerId },
@@ -273,7 +267,7 @@ export class ProductService {
         size: { select: { name: true } },
         condition: { select: { name: true } },
         cityRelation: { select: { name: true } },
-        regionRelation: { select: { name: true } },
+
         images: {
           where: { deletedAt: null, isActive: true },
           take: 10,
@@ -303,7 +297,7 @@ export class ProductService {
         : null;
     const fullDescription = descriptionResolved?.trim() ?? '';
     const description = fullDescription.slice(0, DESCRIPTION_MAX_LENGTH);
-    const cityRaw = product.cityRelation?.name ?? product.regionRelation?.name;
+    const cityRaw = product.cityRelation?.name;
     const cityName =
       typeof cityRaw === 'string'
         ? cityRaw
@@ -411,9 +405,7 @@ export class ProductService {
       type,
       status,
       salePhase,
-      regionId,
       cityId,
-      districtId,
       minPrice,
       maxPrice,
       sortBy = 'createdAt',
@@ -453,7 +445,7 @@ export class ProductService {
             : { status: ProductStatus.PUBLISHED }),
     };
 
-    if (user && !cityId && !regionId && !districtId) {
+    if (user && !cityId) {
       const fullUser = await this.prisma.user.findUnique({
         where: { id: user.id },
         select: { city: true },
@@ -545,14 +537,8 @@ export class ProductService {
       };
     }
 
-    if (regionId) {
-      where.regionId = regionId;
-    }
     if (cityId) {
       where.cityId = cityId;
-    }
-    if (districtId) {
-      where.districtId = districtId;
     }
 
     if (query.conditionId) {
@@ -617,9 +603,7 @@ export class ProductService {
           slug: true,
         },
       },
-      regionRelation: { select: { name: true } },
       cityRelation: { select: { name: true } },
-      districtRelation: { select: { name: true } },
       seller: {
         select: {
           id: true,
@@ -875,12 +859,8 @@ export class ProductService {
       types,
       status,
       statuses,
-      regionId,
-      regionIds,
       cityId,
       cityIds,
-      districtId,
-      districtIds,
       conditionId,
       conditionIds,
       sizeId,
@@ -941,20 +921,10 @@ export class ProductService {
       where.isCharity = isCharity;
     }
 
-    if (regionId) {
-      where.regionId = regionId;
-    } else if (regionIds && regionIds.length > 0) {
-      where.regionId = { in: regionIds };
-    }
     if (cityId) {
       where.cityId = cityId;
     } else if (cityIds && cityIds.length > 0) {
       where.cityId = { in: cityIds };
-    }
-    if (districtId) {
-      where.districtId = districtId;
-    } else if (districtIds && districtIds.length > 0) {
-      where.districtId = { in: districtIds };
     }
 
     if (conditionId) {
@@ -1041,9 +1011,7 @@ export class ProductService {
               slug: true,
             },
           },
-          regionRelation: { select: { name: true } },
           cityRelation: { select: { name: true } },
-          districtRelation: { select: { name: true } },
           seller: {
             select: {
               id: true,
@@ -1313,9 +1281,7 @@ export class ProductService {
             slug: true,
           },
         },
-        regionRelation: { select: { name: true } },
         cityRelation: { select: { name: true } },
-        districtRelation: { select: { name: true } },
         seller: {
           select: {
             id: true,
@@ -1725,21 +1691,13 @@ export class ProductService {
     if (dto.isCharity !== undefined) {
       updateData.isCharity = dto.isCharity;
     }
-    if (dto.regionId !== undefined) {
-      updateData.regionRelation = dto.regionId
-        ? { connect: { id: dto.regionId } }
-        : { disconnect: true };
-    }
+
     if (dto.cityId !== undefined) {
       updateData.cityRelation = dto.cityId
         ? { connect: { id: dto.cityId } }
         : { disconnect: true };
     }
-    if (dto.districtId !== undefined) {
-      updateData.districtRelation = dto.districtId
-        ? { connect: { id: dto.districtId } }
-        : { disconnect: true };
-    }
+
 
     if (validatedImageIds !== undefined || Object.keys(updateData).length > 0) {
       await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {

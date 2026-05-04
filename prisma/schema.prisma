@@ -336,7 +336,6 @@ model Country {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   name      Json
-  products  Product[]
   regions   Region[]
 
   @@index([isActive])
@@ -351,7 +350,6 @@ model Region {
   updatedAt DateTime  @updatedAt
   name      Json
   cities    City[]
-  products  Product[]
   country   Country   @relation(fields: [countryId], references: [id], onDelete: Cascade)
 
   @@index([countryId])
@@ -383,7 +381,6 @@ model District {
   updatedAt DateTime  @updatedAt
   name      Json
   city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  products  Product[]
 
   @@index([cityId])
   @@index([isActive])
@@ -415,9 +412,6 @@ model Product {
   title                     Json?
   description               Json?
   cityId                    String?
-  countryId                 String?
-  districtId                String?
-  regionId                  String?
   moderationRejectedAt      DateTime?
   moderationRejectedById    String?
   moderationRejectionReason String?
@@ -429,10 +423,7 @@ model Product {
   category                  Category?      @relation(fields: [categoryId], references: [id])
   cityRelation              City?          @relation(fields: [cityId], references: [id])
   condition                 Condition?     @relation(fields: [conditionId], references: [id])
-  country                   Country?       @relation(fields: [countryId], references: [id])
-  districtRelation          District?      @relation(fields: [districtId], references: [id])
   publicationPayment        Payment?       @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id])
-  regionRelation            Region?        @relation(fields: [regionId], references: [id])
   seller                    User           @relation(fields: [sellerId], references: [id])
   size                      Size?          @relation(fields: [sizeId], references: [id])
 
@@ -441,17 +432,14 @@ model Product {
   @@index([slug])
   @@index([conditionId])
   @@index([sizeId])
-  @@index([countryId])
-  @@index([regionId])
   @@index([cityId])
-  @@index([districtId])
   @@index([isActive, deletedAt])
   @@index([status, deletedAt])
   @@index([status, type, categoryId])
   @@index([type, status])
   @@index([categoryId, status])
   @@index([isFeatured, status])
-  @@index([status, regionId, cityId])
+  @@index([status, cityId])
   @@index([createdAt])
   @@index([deletedAt])
   @@map("products")
@@ -504,6 +492,9 @@ model User {
   gender                   String?
   language                 String?                   @default("ru")
   username                 String?                   @unique
+  telegramId               String?                   @unique
+  telegramUsername         String?
+  telegramLinkedAt         DateTime?
   phoneCountryCode         String?
   auctionBannedUntil       DateTime?
   isAdministrationChat     Boolean                   @default(false)
