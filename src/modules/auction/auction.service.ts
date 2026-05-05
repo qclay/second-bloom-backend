@@ -889,12 +889,18 @@ export class AuctionService {
           });
 
           if (auction.totalBids === 0) {
-            await this.prisma.user.update({
-              where: { id: auction.creatorId },
-              data: { publicationCredits: { increment: 1 } },
-            });
+            await this.prisma.$transaction([
+              this.prisma.user.update({
+                where: { id: auction.creatorId },
+                data: { publicationCredits: { increment: 1 } },
+              }),
+              this.prisma.product.update({
+                where: { id: auction.productId },
+                data: { status: 'DRAFT' },
+              }),
+            ]);
             this.logger.log(
-              `Refunded 1 publication credit to user ${auction.creatorId} for ended auction ${auction.id} with no bids`,
+              `Refunded 1 publication credit and set product ${auction.productId} to DRAFT for ended auction ${auction.id} with no bids`,
             );
           }
 
@@ -1017,12 +1023,22 @@ export class AuctionService {
     });
 
     if (auctionRecord && auctionRecord.totalBids === 0) {
-      await this.prisma.user.update({
-        where: { id: auctionRecord.creatorId },
-        data: { publicationCredits: { increment: 1 } },
-      });
+      await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id: auctionRecord.creatorId },
+          data: { publicationCredits: { increment: 1 } },
+        }),
+        ...(resolvedProductId
+          ? [
+              this.prisma.product.update({
+                where: { id: resolvedProductId },
+                data: { status: 'DRAFT' },
+              }),
+            ]
+          : []),
+      ]);
       this.logger.log(
-        `Refunded 1 publication credit to user ${auctionRecord.creatorId} for finalized auction ${auctionId} with no bids`,
+        `Refunded 1 publication credit and set product ${resolvedProductId} to DRAFT for finalized auction ${auctionId} with no bids`,
       );
     }
 
