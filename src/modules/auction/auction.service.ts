@@ -889,12 +889,23 @@ export class AuctionService {
           });
 
           if (auction.totalBids === 0) {
-            await this.prisma.user.update({
-              where: { id: auction.creatorId },
-              data: { publicationCredits: { increment: 1 } },
-            });
+            await this.prisma.$transaction([
+              this.prisma.user.update({
+                where: { id: auction.creatorId },
+                data: { publicationCredits: { increment: 1 } },
+              }),
+              this.prisma.product.update({
+                where: { id: auction.productId },
+                data: {
+                  status: 'REJECTED',
+                  moderationRejectionReason:
+                    'Аукцион завершен без ставок. Вы можете отредактировать товар и опубликовать его заново.',
+                  moderationRejectedAt: new Date(),
+                },
+              }),
+            ]);
             this.logger.log(
-              `Refunded 1 publication credit to user ${auction.creatorId} for ended auction ${auction.id} with no bids`,
+              `Refunded 1 publication credit to user ${auction.creatorId} and set product ${auction.productId} to REJECTED for ended auction ${auction.id} with no bids`,
             );
           }
 
@@ -1017,12 +1028,27 @@ export class AuctionService {
     });
 
     if (auctionRecord && auctionRecord.totalBids === 0) {
-      await this.prisma.user.update({
-        where: { id: auctionRecord.creatorId },
-        data: { publicationCredits: { increment: 1 } },
-      });
+      await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id: auctionRecord.creatorId },
+          data: { publicationCredits: { increment: 1 } },
+        }),
+        ...(resolvedProductId
+          ? [
+              this.prisma.product.update({
+                where: { id: resolvedProductId },
+                data: {
+                  status: 'REJECTED',
+                  moderationRejectionReason:
+                    'Аукцион завершен без ставок. Вы можете отредактировать товар и опубликовать его заново.',
+                  moderationRejectedAt: new Date(),
+                },
+              }),
+            ]
+          : []),
+      ]);
       this.logger.log(
-        `Refunded 1 publication credit to user ${auctionRecord.creatorId} for finalized auction ${auctionId} with no bids`,
+        `Refunded 1 publication credit to user ${auctionRecord.creatorId} and set product ${resolvedProductId} to REJECTED for finalized auction ${auctionId} with no bids`,
       );
     }
 

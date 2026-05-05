@@ -12,6 +12,7 @@ import compression from 'compression';
 import * as Sentry from '@sentry/node';
 import { AppModule } from './app.module';
 import { setupSwagger } from './config/swagger.config';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -33,6 +34,8 @@ async function bootstrap() {
   );
 
   app.use(compression());
+  app.use(json({ limit: '5mb' }));
+  app.use(urlencoded({ extended: true, limit: '5mb' }));
 
   app.enableShutdownHooks();
   const shutdownGracefully = async (signal: string): Promise<void> => {

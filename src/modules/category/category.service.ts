@@ -98,6 +98,7 @@ export class CategoryService {
       search,
       isActive,
       parentId,
+      cityId,
       includeChildren = false,
     } = query;
     const maxLimit = Math.min(limit, 100);
@@ -146,6 +147,7 @@ export class CategoryService {
           deletedAt: null,
           isActive: true,
           status: ProductStatus.PUBLISHED,
+          ...(cityId && { cityId }),
         },
       }),
       this.prisma.product.count({
@@ -154,6 +156,7 @@ export class CategoryService {
           isActive: true,
           status: ProductStatus.PUBLISHED,
           categoryId: null,
+          ...(cityId && { cityId }),
         },
       }),
     ]);
@@ -169,6 +172,7 @@ export class CategoryService {
               deletedAt: null,
               isActive: true,
               status: ProductStatus.PUBLISHED,
+              ...(cityId && { cityId }),
             },
             _count: { _all: true },
           });
@@ -203,6 +207,7 @@ export class CategoryService {
   async findById(
     id: string,
     includeChildren = false,
+    cityId?: string,
   ): Promise<CategoryResponseDto> {
     let category: Category | (Category & { children?: Category[] }) | null;
 
@@ -226,6 +231,7 @@ export class CategoryService {
         deletedAt: null,
         isActive: true,
         status: ProductStatus.PUBLISHED,
+        ...(cityId && { cityId }),
       },
     });
 

@@ -8,7 +8,7 @@ export interface FileTypeConfig {
 
 export const FILE_UPLOAD_CONFIG: Record<FileType, FileTypeConfig> = {
   IMAGE: {
-    maxSize: 5 * 1024 * 1024,
+    maxSize: 5 * 1024 * 1024, // 5MB
     allowedMimeTypes: [
       'image/jpeg',
       'image/jpg',
@@ -20,7 +20,7 @@ export const FILE_UPLOAD_CONFIG: Record<FileType, FileTypeConfig> = {
     allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
   },
   VIDEO: {
-    maxSize: 100 * 1024 * 1024,
+    maxSize: 100 * 1024 * 1024, // 100MB
     allowedMimeTypes: [
       'video/mp4',
       'video/mpeg',
@@ -31,7 +31,7 @@ export const FILE_UPLOAD_CONFIG: Record<FileType, FileTypeConfig> = {
     allowedExtensions: ['mp4', 'mpeg', 'mov', 'avi', 'webm'],
   },
   AUDIO: {
-    maxSize: 20 * 1024 * 1024,
+    maxSize: 20 * 1024 * 1024, // 20MB
     allowedMimeTypes: [
       'audio/mpeg',
       'audio/mp3',
@@ -42,7 +42,7 @@ export const FILE_UPLOAD_CONFIG: Record<FileType, FileTypeConfig> = {
     allowedExtensions: ['mp3', 'wav', 'ogg', 'webm'],
   },
   DOCUMENT: {
-    maxSize: 10 * 1024 * 1024,
+    maxSize: 5 * 1024 * 1024, // 5MB
     allowedMimeTypes: [
       'application/pdf',
       'application/msword',
@@ -54,7 +54,7 @@ export const FILE_UPLOAD_CONFIG: Record<FileType, FileTypeConfig> = {
     allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'],
   },
   OTHER: {
-    maxSize: 10 * 1024 * 1024,
+    maxSize: 5 * 1024 * 1024, // 5MB
     allowedMimeTypes: [],
     allowedExtensions: [],
   },

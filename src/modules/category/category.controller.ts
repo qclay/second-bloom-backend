@@ -111,8 +111,13 @@ export class CategoryController {
   async findOne(
     @Param('id') id: string,
     @Query('includeChildren') includeChildren?: string,
+    @Query('cityId') cityId?: string,
   ): Promise<CategoryResponseDto> {
-    return this.categoryService.findById(id, includeChildren === 'true');
+    return this.categoryService.findById(
+      id,
+      includeChildren === 'true',
+      cityId,
+    );
   }
 
   @Patch(':id')
