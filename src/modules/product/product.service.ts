@@ -1671,13 +1671,15 @@ export class ProductService {
     if (dto.status !== undefined && canUpdateAny) {
       updateData.status = dto.status;
     }
-    const isRejected =
+    const shouldTriggerModeration =
       (product.status === ProductStatus.DRAFT ||
-        product.status === ProductStatus.REJECTED) &&
-      product.moderationRejectedAt != null;
-    if (
-      isRejected &&
+        product.status === ProductStatus.REJECTED ||
+        product.status === ProductStatus.PUBLISHED) &&
       product.sellerId === userId &&
+      !canUpdateAny;
+
+    if (
+      shouldTriggerModeration &&
       (validatedImageIds !== undefined || Object.keys(updateData).length > 0)
     ) {
       updateData.status = ProductStatus.PENDING;
