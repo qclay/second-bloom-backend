@@ -109,6 +109,18 @@ export class ProductResponseDto {
   })
   isCharity!: boolean;
 
+  @ApiPropertyOptional({
+    description: 'Reason why the product was rejected by moderator.',
+    example: 'Auction ended without bids.',
+  })
+  moderationRejectionReason?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'When the product was rejected.',
+    example: '2026-01-04T17:15:29.000Z',
+  })
+  moderationRejectedAt?: string | null;
+
   @ApiProperty({ description: 'View count.', example: 45 })
   views!: number;
 
@@ -287,6 +299,8 @@ export class ProductResponseDto {
       status: product.status,
       isFeatured: product.isFeatured,
       isCharity: product.isCharity,
+      moderationRejectionReason: product.moderationRejectionReason,
+      moderationRejectedAt: toISOString(product.moderationRejectedAt),
       views: product.views,
 
       city: (product.cityRelation?.name ?? null) as string | null,
