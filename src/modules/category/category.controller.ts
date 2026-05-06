@@ -28,6 +28,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { ApiCommonErrorResponses } from '../../common/decorators/api-error-responses.decorator';
 import { ApiPaginatedResponse } from '../../common/decorators/api-success-responses.decorator';
