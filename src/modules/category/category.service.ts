@@ -99,6 +99,7 @@ export class CategoryService {
       isActive,
       parentId,
       cityId,
+      isCharity,
       includeChildren = false,
     } = query;
     const maxLimit = Math.min(limit, 100);
@@ -148,6 +149,7 @@ export class CategoryService {
           isActive: true,
           status: ProductStatus.PUBLISHED,
           ...(cityId && { cityId }),
+          ...(isCharity !== undefined && { isCharity }),
         },
       }),
       this.prisma.product.count({
@@ -157,6 +159,7 @@ export class CategoryService {
           status: ProductStatus.PUBLISHED,
           categoryId: null,
           ...(cityId && { cityId }),
+          ...(isCharity !== undefined && { isCharity }),
         },
       }),
     ]);
@@ -173,6 +176,7 @@ export class CategoryService {
               isActive: true,
               status: ProductStatus.PUBLISHED,
               ...(cityId && { cityId }),
+              ...(isCharity !== undefined && { isCharity }),
             },
             _count: { _all: true },
           });
@@ -208,6 +212,7 @@ export class CategoryService {
     id: string,
     includeChildren = false,
     cityId?: string,
+    isCharity?: boolean,
   ): Promise<CategoryResponseDto> {
     let category: Category | (Category & { children?: Category[] }) | null;
 
@@ -232,6 +237,7 @@ export class CategoryService {
         isActive: true,
         status: ProductStatus.PUBLISHED,
         ...(cityId && { cityId }),
+        ...(isCharity !== undefined && { isCharity }),
       },
     });
 

@@ -98,6 +98,9 @@ export class CategoryController {
     forbidden: false,
     conflict: false,
   })
+  @ApiQuery({ name: 'includeChildren', required: false, type: Boolean })
+  @ApiQuery({ name: 'cityId', required: false, type: String })
+  @ApiQuery({ name: 'isCharity', required: false, type: Boolean })
   @ApiResponse({
     status: 200,
     description: 'Category details',
@@ -112,11 +115,13 @@ export class CategoryController {
     @Param('id') id: string,
     @Query('includeChildren') includeChildren?: string,
     @Query('cityId') cityId?: string,
+    @Query('isCharity') isCharity?: string,
   ): Promise<CategoryResponseDto> {
     return this.categoryService.findById(
       id,
       includeChildren === 'true',
       cityId,
+      isCharity === 'true' ? true : isCharity === 'false' ? false : undefined,
     );
   }
 
