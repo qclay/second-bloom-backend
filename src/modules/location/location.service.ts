@@ -50,53 +50,53 @@ const COUNTRY_SLUG_TO_ISO: Record<string, string> = {
   kazakhstan: 'KZ',
 };
 
-const STATIC_COUNTRIES: CountrySelectionResponseDto[] = [
+const STATIC_COUNTRIES: any[] = [
   {
     id: 'uzbekistan',
-    name: 'Узбекистан',
+    name: { en: 'Uzbekistan', ru: 'Узбекистан', uz: "O'zbekiston" },
     countryCode: 'UZ',
     dialCode: '+998',
     cities: [
-      { id: 'tashkent', name: 'Ташкент' },
-      { id: 'samarkand', name: 'Самарканд' },
-      { id: 'bukhara', name: 'Бухара' },
-      { id: 'khiva', name: 'Хива' },
-      { id: 'namangan', name: 'Наманган' },
-      { id: 'andijan', name: 'Андижан' },
-      { id: 'fergana', name: 'Фергана' },
-      { id: 'karshi', name: 'Карши' },
-      { id: 'nukus', name: 'Нукус' },
-      { id: 'urgench', name: 'Ургенч' },
-      { id: 'jizzakh', name: 'Джизак' },
-      { id: 'navoi', name: 'Навои' },
-      { id: 'termez', name: 'Термез' },
-      { id: 'gulistan', name: 'Гулистан' },
+      { id: 'tashkent', name: { en: 'Tashkent', ru: 'Ташкент', uz: 'Toshkent' } },
+      { id: 'samarkand', name: { en: 'Samarkand', ru: 'Самарканд', uz: 'Samarqand' } },
+      { id: 'bukhara', name: { en: 'Bukhara', ru: 'Бухара', uz: 'Buxoro' } },
+      { id: 'khiva', name: { en: 'Khiva', ru: 'Хива', uz: 'Xiva' } },
+      { id: 'namangan', name: { en: 'Namangan', ru: 'Наманган', uz: 'Namangan' } },
+      { id: 'andijan', name: { en: 'Andijan', ru: 'Андижан', uz: 'Andijon' } },
+      { id: 'fergana', name: { en: 'Fergana', ru: 'Фергана', uz: "Farg'ona" } },
+      { id: 'karshi', name: { en: 'Karshi', ru: 'Карши', uz: 'Qarshi' } },
+      { id: 'nukus', name: { en: 'Nukus', ru: 'Нукус', uz: 'Nukus' } },
+      { id: 'urgench', name: { en: 'Urgench', ru: 'Ургенч', uz: 'Urganch' } },
+      { id: 'jizzakh', name: { en: 'Jizzakh', ru: 'Джизак', uz: 'Jizzax' } },
+      { id: 'navoi', name: { en: 'Navoi', ru: 'Навои', uz: 'Navoiy' } },
+      { id: 'termez', name: { en: 'Termez', ru: 'Термез', uz: 'Termiz' } },
+      { id: 'gulistan', name: { en: 'Gulistan', ru: 'Гулистан', uz: 'Guliston' } },
     ],
   },
   {
     id: 'kazakhstan',
-    name: 'Казахстан',
+    name: { en: 'Kazakhstan', ru: 'Казахстан', uz: 'Qozogiston' },
     countryCode: 'KZ',
     dialCode: '+7',
     cities: [
-      { id: 'almaty', name: 'Алматы' },
-      { id: 'astana', name: 'Астана' },
-      { id: 'shymkent', name: 'Шымкент' },
-      { id: 'karaganda', name: 'Караганда' },
-      { id: 'aktobe', name: 'Актобе' },
-      { id: 'taraz', name: 'Тараз' },
-      { id: 'pavlodar', name: 'Павлодар' },
-      { id: 'ust-kamenogorsk', name: 'Усть-Каменогорск' },
-      { id: 'semey', name: 'Семей' },
-      { id: 'kostanay', name: 'Костанай' },
-      { id: 'kyzylorda', name: 'Кызылорда' },
-      { id: 'uralsk', name: 'Уральск' },
-      { id: 'petropavlovsk', name: 'Петропавловск' },
-      { id: 'aktau', name: 'Актау' },
-      { id: 'atyrau', name: 'Атырау' },
-      { id: 'taldykorgan', name: 'Талдыкорган' },
-      { id: 'kokshetau', name: 'Кокшетау' },
-      { id: 'turkestan', name: 'Туркестан' },
+      { id: 'almaty', name: { en: 'Almaty', ru: 'Алматы', uz: 'Almati' } },
+      { id: 'astana', name: { en: 'Astana', ru: 'Астана', uz: 'Astana' } },
+      { id: 'shymkent', name: { en: 'Shymkent', ru: 'Шымкент', uz: 'Shimkent' } },
+      { id: 'karaganda', name: { en: 'Karaganda', ru: 'Караганда', uz: 'Karaganda' } },
+      { id: 'aktobe', name: { en: 'Aktobe', ru: 'Актобе', uz: 'Aktobe' } },
+      { id: 'taraz', name: { en: 'Taraz', ru: 'Тараз', uz: 'Taraz' } },
+      { id: 'pavlodar', name: { en: 'Pavlodar', ru: 'Павлодар', uz: 'Pavlodar' } },
+      { id: 'ust-kamenogorsk', name: { en: 'Ust-Kamenogorsk', ru: 'Усть-Каменогорск', uz: 'Ust-Kamenogorsk' } },
+      { id: 'semey', name: { en: 'Semey', ru: 'Семей', uz: 'Semey' } },
+      { id: 'kostanay', name: { en: 'Kostanay', ru: 'Костанай', uz: 'Kostanay' } },
+      { id: 'kyzylorda', name: { en: 'Kyzylorda', ru: 'Кызылорда', uz: 'Kizilorda' } },
+      { id: 'uralsk', name: { en: 'Uralsk', ru: 'Уральск', uz: 'Uralsk' } },
+      { id: 'petropavlovsk', name: { en: 'Petropavlovsk', ru: 'Петропавловск', uz: 'Petropavlovsk' } },
+      { id: 'aktau', name: { en: 'Aktau', ru: 'Актау', uz: 'Aktau' } },
+      { id: 'atyrau', name: { en: 'Atyrau', ru: 'Атырау', uz: 'Atirau' } },
+      { id: 'taldykorgan', name: { en: 'Taldykorgan', ru: 'Талдыкорган', uz: 'Taldikorgan' } },
+      { id: 'kokshetau', name: { en: 'Kokshetau', ru: 'Кокшетау', uz: 'Kokshetau' } },
+      { id: 'turkestan', name: { en: 'Turkestan', ru: 'Туркестан', uz: 'Turkistan' } },
     ],
   },
 ];
@@ -178,28 +178,36 @@ export class LocationService {
 
     const dbCities = await this.prisma.city.findMany({
       where: { isActive: true },
-      select: { id: true, name: true },
+      include: { districts: { where: { isActive: true } } },
     });
-
-    const enToUuid = new Map<string, string>();
+ 
+    const enToCity = new Map<string, any>();
     for (const city of dbCities) {
       const nameObj = city.name as Record<string, string> | null;
       const en = nameObj?.en?.toLowerCase().trim();
       if (en) {
-        enToUuid.set(en, city.id);
+        enToCity.set(en, city);
       }
     }
-
+ 
     const resolvedCountries: CountrySelectionResponseDto[] = STATIC_COUNTRIES.map(
       (country) => ({
         ...country,
-        cities: country.cities.map((c) => {
+        cities: country.cities.map((c: any) => {
           const enName = CITY_SLUG_TO_EN[c.id]?.toLowerCase().trim();
-          const uuid = enName ? enToUuid.get(enName) : undefined;
-          return { id: uuid ?? c.id, name: c.name };
+          const dbCity = enName ? enToCity.get(enName) : undefined;
+          return {
+            id: dbCity?.id ?? c.id,
+            name: dbCity?.name ?? c.name,
+            districts:
+              dbCity?.districts.map((d: any) => ({
+                id: d.id,
+                name: d.name,
+              })) ?? [],
+          };
         }),
       }),
-    );
+    ) as CountrySelectionResponseDto[];
 
     return resolvedCountries.filter((country) => {
       if (normalizedId && country.id.toLowerCase() !== normalizedId) {

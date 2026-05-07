@@ -48,20 +48,31 @@ export class DistrictResponseDto {
   cityId!: string;
 }
 
+export class CountrySelectionDistrictResponseDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440003' })
+  id!: string;
+
+  @ApiProperty({ example: 'Yunusabad', description: nameDesc })
+  name!: string | TranslationRecord;
+}
+
 export class CountrySelectionCityResponseDto {
   @ApiProperty({ example: 'tashkent' })
   id!: string;
 
-  @ApiProperty({ example: 'Tashkent' })
-  name!: string;
+  @ApiProperty({ example: 'Tashkent', description: nameDesc })
+  name!: string | TranslationRecord;
+
+  @ApiProperty({ type: CountrySelectionDistrictResponseDto, isArray: true })
+  districts!: CountrySelectionDistrictResponseDto[];
 }
 
 export class CountrySelectionResponseDto {
   @ApiProperty({ example: 'uzbekistan' })
   id!: string;
 
-  @ApiProperty({ example: 'Uzbekistan' })
-  name!: string;
+  @ApiProperty({ example: 'Uzbekistan', description: nameDesc })
+  name!: string | TranslationRecord;
 
   @ApiProperty({ example: 'UZ' })
   countryCode!: string;
