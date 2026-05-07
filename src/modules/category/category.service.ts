@@ -99,6 +99,7 @@ export class CategoryService {
       isActive,
       parentId,
       cityId,
+      districtId,
       isCharity,
       includeChildren = false,
     } = query;
@@ -149,6 +150,7 @@ export class CategoryService {
           isActive: true,
           status: ProductStatus.PUBLISHED,
           ...(cityId && { cityId }),
+          ...(districtId && { districtId }),
           ...(isCharity !== undefined && { isCharity }),
         },
       }),
@@ -159,6 +161,7 @@ export class CategoryService {
           status: ProductStatus.PUBLISHED,
           categoryId: null,
           ...(cityId && { cityId }),
+          ...(districtId && { districtId }),
           ...(isCharity !== undefined && { isCharity }),
         },
       }),
@@ -176,6 +179,7 @@ export class CategoryService {
               isActive: true,
               status: ProductStatus.PUBLISHED,
               ...(cityId && { cityId }),
+              ...(districtId && { districtId }),
               ...(isCharity !== undefined && { isCharity }),
             },
             _count: { _all: true },
@@ -212,6 +216,7 @@ export class CategoryService {
     id: string,
     includeChildren = false,
     cityId?: string,
+    districtId?: string,
     isCharity?: boolean,
   ): Promise<CategoryResponseDto> {
     let category: Category | (Category & { children?: Category[] }) | null;
@@ -237,6 +242,7 @@ export class CategoryService {
         isActive: true,
         status: ProductStatus.PUBLISHED,
         ...(cityId && { cityId }),
+        ...(districtId && { districtId }),
         ...(isCharity !== undefined && { isCharity }),
       },
     });

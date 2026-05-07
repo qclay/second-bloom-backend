@@ -73,6 +73,10 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @IsOptional()
   cityId?: string;
 
+  @IsUUID()
+  @IsOptional()
+  districtId?: string;
+
 
   @ApiPropertyOptional({
     description:

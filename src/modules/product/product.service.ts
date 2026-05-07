@@ -194,6 +194,9 @@ export class ProductService {
             ...(dto.cityId && {
               cityRelation: { connect: { id: dto.cityId } },
             }),
+            ...(dto.districtId && {
+              districtRelation: { connect: { id: dto.districtId } },
+            }),
             seller: {
               connect: { id: sellerId },
             },
@@ -267,6 +270,7 @@ export class ProductService {
         size: { select: { name: true } },
         condition: { select: { name: true } },
         cityRelation: { select: { name: true } },
+        districtRelation: { select: { name: true } },
 
         images: {
           where: { deletedAt: null, isActive: true },
@@ -318,6 +322,16 @@ export class ProductService {
           ru,
         )
         : (product.condition?.name as unknown as string | undefined);
+    const districtRaw = product.districtRelation?.name;
+    const districtName =
+      typeof districtRaw === 'string'
+        ? districtRaw
+        : districtRaw && typeof districtRaw === 'object'
+          ? resolveTranslation(
+            districtRaw as unknown as Record<string, string>,
+            ru,
+          )
+          : undefined;
 
     const rawPrice = product.price;
     const price =
@@ -351,6 +365,7 @@ export class ProductService {
         ? `Описание: ${description}${fullDescription.length > DESCRIPTION_MAX_LENGTH ? '…' : ''}`
         : '',
       cityName ? `Город: ${cityName}` : '',
+      districtName ? `Район: ${districtName}` : '',
       size ? `Размер: ${size}` : '',
       condition ? `Состояние: ${condition}` : '',
       `Цена: <b>${priceFormatted} ${currencyLabel}</b>`,
@@ -406,6 +421,7 @@ export class ProductService {
       status,
       salePhase,
       cityId,
+      districtId,
       minPrice,
       maxPrice,
       sortBy = 'createdAt',
@@ -541,6 +557,10 @@ export class ProductService {
       where.cityId = cityId;
     }
 
+    if (districtId) {
+      where.districtId = districtId;
+    }
+
     if (query.conditionId) {
       where.conditionId = query.conditionId;
     }
@@ -604,6 +624,7 @@ export class ProductService {
         },
       },
       cityRelation: { select: { name: true } },
+      districtRelation: { select: { name: true } },
       seller: {
         select: {
           id: true,
@@ -1012,6 +1033,7 @@ export class ProductService {
             },
           },
           cityRelation: { select: { name: true } },
+          districtRelation: { select: { name: true } },
           seller: {
             select: {
               id: true,
@@ -1282,6 +1304,7 @@ export class ProductService {
           },
         },
         cityRelation: { select: { name: true } },
+        districtRelation: { select: { name: true } },
         seller: {
           select: {
             id: true,
@@ -1697,6 +1720,12 @@ export class ProductService {
     if (dto.cityId !== undefined) {
       updateData.cityRelation = dto.cityId
         ? { connect: { id: dto.cityId } }
+        : { disconnect: true };
+    }
+
+    if (dto.districtId !== undefined) {
+      updateData.districtRelation = dto.districtId
+        ? { connect: { id: dto.districtId } }
         : { disconnect: true };
     }
 
