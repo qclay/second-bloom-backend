@@ -22,6 +22,11 @@ export class CategoryQueryDto {
   @IsString()
   cityId?: string;
 
+  @ApiPropertyOptional({ description: 'Filter products by district ID' })
+  @IsOptional()
+  @IsString()
+  districtId?: string;
+
   @ApiPropertyOptional({ description: 'Filter products by charity status' })
   @IsOptional()
   @Type(() => Boolean)

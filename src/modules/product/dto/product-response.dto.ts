@@ -127,6 +127,12 @@ export class ProductResponseDto {
   @ApiProperty({ nullable: true, example: 'Tashkent' })
   city!: string | null;
 
+  @ApiPropertyOptional({ nullable: true, example: 'Chilanzar' })
+  district!: string | null;
+
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440003' })
+  districtId?: string | null;
+
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440030' })
   sellerId!: string;
 
@@ -244,6 +250,7 @@ export class ProductResponseDto {
       };
 
       cityRelation?: { name: unknown } | null;
+      districtRelation?: { name: unknown } | null;
 
       images?: (ProductImage & { file?: { url: string } })[];
       activeAuction?: {
@@ -279,6 +286,7 @@ export class ProductResponseDto {
       price: Number(product.price),
       currency: product.currency,
       categoryId: product.categoryId,
+      districtId: product.districtId,
       tags: product.tags,
       type: product.type,
       condition: product.condition
@@ -304,6 +312,7 @@ export class ProductResponseDto {
       views: product.views,
 
       city: (product.cityRelation?.name ?? null) as string | null,
+      district: (product.districtRelation?.name ?? null) as string | null,
 
       sellerId: product.sellerId,
       createdAt: toISOString(product.createdAt) ?? '',

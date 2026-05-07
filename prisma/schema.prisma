@@ -381,6 +381,7 @@ model District {
   updatedAt DateTime  @updatedAt
   name      Json
   city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  products  Product[]
 
   @@index([cityId])
   @@index([isActive])
@@ -412,6 +413,7 @@ model Product {
   title                     Json?
   description               Json?
   cityId                    String?
+  districtId                String?
   moderationRejectedAt      DateTime?
   moderationRejectedById    String?
   moderationRejectionReason String?
@@ -422,6 +424,7 @@ model Product {
   images                    ProductImage[]
   category                  Category?      @relation(fields: [categoryId], references: [id])
   cityRelation              City?          @relation(fields: [cityId], references: [id])
+  districtRelation          District?      @relation(fields: [districtId], references: [id])
   condition                 Condition?     @relation(fields: [conditionId], references: [id])
   publicationPayment        Payment?       @relation("ProductPublicationPayment", fields: [publicationPaymentId], references: [id])
   seller                    User           @relation(fields: [sellerId], references: [id])
@@ -433,6 +436,7 @@ model Product {
   @@index([conditionId])
   @@index([sizeId])
   @@index([cityId])
+  @@index([districtId])
   @@index([isActive, deletedAt])
   @@index([status, deletedAt])
   @@index([status, type, categoryId])
@@ -440,6 +444,7 @@ model Product {
   @@index([categoryId, status])
   @@index([isFeatured, status])
   @@index([status, cityId])
+  @@index([status, districtId])
   @@index([createdAt])
   @@index([deletedAt])
   @@map("products")
