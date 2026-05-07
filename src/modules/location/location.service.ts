@@ -200,7 +200,7 @@ export class LocationService {
             id: dbCity?.id ?? c.id,
             name: dbCity?.name ?? c.name,
             districts:
-              dbCity?.districts.map((d: any) => ({
+              dbCity?.districts?.map((d: any) => ({
                 id: d.id,
                 name: d.name,
               })) ?? [],
@@ -226,7 +226,12 @@ export class LocationService {
         return true;
       }
 
-      const haystack = [country.name, country.countryCode, country.dialCode]
+      const nameValues =
+        typeof country.name === 'object'
+          ? Object.values(country.name).join(' ')
+          : country.name;
+
+      const haystack = [nameValues, country.countryCode, country.dialCode]
         .join(' ')
         .toLowerCase();
 

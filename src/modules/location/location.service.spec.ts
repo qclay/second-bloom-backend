@@ -2,19 +2,19 @@ import { LocationService } from './location.service';
 
 /** Minimal subset of the DB seed – only the cities needed for assertions */
 const MOCK_DB_CITIES = [
-  { id: 'uuid-tashkent', name: { en: 'Tashkent', ru: 'Ташкент', uz: 'Toshkent' } },
-  { id: 'uuid-samarkand', name: { en: 'Samarqand', ru: 'Самарканд', uz: 'Samarqand' } },
-  { id: 'uuid-bukhara', name: { en: 'Bukhara', ru: 'Бухара', uz: 'Buxoro' } },
-  { id: 'uuid-namangan', name: { en: 'Namangan', ru: 'Наманган', uz: 'Namangan' } },
-  { id: 'uuid-andijan', name: { en: 'Andijan', ru: 'Андижан', uz: 'Andijon' } },
-  { id: 'uuid-fergana', name: { en: 'Fergana', ru: 'Фергана', uz: "Farg'ona" } },
-  { id: 'uuid-karshi', name: { en: 'Qarshi', ru: 'Карши', uz: 'Qarshi' } },
-  { id: 'uuid-nukus', name: { en: 'Nukus', ru: 'Нукус', uz: 'Nukus' } },
-  { id: 'uuid-navoi', name: { en: 'Navoiy', ru: 'Навои', uz: 'Navoiy' } },
-  { id: 'uuid-termez', name: { en: 'Termiz', ru: 'Термез', uz: 'Termiz' } },
-  { id: 'uuid-gulistan', name: { en: 'Guliston', ru: 'Гулистан', uz: 'Guliston' } },
-  { id: 'uuid-jizzakh', name: { en: 'Jizzakh', ru: 'Джизак', uz: 'Jizzax' } },
-  { id: 'uuid-urgench', name: { en: 'Urgench', ru: 'Ургенч', uz: 'Urganch' } },
+  { id: 'uuid-tashkent', name: { en: 'Tashkent', ru: 'Ташкент', uz: 'Toshkent' }, districts: [] },
+  { id: 'uuid-samarkand', name: { en: 'Samarqand', ru: 'Самарканд', uz: 'Samarqand' }, districts: [] },
+  { id: 'uuid-bukhara', name: { en: 'Bukhara', ru: 'Бухара', uz: 'Buxoro' }, districts: [] },
+  { id: 'uuid-namangan', name: { en: 'Namangan', ru: 'Наманган', uz: 'Namangan' }, districts: [] },
+  { id: 'uuid-andijan', name: { en: 'Andijan', ru: 'Андижан', uz: 'Andijon' }, districts: [] },
+  { id: 'uuid-fergana', name: { en: 'Fergana', ru: 'Фергана', uz: "Farg'ona" }, districts: [] },
+  { id: 'uuid-karshi', name: { en: 'Qarshi', ru: 'Карши', uz: 'Qarshi' }, districts: [] },
+  { id: 'uuid-nukus', name: { en: 'Nukus', ru: 'Нукус', uz: 'Nukus' }, districts: [] },
+  { id: 'uuid-navoi', name: { en: 'Navoiy', ru: 'Навои', uz: 'Navoiy' }, districts: [] },
+  { id: 'uuid-termez', name: { en: 'Termiz', ru: 'Термез', uz: 'Termiz' }, districts: [] },
+  { id: 'uuid-gulistan', name: { en: 'Guliston', ru: 'Гулистан', uz: 'Guliston' }, districts: [] },
+  { id: 'uuid-jizzakh', name: { en: 'Jizzakh', ru: 'Джизак', uz: 'Jizzax' }, districts: [] },
+  { id: 'uuid-urgench', name: { en: 'Urgench', ru: 'Ургенч', uz: 'Urganch' }, districts: [] },
 ];
 
 function makePrismaMock() {
@@ -80,10 +80,10 @@ describe('LocationService static cities API', () => {
     const result = await service.getCities(undefined, 'uzbekistan');
     const uz = result[0];
 
-    const tashkent = uz.cities.find((c) => c.name === 'Ташкент');
+    const tashkent = uz.cities.find((c: any) => c.name.ru === 'Ташкент');
     expect(tashkent?.id).toBe('uuid-tashkent');
 
-    const samarkand = uz.cities.find((c) => c.name === 'Самарканд');
+    const samarkand = uz.cities.find((c: any) => c.name.ru === 'Самарканд');
     expect(samarkand?.id).toBe('uuid-samarkand');
   });
 
@@ -91,7 +91,7 @@ describe('LocationService static cities API', () => {
     const result = await service.getCities(undefined, 'kazakhstan');
     const kz = result[0];
 
-    const almaty = kz.cities.find((c) => c.name === 'Алматы');
+    const almaty = kz.cities.find((c: any) => c.name.ru === 'Алматы');
     expect(almaty?.id).toBe('almaty');
   });
 });
