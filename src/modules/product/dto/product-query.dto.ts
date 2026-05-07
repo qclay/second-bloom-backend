@@ -85,6 +85,13 @@ export class ProductQueryDto {
   @IsString()
   cityId?: string;
 
+  @ApiPropertyOptional({
+    description: 'Filter by district ID (from GET /locations/cities).',
+  })
+  @IsOptional()
+  @IsString()
+  districtId?: string;
+
 
   @ApiPropertyOptional({
     description: 'Filter by condition ID (from GET /conditions).',
